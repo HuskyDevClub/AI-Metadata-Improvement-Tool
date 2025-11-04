@@ -659,22 +659,26 @@ Describe what this column represents and its role in the dataset.</textarea>
             <div class="input-group">
                 <label>Choose Input Method</label>
                 <select id="inputMethod" onchange="toggleInputMethod()">
-                    <option value="file">Upload Local File</option>
                     <option value="url">Load from URL</option>
+                    <option value="file">Upload Local File</option>
                 </select>
             </div>
 
-            <div class="input-group" id="fileInputSection" style="margin-top: 15px;">
+            <div class="input-group" id="fileInputSection" style="margin-top: 15px; display: none;">
                 <label for="csvFile">Select CSV File *</label>
                 <div class="file-input-wrapper">
                     <input accept=".csv" id="csvFile" type="file">
                 </div>
             </div>
 
-            <div class="input-group" id="urlInputSection" style="margin-top: 15px; display: none;">
-                <label for="csvUrl">CSV URL *</label>
-                <input id="csvUrl" placeholder="https://example.com/data.csv" type="text">
-                <span class="help-text">Direct link to a CSV file</span>
+            <div class="input-group" id="urlInputSection" style="margin-top: 15px;">
+                <label for="csvUrl">CSV URL *</label><br>
+                <input id="csvUrl" placeholder="https://example.com/data.csv" style="width: 30%"
+                       type="text" value="https://data.wa.gov/api/v3/views/6fex-3r7d/query.csv"><br>
+                <span class="help-text">Direct link to a CSV file</span><br>
+                <label for="csvReqToken">App Token *</label><br>
+                <input id="csvReqToken" placeholder="Your App Token" style="width: 30%" type="text"
+                       value="nl6ItoEvwkB3QS7JgIcDAQrXU">
             </div>
 
             <button class="btn btn-primary" onclick="analyzeCSV()" style="margin-top: 20px;">
@@ -1210,7 +1214,7 @@ Describe what this column represents and its role in the dataset.</textarea>
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    showStatus('✅ JSON file downloaded successfully!', 'success');
+    showStatus('✅ File downloaded successfully!', 'success');
   }
 
   async function analyzeCSV() {
@@ -1255,6 +1259,9 @@ Describe what this column represents and its role in the dataset.</textarea>
           download: true,
           header: true,
           skipEmptyLines: true,
+          downloadRequestHeaders: {
+            'X-App-Token': document.getElementById('csvReqToken').value.trim()
+          },
           complete: function (results) {
             csvData = results.data;
             processData();
@@ -1291,6 +1298,11 @@ Describe what this column represents and its role in the dataset.</textarea>
     // Start AI processing
     processCSV();
   }
+
+  // Initialize the input method display on page load
+  document.addEventListener('DOMContentLoaded', function () {
+    toggleInputMethod();
+  });
 </script>
 </body>
 </html>
