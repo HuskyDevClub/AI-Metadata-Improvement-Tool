@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>CSV Analyzer with Azure AI</title>
+    <title>Open Data Demo - CSV Analyzer with Azure AI</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         * {
@@ -305,6 +305,155 @@
             font-style: italic;
         }
 
+        .how-it-works {
+            background: #f0f7ff;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .how-it-works h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .how-it-works ol {
+            margin-left: 20px;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        .how-it-works ol li {
+            margin-bottom: 8px;
+        }
+
+        .prompt-editor {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .prompt-editor h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .prompt-editor textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        .prompt-editor textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .editable-description {
+            position: relative;
+        }
+
+        .edit-icon {
+            cursor: pointer;
+            color: #667eea;
+            font-size: 18px;
+            margin-left: 10px;
+            transition: color 0.3s;
+        }
+
+        .edit-icon:hover {
+            color: #764ba2;
+        }
+
+        .description-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            margin-top: 10px;
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .export-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f7ff;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .export-section h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .btn-export {
+            background: #28a745;
+            color: white;
+            margin: 0 5px;
+        }
+
+        .btn-export:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .toggle-section {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-section::before {
+            content: '▼';
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .toggle-section.collapsed::before {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+        }
+
         @media (max-width: 768px) {
             .config-grid,
             .columns-grid {
@@ -316,32 +465,103 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>📊 CSV Analyzer with Azure AI</h1>
+        <h1>📊 Open Data Demo - CSV Analyzer with Azure AI</h1>
         <p>Upload a CSV file or provide a URL, and let Azure AI generate intelligent descriptions</p>
+        <p style="margin-top: 10px; font-size: 14px; opacity: 0.95;">
+            Developed by <strong>The Four Musketeers</strong>: Danny Yue, Wynter Lin, Felix Zhao, Julia Zhu
+        </p>
     </div>
 
     <div class="content">
+        <!-- How It Works -->
+        <div class="section">
+            <div class="how-it-works">
+                <h3>🔍 How It Works</h3>
+                <ol>
+                    <li><strong>Upload Your Data:</strong> Choose a CSV file from your computer or provide a URL to a
+                        hosted CSV file.
+                    </li>
+                    <li><strong>Automatic Analysis:</strong> The tool analyzes each column to determine its type
+                        (numeric, categorical, or text) and calculates relevant statistics.
+                    </li>
+                    <li><strong>AI-Powered Descriptions:</strong> Azure OpenAI generates intelligent descriptions:
+                        <ul style="margin-top: 5px;">
+                            <li>A comprehensive <strong>dataset overview</strong> based on filename, column names, and
+                                statistics
+                            </li>
+                            <li>Individual <strong>column descriptions</strong> that explain what each field represents
+                                and its role in the dataset
+                            </li>
+                        </ul>
+                    </li>
+                    <li><strong>Customize Everything:</strong> Edit prompts before generation and modify descriptions
+                        after they're created.
+                    </li>
+                    <li><strong>Export Results:</strong> Download all descriptions as JSON for documentation or further
+                        processing.
+                    </li>
+                </ol>
+            </div>
+        </div>
+
         <!-- Azure AI Configuration -->
         <div class="section">
             <div class="section-title">⚙️ Azure OpenAI Configuration</div>
             <div class="config-grid">
                 <div class="input-group">
                     <label for="azureEndpoint">Azure OpenAI Endpoint *</label>
-                    <input , id="azureEndpoint" placeholder="https://your-resource.openai.azure.com/" type="text"
-                           value="https://ydlin-2486-resource.cognitiveservices.azure.com/openai/deployments/gpt-5-nano/chat/completions?api-version=2025-01-01-preview">
+                    <input id="azureEndpoint" placeholder="https://your-resource.openai.azure.com" type="text"
+                           value="https://ydlin-2486-resource.cognitiveservices.azure.com">
                     <span class="help-text">Your Azure OpenAI resource endpoint</span>
                 </div>
                 <div class="input-group">
                     <label for="azureKey">API Key *</label>
-                    <input , id="azureKey" placeholder="Your Azure OpenAI API key" type="password"
+                    <input id="azureKey" placeholder="Your Azure OpenAI API key" type="password"
                            value="5N52Xsd8NJN0gR8l8Iek7ZgEyBLTgBRqABBFHPsbP8s8riHMgPtkJQQJ99BGACHYHv6XJ3w3AAAAACOGm3YD">
                     <span class="help-text">Found in Azure Portal under Keys and Endpoint</span>
                 </div>
                 <div class="input-group">
                     <label for="azureDeployment">Deployment Name *</label>
-                    <input , id="azureDeployment" placeholder="get-5-nano" type="text" value="get-5-nano">
+                    <input id="azureDeployment" placeholder="get-5-nano" type="text" value="gpt-5-nano">
                     <span class="help-text">Your model deployment name (e.g., gpt-4, gpt-35-turbo)</span>
                 </div>
+            </div>
+        </div>
+
+        <!-- Prompt Customization -->
+        <div class="section">
+            <div class="section-title toggle-section" onclick="toggleSection('promptSection')">
+                ✏️ Customize AI Prompts (Optional)
+            </div>
+            <div class="collapsible-content collapsed" id="promptSection">
+                <div class="prompt-editor">
+                    <h4>📋 Dataset Description Prompt Template</h4>
+                    <textarea id="datasetPromptTemplate">Generate a concise 2-3 sentence description of this dataset:
+
+File Name: {fileName}
+Number of Rows: {rowCount}
+Columns:
+{columnInfo}
+
+Provide a brief overview of what this dataset contains and its potential use cases.</textarea>
+                </div>
+
+                <div class="prompt-editor">
+                    <h4>📊 Column Description Prompt Template</h4>
+                    <textarea id="columnPromptTemplate">Given this dataset context:
+{datasetDescription}
+
+Generate a concise 1-2 sentence description for the column "{columnName}".
+
+Column statistics:
+{columnStats}
+
+Describe what this column represents and its role in the dataset.</textarea>
+                </div>
+                <p class="help-text" style="margin-top: 10px;">
+                    Use placeholders: {fileName}, {rowCount}, {columnInfo}, {datasetDescription}, {columnName},
+                    {columnStats}
+                </p>
             </div>
         </div>
 
@@ -389,6 +609,13 @@
                 <div class="progress-info" id="progressInfo"></div>
                 <div class="columns-grid" id="columnDescriptions"></div>
             </div>
+
+            <div class="export-section" id="exportSection" style="display: none;">
+                <h4>💾 Export Results</h4>
+                <button class="btn btn-export" onclick="exportToJSON()">
+                    📥 Download as JSON
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -397,6 +624,17 @@
   let csvData = null;
   let fileName = '';
   let columnStats = {};
+  let generatedResults = {
+    datasetDescription: '',
+    columnDescriptions: {}
+  };
+
+  function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    const toggle = section.previousElementSibling;
+    section.classList.toggle('collapsed');
+    toggle.classList.toggle('collapsed');
+  }
 
   function toggleInputMethod() {
     const method = document.getElementById('inputMethod').value;
@@ -437,14 +675,13 @@
   }
 
   async function callAzureOpenAI(prompt, config) {
-    const url = `${config.endpoint}`;
+    const url = `${config.endpoint.replace(/\/$/, '')}/openai/deployments/${config.deployment}/chat/completions?api-version=2025-01-01-preview`;
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.key}`,
-        'api-key': config.key
+        'Authorization': `Bearer ${config.key}`
       },
       body: JSON.stringify({
         messages: [
@@ -525,6 +762,57 @@
     };
   }
 
+  function makeEditable(elementId, columnName = null) {
+    const element = document.getElementById(elementId);
+    const currentText = element.querySelector('p').textContent;
+
+    const textarea = document.createElement('textarea');
+    textarea.className = 'description-textarea';
+    textarea.value = currentText;
+
+    const actions = document.createElement('div');
+    actions.className = 'edit-actions';
+    actions.innerHTML = `
+                <button class="btn btn-primary btn-small" onclick="saveEdit('${elementId}', '${columnName}')">💾 Save</button>
+                <button class="btn btn-secondary btn-small" onclick="cancelEdit('${elementId}', '${columnName}')">❌ Cancel</button>
+            `;
+
+    const container = element.querySelector('.editable-description') || element;
+    container.innerHTML = '';
+    container.appendChild(textarea);
+    container.appendChild(actions);
+  }
+
+  function saveEdit(elementId, columnName) {
+    const element = document.getElementById(elementId);
+    const textarea = element.querySelector('textarea');
+    const newText = textarea.value;
+
+    if (columnName && columnName !== 'null') {
+      generatedResults.columnDescriptions[columnName] = newText;
+    } else {
+      generatedResults.datasetDescription = newText;
+    }
+
+    renderDescription(elementId, newText, columnName);
+  }
+
+  function cancelEdit(elementId, columnName) {
+    const text = columnName && columnName !== 'null'
+      ? generatedResults.columnDescriptions[columnName]
+      : generatedResults.datasetDescription;
+    renderDescription(elementId, text, columnName);
+  }
+
+  function renderDescription(elementId, text, columnName = null) {
+    const element = document.getElementById(elementId);
+    const container = element.querySelector('.editable-description') || element;
+    container.innerHTML = `
+                <p>${text}</p>
+                <span class="edit-icon" onclick="makeEditable('${elementId}', '${columnName}')" title="Edit description">✏️</span>
+            `;
+  }
+
   async function generateDatasetDescription(config) {
     const columnInfo = Object.entries(columnStats).map(([col, info]) => {
       let desc = `- ${col} (${info.type})`;
@@ -538,14 +826,12 @@
       return desc;
     }).join('\n');
 
-    const prompt = `Generate a concise 2-3 sentence description of this dataset:
-
-File Name: ${fileName}
-Number of Rows: ${csvData.length}
-Columns:
-${columnInfo}
-
-Provide a brief overview of what this dataset contains and its potential use cases.`;
+    // Get custom prompt template
+    let promptTemplate = document.getElementById('datasetPromptTemplate').value;
+    const prompt = promptTemplate
+      .replace('{fileName}', fileName)
+      .replace('{rowCount}', csvData.length)
+      .replace('{columnInfo}', columnInfo);
 
     return await callAzureOpenAI(prompt, config);
   }
@@ -560,15 +846,12 @@ Provide a brief overview of what this dataset contains and its potential use cas
       statsText = `This is a text column with ${columnInfo.stats.uniqueCount} unique values. Sample values: ${columnInfo.stats.samples.slice(0, 3).join(', ')}.`;
     }
 
-    const prompt = `Given this dataset context:
-${datasetDesc}
-
-Generate a concise 1-2 sentence description for the column "${columnName}".
-
-Column statistics:
-${statsText}
-
-Describe what this column represents and its role in the dataset.`;
+    // Get custom prompt template
+    let promptTemplate = document.getElementById('columnPromptTemplate').value;
+    const prompt = promptTemplate
+      .replace('{datasetDescription}', datasetDesc)
+      .replace('{columnName}', columnName)
+      .replace('{columnStats}', statsText);
 
     return await callAzureOpenAI(prompt, config);
   }
@@ -577,24 +860,31 @@ Describe what this column represents and its role in the dataset.`;
     const config = validateConfig();
     if (!config) return;
 
+    // Show results section immediately
+    document.getElementById('results').classList.add('show');
+
     showStatus('Generating dataset description...', 'info');
 
     try {
       // Generate dataset description
       const datasetDesc = await generateDatasetDescription(config);
+      generatedResults.datasetDescription = datasetDesc;
 
       const descEl = document.getElementById('datasetDescription');
       descEl.innerHTML = `
                     <h3>📝 Overview</h3>
-                    <p>${datasetDesc}</p>
+                    <div class="editable-description" id="datasetDescContent">
+                        <p>${datasetDesc}</p>
+                        <span class="edit-icon" onclick="makeEditable('datasetDescContent', null)" title="Edit description">✏️</span>
+                    </div>
                     <p style="margin-top: 10px; font-size: 13px; color: #777;">
-                        <strong>File:</strong> ${fileName} | 
-                        <strong>Rows:</strong> ${csvData.length} | 
+                        <strong>File:</strong> ${fileName} |
+                        <strong>Rows:</strong> ${csvData.length} |
                         <strong>Columns:</strong> ${Object.keys(columnStats).length}
                     </p>
                 `;
 
-      // Generate column descriptions
+      // Generate column descriptions one by one
       const columns = Object.keys(columnStats);
       const columnsContainer = document.getElementById('columnDescriptions');
       columnsContainer.innerHTML = '';
@@ -608,11 +898,10 @@ Describe what this column represents and its role in the dataset.`;
         progressEl.textContent = `Generating descriptions... (${i + 1}/${columns.length})`;
         showStatus(`Generating description for column "${col}" (${i + 1}/${columns.length})`, 'info');
 
-        const colDesc = await generateColumnDescription(col, info, datasetDesc, config);
-
-        // Create column card
+        // Create placeholder card immediately
         const card = document.createElement('div');
         card.className = 'column-card';
+        card.id = `column-${col.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
         let typeClass = 'type-text';
         if (info.type === 'numeric') typeClass = 'type-numeric';
@@ -633,15 +922,32 @@ Describe what this column represents and its role in the dataset.`;
                             <span class="column-type ${typeClass}">${info.type}</span>
                         </h4>
                         <div class="column-stats">${statsHtml}</div>
-                        <div class="column-description">${colDesc}</div>
+                        <div class="column-description" id="colDesc-${col.replace(/[^a-zA-Z0-9]/g, '_')}">
+                            <div style="color: #999; font-style: italic;">⏳ Generating description...</div>
+                        </div>
                     `;
 
         columnsContainer.appendChild(card);
+
+        // Generate description
+        const colDesc = await generateColumnDescription(col, info, datasetDesc, config);
+        generatedResults.columnDescriptions[col] = colDesc;
+
+        // Update the card with the description
+        const descElement = document.getElementById(`colDesc-${col.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        descElement.innerHTML = `
+                        <div class="editable-description">
+                            <p>${colDesc}</p>
+                            <span class="edit-icon" onclick="makeEditable('colDesc-${col.replace(/[^a-zA-Z0-9]/g, '_')}', '${col}')" title="Edit description">✏️</span>
+                        </div>
+                    `;
       }
 
       progressEl.textContent = '';
       showStatus('✅ Analysis complete! All descriptions generated successfully.', 'success');
-      document.getElementById('results').classList.add('show');
+
+      // Show export section
+      document.getElementById('exportSection').style.display = 'block';
 
     } catch (error) {
       showStatus(`❌ Error: ${error.message}`, 'error');
@@ -649,11 +955,43 @@ Describe what this column represents and its role in the dataset.`;
     }
   }
 
+  function exportToJSON() {
+    const exportData = {
+      metadata: {
+        fileName: fileName,
+        rowCount: csvData.length,
+        columnCount: Object.keys(columnStats).length,
+        exportDate: new Date().toISOString()
+      },
+      datasetDescription: generatedResults.datasetDescription,
+      columns: Object.entries(columnStats).map(([name, info]) => ({
+        name: name,
+        type: info.type,
+        statistics: info.stats,
+        description: generatedResults.columnDescriptions[name] || ''
+      }))
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName.replace('.csv', '')}_analysis.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showStatus('✅ JSON file downloaded successfully!', 'success');
+  }
+
   async function analyzeCSV() {
     const inputMethod = document.getElementById('inputMethod').value;
 
     hideStatus();
     document.getElementById('results').classList.remove('show');
+    document.getElementById('exportSection').style.display = 'none';
+    generatedResults = {datasetDescription: '', columnDescriptions: {}};
 
     try {
       if (inputMethod === 'file') {
