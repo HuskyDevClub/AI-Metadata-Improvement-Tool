@@ -376,25 +376,6 @@
             color: #764ba2;
         }
 
-        .description-textarea {
-            width: 100%;
-            min-height: 80px;
-            padding: 10px;
-            border: 2px solid #667eea;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 14px;
-            line-height: 1.6;
-            resize: vertical;
-            margin-top: 10px;
-        }
-
-        .edit-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
         .btn-small {
             padding: 6px 12px;
             font-size: 12px;
@@ -424,6 +405,113 @@
             background: #218838;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .regenerate-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+            align-items: center;
+        }
+
+        .regenerate-controls .label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+
+        .btn-regenerate {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-regenerate:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+
+        .btn-regenerate:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-regenerate.concise {
+            background: #17a2b8;
+        }
+
+        .btn-regenerate.concise:hover {
+            background: #138496;
+        }
+
+        .btn-regenerate.detailed {
+            background: #28a745;
+        }
+
+        .btn-regenerate.detailed:hover {
+            background: #218838;
+        }
+
+        .custom-instruction-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .custom-instruction-input {
+            flex: 1;
+            padding: 6px 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .custom-instruction-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .regenerating {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .toggle-section {
@@ -465,7 +553,7 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>📊 Open Data Demo - CSV Analyzer with Azure AI</h1>
+        <h1>📊 CSV Analyzer with Azure AI</h1>
         <p>Upload a CSV file or provide a URL, and let Azure AI generate intelligent descriptions</p>
         <p style="margin-top: 10px; font-size: 14px; opacity: 0.95;">
             Developed by <strong>The Four Musketeers</strong>: Danny Yue, Wynter Lin, Felix Zhao, Julia Zhu
@@ -494,8 +582,8 @@
                             </li>
                         </ul>
                     </li>
-                    <li><strong>Customize Everything:</strong> Edit prompts before generation and modify descriptions
-                        after they're created.
+                    <li><strong>Customize Everything:</strong> Edit prompts before generation, modify descriptions after
+                        they're created, or regenerate any description with one click using the 🔄 icon.
                     </li>
                     <li><strong>Export Results:</strong> Download all descriptions as JSON for documentation or further
                         processing.
@@ -807,10 +895,152 @@ Describe what this column represents and its role in the dataset.</textarea>
   function renderDescription(elementId, text, columnName = null) {
     const element = document.getElementById(elementId);
     const container = element.querySelector('.editable-description') || element;
+
+    const isDataset = !columnName || columnName === 'null';
+    const controlsId = isDataset ? 'datasetControls' : `controls-${columnName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const customInputId = isDataset ? 'customInputDataset' : `customInput-${columnName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
     container.innerHTML = `
                 <p>${text}</p>
                 <span class="edit-icon" onclick="makeEditable('${elementId}', '${columnName}')" title="Edit description">✏️</span>
+                <div class="regenerate-controls" id="${controlsId}">
+                    <span class="label">Regenerate:</span>
+                    <button class="btn-regenerate" onclick="regenerateDescription('${isDataset ? 'dataset' : 'column'}', '', '', ${isDataset ? 'null' : `'${columnName}'`})" title="Regenerate with same prompt">
+                        🔄 Again
+                    </button>
+                    <button class="btn-regenerate concise" onclick="regenerateDescription('${isDataset ? 'dataset' : 'column'}', 'concise', '', ${isDataset ? 'null' : `'${columnName}'`})" title="Make more concise">
+                        ⚡ More Concise
+                    </button>
+                    <button class="btn-regenerate detailed" onclick="regenerateDescription('${isDataset ? 'dataset' : 'column'}', 'detailed', '', ${isDataset ? 'null' : `'${columnName}'`})" title="Make more detailed">
+                        📝 More Detailed
+                    </button>
+                    <div class="custom-instruction-wrapper">
+                        <input type="text" id="${customInputId}" class="custom-instruction-input" placeholder="Custom instruction..." />
+                        <button class="btn-regenerate" onclick="applyCustomInstruction('${isDataset ? 'dataset' : 'column'}', ${isDataset ? 'null' : `'${columnName}'`})" title="Apply custom instruction">
+                            ✨ Apply
+                        </button>
+                    </div>
+                </div>
             `;
+  }
+
+  async function regenerateDescription(target, modifier = '', customInstruction = '', columnName = null) {
+    const config = validateConfig();
+    if (!config) return;
+
+    const elementId = columnName ? `colDesc-${columnName.replace(/[^a-zA-Z0-9]/g, '_')}` : 'datasetDescContent';
+    const controlsId = columnName ? `controls-${columnName.replace(/[^a-zA-Z0-9]/g, '_')}` : 'datasetControls';
+
+    // Show loading state
+    const controlsElement = document.getElementById(controlsId);
+    const originalContent = controlsElement.innerHTML;
+    controlsElement.innerHTML = '<span class="regenerating"><span class="spinner"></span> Regenerating...</span>';
+
+    // Disable all regenerate buttons
+    document.querySelectorAll('.btn-regenerate').forEach(btn => btn.disabled = true);
+
+    try {
+      let newDescription;
+
+      if (target === 'dataset') {
+        newDescription = await regenerateDatasetDescription(config, modifier, customInstruction);
+        generatedResults.datasetDescription = newDescription;
+      } else {
+        const info = columnStats[columnName];
+        newDescription = await regenerateColumnDescription(columnName, info, config, modifier, customInstruction);
+        generatedResults.columnDescriptions[columnName] = newDescription;
+      }
+
+      // Update the display
+      renderDescription(elementId, newDescription, columnName);
+
+      showStatus(`✅ Successfully regenerated ${target === 'dataset' ? 'dataset' : 'column'} description!`, 'success');
+
+    } catch (error) {
+      controlsElement.innerHTML = originalContent;
+      showStatus(`❌ Error regenerating: ${error.message}`, 'error');
+      console.error('Regeneration error:', error);
+    }
+
+    // Re-enable all regenerate buttons
+    document.querySelectorAll('.btn-regenerate').forEach(btn => btn.disabled = false);
+  }
+
+  async function regenerateDatasetDescription(config, modifier, customInstruction) {
+    const columnInfo = Object.entries(columnStats).map(([col, info]) => {
+      let desc = `- ${col} (${info.type})`;
+      if (info.type === 'numeric') {
+        desc += `: range [${info.stats.min.toFixed(2)} - ${info.stats.max.toFixed(2)}], avg: ${info.stats.mean.toFixed(2)}, median: ${info.stats.median.toFixed(2)}`;
+      } else if (info.type === 'categorical') {
+        desc += `: ${info.stats.uniqueCount} unique values [${info.stats.values.join(', ')}${info.stats.hasMore ? ', ...' : ''}]`;
+      } else if (info.type === 'text') {
+        desc += `: ${info.stats.uniqueCount} unique values, samples: ${info.stats.samples.slice(0, 2).join(', ')}...`;
+      }
+      return desc;
+    }).join('\n');
+
+    let promptTemplate = document.getElementById('datasetPromptTemplate').value;
+    let prompt = promptTemplate
+      .replace('{fileName}', fileName)
+      .replace('{rowCount}', csvData.length)
+      .replace('{columnInfo}', columnInfo);
+
+    // Add modifiers
+    if (modifier === 'concise') {
+      prompt += '\n\nIMPORTANT: Make this description MORE CONCISE. Use fewer words while keeping key information.';
+    } else if (modifier === 'detailed') {
+      prompt += '\n\nIMPORTANT: Make this description MORE DETAILED. Provide additional context and insights.';
+    }
+
+    if (customInstruction) {
+      prompt += `\n\nAdditional instruction: ${customInstruction}`;
+    }
+
+    return await callAzureOpenAI(prompt, config);
+  }
+
+  async function regenerateColumnDescription(columnName, columnInfo, config, modifier, customInstruction) {
+    let statsText = '';
+    if (columnInfo.type === 'numeric') {
+      statsText = `This is a numeric column with values ranging from ${columnInfo.stats.min.toFixed(2)} to ${columnInfo.stats.max.toFixed(2)}. Average: ${columnInfo.stats.mean.toFixed(2)}, Median: ${columnInfo.stats.median.toFixed(2)}, Q1: ${columnInfo.stats.q1.toFixed(2)}, Q3: ${columnInfo.stats.q3.toFixed(2)}.`;
+    } else if (columnInfo.type === 'categorical') {
+      statsText = `This is a categorical column with ${columnInfo.stats.uniqueCount} unique values: ${columnInfo.stats.values.join(', ')}${columnInfo.stats.hasMore ? ', and more' : ''}.`;
+    } else if (columnInfo.type === 'text') {
+      statsText = `This is a text column with ${columnInfo.stats.uniqueCount} unique values. Sample values: ${columnInfo.stats.samples.slice(0, 3).join(', ')}.`;
+    }
+
+    let promptTemplate = document.getElementById('columnPromptTemplate').value;
+    let prompt = promptTemplate
+      .replace('{datasetDescription}', generatedResults.datasetDescription)
+      .replace('{columnName}', columnName)
+      .replace('{columnStats}', statsText);
+
+    // Add modifiers
+    if (modifier === 'concise') {
+      prompt += '\n\nIMPORTANT: Make this description MORE CONCISE. Use fewer words while keeping key information.';
+    } else if (modifier === 'detailed') {
+      prompt += '\n\nIMPORTANT: Make this description MORE DETAILED. Provide additional context and insights.';
+    }
+
+    if (customInstruction) {
+      prompt += `\n\nAdditional instruction: ${customInstruction}`;
+    }
+
+    return await callAzureOpenAI(prompt, config);
+  }
+
+  function applyCustomInstruction(target, columnName = null) {
+    const inputId = columnName ? `customInput-${columnName.replace(/[^a-zA-Z0-9]/g, '_')}` : 'customInputDataset';
+    const input = document.getElementById(inputId);
+    const instruction = input.value.trim();
+
+    if (!instruction) {
+      showStatus('Please enter a custom instruction', 'warning');
+      return;
+    }
+
+    regenerateDescription(target, '', instruction, columnName);
+    input.value = ''; // Clear the input
   }
 
   async function generateDatasetDescription(config) {
@@ -860,7 +1090,7 @@ Describe what this column represents and its role in the dataset.</textarea>
     const config = validateConfig();
     if (!config) return;
 
-    // Show results section immediately
+    // Show the results section immediately
     document.getElementById('results').classList.add('show');
 
     showStatus('Generating dataset description...', 'info');
@@ -873,16 +1103,18 @@ Describe what this column represents and its role in the dataset.</textarea>
       const descEl = document.getElementById('datasetDescription');
       descEl.innerHTML = `
                     <h3>📝 Overview</h3>
-                    <div class="editable-description" id="datasetDescContent">
-                        <p>${datasetDesc}</p>
-                        <span class="edit-icon" onclick="makeEditable('datasetDescContent', null)" title="Edit description">✏️</span>
+                    <div id="datasetDescContent" class="editable-description">
                     </div>
                     <p style="margin-top: 10px; font-size: 13px; color: #777;">
                         <strong>File:</strong> ${fileName} |
                         <strong>Rows:</strong> ${csvData.length} |
                         <strong>Columns:</strong> ${Object.keys(columnStats).length}
                     </p>
+                    <p style="margin-top: 10px; font-size: 12px; color: #999; font-style: italic;">
+                        💡 Tip: Use ✏️ to edit or 🔄 to regenerate any description
+                    </p>
                 `;
+      renderDescription('datasetDescContent', datasetDesc, null);
 
       // Generate column descriptions one by one
       const columns = Object.keys(columnStats);
@@ -898,7 +1130,7 @@ Describe what this column represents and its role in the dataset.</textarea>
         progressEl.textContent = `Generating descriptions... (${i + 1}/${columns.length})`;
         showStatus(`Generating description for column "${col}" (${i + 1}/${columns.length})`, 'info');
 
-        // Create placeholder card immediately
+        // Create a placeholder card immediately
         const card = document.createElement('div');
         card.className = 'column-card';
         card.id = `column-${col.replace(/[^a-zA-Z0-9]/g, '_')}`;
@@ -935,18 +1167,14 @@ Describe what this column represents and its role in the dataset.</textarea>
 
         // Update the card with the description
         const descElement = document.getElementById(`colDesc-${col.replace(/[^a-zA-Z0-9]/g, '_')}`);
-        descElement.innerHTML = `
-                        <div class="editable-description">
-                            <p>${colDesc}</p>
-                            <span class="edit-icon" onclick="makeEditable('colDesc-${col.replace(/[^a-zA-Z0-9]/g, '_')}', '${col}')" title="Edit description">✏️</span>
-                        </div>
-                    `;
+        descElement.innerHTML = '<div class="editable-description"></div>';
+        renderDescription(`colDesc-${col.replace(/[^a-zA-Z0-9]/g, '_')}`, colDesc, col);
       }
 
       progressEl.textContent = '';
       showStatus('✅ Analysis complete! All descriptions generated successfully.', 'success');
 
-      // Show export section
+      // Show the export section
       document.getElementById('exportSection').style.display = 'block';
 
     } catch (error) {
