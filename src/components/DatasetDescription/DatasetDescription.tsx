@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import styles from './DatasetDescription.module.css';
+import './DatasetDescription.css';
 
 interface DatasetDescriptionProps {
     description: string;
@@ -42,32 +42,32 @@ export function DatasetDescription({
     };
 
     return (
-        <div className={styles.section}>
-            <div className={styles.sectionTitle}>Dataset Description</div>
-            <div className={styles.descriptionBox}>
+        <div className="dataset-desc-section">
+            <div className="dataset-desc-section-title">Dataset Description</div>
+            <div className="dataset-desc-box">
                 <h3>Overview</h3>
 
                 {isEditing ? (
-                    <div className={styles.editMode}>
+                    <div className="dataset-desc-edit-mode">
             <textarea
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
-                className={styles.editTextarea}
+                className="dataset-desc-edit-textarea"
             />
-                        <div className={styles.editActions}>
-                            <button className={styles.btnPrimary} onClick={handleSave}>
+                        <div className="dataset-desc-edit-actions">
+                            <button className="dataset-desc-btn-primary" onClick={handleSave}>
                                 Save
                             </button>
-                            <button className={styles.btnSecondary} onClick={handleCancel}>
+                            <button className="dataset-desc-btn-secondary" onClick={handleCancel}>
                                 Cancel
                             </button>
                         </div>
                     </div>
                 ) : (
-                    <div className={styles.editableDescription}>
+                    <div className="dataset-desc-editable">
                         <p>{description}</p>
                         <span
-                            className={styles.editIcon}
+                            className="dataset-desc-edit-icon"
                             onClick={() => {
                                 setEditValue(description);
                                 setIsEditing(true);
@@ -79,47 +79,47 @@ export function DatasetDescription({
                     </div>
                 )}
 
-                <p className={styles.meta}>
+                <p className="dataset-desc-meta">
                     <strong>File:</strong> {fileName} | <strong>Rows:</strong> {rowCount} |{' '}
                     <strong>Columns:</strong> {columnCount}
                 </p>
 
                 {!isEditing && (
-                    <div className={styles.regenerateControls}>
+                    <div className="dataset-desc-regenerate-controls">
                         {isRegenerating ? (
-                            <span className={styles.regenerating}>
-                <span className={styles.spinner}></span> Regenerating...
+                            <span className="dataset-desc-regenerating">
+                <span className="dataset-desc-spinner"></span> Regenerating...
               </span>
                         ) : (
                             <>
-                                <span className={styles.label}>Regenerate:</span>
-                                <button className={styles.btnRegenerate} onClick={() => onRegenerate('')}
+                                <span className="dataset-desc-label">Regenerate:</span>
+                                <button className="dataset-desc-btn-regenerate" onClick={() => onRegenerate('')}
                                         title="Regenerate">
                                     Again
                                 </button>
                                 <button
-                                    className={`${styles.btnRegenerate} ${styles.concise}`}
+                                    className="dataset-desc-btn-regenerate concise"
                                     onClick={() => onRegenerate('concise')}
                                     title="Make more concise"
                                 >
                                     More Concise
                                 </button>
                                 <button
-                                    className={`${styles.btnRegenerate} ${styles.detailed}`}
+                                    className="dataset-desc-btn-regenerate detailed"
                                     onClick={() => onRegenerate('detailed')}
                                     title="Make more detailed"
                                 >
                                     More Detailed
                                 </button>
-                                <div className={styles.customInstructionWrapper}>
+                                <div className="dataset-desc-custom-instruction-wrapper">
                                     <input
                                         type="text"
                                         value={customInstruction}
                                         onChange={(e) => setCustomInstruction(e.target.value)}
-                                        className={styles.customInstructionInput}
+                                        className="dataset-desc-custom-instruction-input"
                                         placeholder="Custom instruction..."
                                     />
-                                    <button className={styles.btnRegenerate} onClick={handleCustomApply}
+                                    <button className="dataset-desc-btn-regenerate" onClick={handleCustomApply}
                                             title="Apply custom instruction">
                                         Apply
                                     </button>
@@ -129,7 +129,7 @@ export function DatasetDescription({
                     </div>
                 )}
 
-                <p className={styles.tip}>Tip: Use ✏️ to edit or regenerate buttons to modify the description</p>
+                <p className="dataset-desc-tip">Tip: Use ✏️ to edit or regenerate buttons to modify the description</p>
             </div>
         </div>
     );

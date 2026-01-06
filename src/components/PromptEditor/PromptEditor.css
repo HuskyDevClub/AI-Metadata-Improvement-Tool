@@ -1,8 +1,8 @@
-.section {
+.prompt-editor-section {
     margin-bottom: 30px;
 }
 
-.sectionTitle {
+.prompt-editor-section-title {
     font-size: 20px;
     font-weight: 600;
     color: #333;
@@ -11,7 +11,7 @@
     border-bottom: 2px solid #667eea;
 }
 
-.toggle {
+.prompt-editor-toggle {
     cursor: pointer;
     user-select: none;
     display: flex;
@@ -19,27 +19,27 @@
     gap: 10px;
 }
 
-.toggle::before {
+.prompt-editor-toggle::before {
     content: '\25BC';
     font-size: 12px;
     transition: transform 0.3s;
 }
 
-.toggle.collapsed::before {
+.prompt-editor-toggle.collapsed::before {
     transform: rotate(-90deg);
 }
 
-.content {
+.prompt-editor-content {
     max-height: 1000px;
     overflow: hidden;
     transition: max-height 0.3s ease-out;
 }
 
-.content.contentCollapsed {
+.prompt-editor-content.content-collapsed {
     max-height: 0;
 }
 
-.promptEditor {
+.prompt-editor-box {
     margin-top: 15px;
     padding: 15px;
     background: #f9f9f9;
@@ -47,14 +47,14 @@
     border-radius: 8px;
 }
 
-.promptEditor h4 {
+.prompt-editor-box h4 {
     color: #333;
     margin-bottom: 10px;
     font-size: 14px;
     font-weight: 600;
 }
 
-.promptEditor textarea {
+.prompt-editor-box textarea {
     width: 100%;
     min-height: 120px;
     padding: 10px;
@@ -65,12 +65,12 @@
     resize: vertical;
 }
 
-.promptEditor textarea:focus {
+.prompt-editor-box textarea:focus {
     outline: none;
     border-color: #667eea;
 }
 
-.helpText {
+.prompt-editor-help-text {
     font-size: 13px;
     color: #777;
     margin-top: 10px;

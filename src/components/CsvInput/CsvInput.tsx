@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import styles from './CsvInput.module.css';
+import './CsvInput.css';
 
 interface CsvInputProps {
     onAnalyze: (method: 'file' | 'url', file?: File, url?: string, appToken?: string) => void;
@@ -21,9 +21,9 @@ export function CsvInput({onAnalyze, isProcessing}: CsvInputProps) {
     };
 
     return (
-        <div className={styles.section}>
-            <div className={styles.sectionTitle}>CSV Data Source</div>
-            <div className={styles.inputGroup}>
+        <div className="csv-input-section">
+            <div className="csv-input-section-title">CSV Data Source</div>
+            <div className="csv-input-group">
                 <label>Choose Input Method</label>
                 <select value={inputMethod} onChange={(e) => setInputMethod(e.target.value as 'file' | 'url')}>
                     <option value="url">Load from URL</option>
@@ -32,9 +32,9 @@ export function CsvInput({onAnalyze, isProcessing}: CsvInputProps) {
             </div>
 
             {inputMethod === 'file' ? (
-                <div className={styles.inputGroup} style={{marginTop: '15px'}}>
+                <div className="csv-input-group" style={{marginTop: '15px'}}>
                     <label htmlFor="csvFile">Select CSV File *</label>
-                    <div className={styles.fileInputWrapper}>
+                    <div className="csv-input-file-wrapper">
                         <input
                             id="csvFile"
                             type="file"
@@ -45,7 +45,7 @@ export function CsvInput({onAnalyze, isProcessing}: CsvInputProps) {
                 </div>
             ) : (
                 <div style={{marginTop: '15px'}}>
-                    <div className={styles.inputGroup}>
+                    <div className="csv-input-group">
                         <label htmlFor="csvUrl">CSV URL *</label>
                         <input
                             id="csvUrl"
@@ -53,11 +53,11 @@ export function CsvInput({onAnalyze, isProcessing}: CsvInputProps) {
                             placeholder="https://example.com/data.csv"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
-                            className={styles.urlInput}
+                            className="csv-input-url-input"
                         />
-                        <span className={styles.helpText}>Direct link to a CSV file</span>
+                        <span className="csv-input-help-text">Direct link to a CSV file</span>
                     </div>
-                    <div className={styles.inputGroup} style={{marginTop: '10px'}}>
+                    <div className="csv-input-group" style={{marginTop: '10px'}}>
                         <label htmlFor="csvReqToken">App Token (Optional)</label>
                         <input
                             id="csvReqToken"
@@ -65,14 +65,14 @@ export function CsvInput({onAnalyze, isProcessing}: CsvInputProps) {
                             placeholder="Your App Token"
                             value={appToken}
                             onChange={(e) => setAppToken(e.target.value)}
-                            className={styles.urlInput}
+                            className="csv-input-url-input"
                         />
                     </div>
                 </div>
             )}
 
             <button
-                className={styles.btnPrimary}
+                className="csv-input-btn-primary"
                 onClick={handleAnalyze}
                 disabled={isProcessing || (inputMethod === 'file' && !file) || (inputMethod === 'url' && !url)}
                 style={{marginTop: '20px'}}

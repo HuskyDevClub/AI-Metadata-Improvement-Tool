@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { PromptTemplates } from '../../types';
-import styles from './PromptEditor.module.css';
+import './PromptEditor.css';
 
 interface PromptEditorProps {
     templates: PromptTemplates;
@@ -11,15 +11,15 @@ export function PromptEditor({templates, onChange}: PromptEditorProps) {
     const [isCollapsed, setIsCollapsed] = useState(true);
 
     return (
-        <div className={styles.section}>
+        <div className="prompt-editor-section">
             <div
-                className={`${styles.sectionTitle} ${styles.toggle} ${isCollapsed ? styles.collapsed : ''}`}
+                className={`prompt-editor-section-title prompt-editor-toggle ${isCollapsed ? 'collapsed' : ''}`}
                 onClick={() => setIsCollapsed(!isCollapsed)}
             >
                 Customize AI Prompts (Optional)
             </div>
-            <div className={`${styles.content} ${isCollapsed ? styles.contentCollapsed : ''}`}>
-                <div className={styles.promptEditor}>
+            <div className={`prompt-editor-content ${isCollapsed ? 'content-collapsed' : ''}`}>
+                <div className="prompt-editor-box">
                     <h4>Dataset Description Prompt Template</h4>
                     <textarea
                         value={templates.dataset}
@@ -27,14 +27,14 @@ export function PromptEditor({templates, onChange}: PromptEditorProps) {
                     />
                 </div>
 
-                <div className={styles.promptEditor}>
+                <div className="prompt-editor-box">
                     <h4>Column Description Prompt Template</h4>
                     <textarea
                         value={templates.column}
                         onChange={(e) => onChange({...templates, column: e.target.value})}
                     />
                 </div>
-                <p className={styles.helpText}>
+                <p className="prompt-editor-help-text">
                     Use placeholders: {'{fileName}'}, {'{rowCount}'}, {'{columnInfo}'}, {'{datasetDescription}'},{' '}
                     {'{columnName}'}, {'{columnStats}'}
                 </p>

@@ -1,8 +1,8 @@
-.section {
+.csv-input-section {
     margin-bottom: 30px;
 }
 
-.sectionTitle {
+.csv-input-section-title {
     font-size: 20px;
     font-weight: 600;
     color: #333;
@@ -11,20 +11,20 @@
     border-bottom: 2px solid #667eea;
 }
 
-.inputGroup {
+.csv-input-group {
     display: flex;
     flex-direction: column;
 }
 
-.inputGroup label {
+.csv-input-group label {
     font-size: 14px;
     font-weight: 500;
     color: #555;
     margin-bottom: 5px;
 }
 
-.inputGroup input,
-.inputGroup select {
+.csv-input-group input,
+.csv-input-group select {
     padding: 10px;
     border: 2px solid #e0e0e0;
     border-radius: 6px;
@@ -32,34 +32,34 @@
     transition: border-color 0.3s;
 }
 
-.inputGroup input:focus,
-.inputGroup select:focus {
+.csv-input-group input:focus,
+.csv-input-group select:focus {
     outline: none;
     border-color: #667eea;
 }
 
-.urlInput {
+.csv-input-url-input {
     width: 50%;
 }
 
-.fileInputWrapper {
+.csv-input-file-wrapper {
     display: flex;
     gap: 10px;
     align-items: center;
 }
 
-.fileInputWrapper input[type='file'] {
+.csv-input-file-wrapper input[type='file'] {
     flex: 1;
 }
 
-.helpText {
+.csv-input-help-text {
     font-size: 13px;
     color: #777;
     margin-top: 5px;
     font-style: italic;
 }
 
-.btnPrimary {
+.csv-input-btn-primary {
     padding: 12px 24px;
     border: none;
     border-radius: 6px;
@@ -73,19 +73,19 @@
     color: white;
 }
 
-.btnPrimary:hover:not(:disabled) {
+.csv-input-btn-primary:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
 
-.btnPrimary:disabled {
+.csv-input-btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
 }
 
 @media (max-width: 768px) {
-    .urlInput {
+    .csv-input-url-input {
         width: 100%;
     }
 }

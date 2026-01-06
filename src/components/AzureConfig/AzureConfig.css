@@ -1,8 +1,8 @@
-.section {
+.azure-config-section {
     margin-bottom: 30px;
 }
 
-.sectionTitle {
+.azure-config-section-title {
     font-size: 20px;
     font-weight: 600;
     color: #333;
@@ -11,26 +11,26 @@
     border-bottom: 2px solid #667eea;
 }
 
-.configGrid {
+.azure-config-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 15px;
     margin-bottom: 20px;
 }
 
-.inputGroup {
+.azure-config-input-group {
     display: flex;
     flex-direction: column;
 }
 
-.inputGroup label {
+.azure-config-input-group label {
     font-size: 14px;
     font-weight: 500;
     color: #555;
     margin-bottom: 5px;
 }
 
-.inputGroup input {
+.azure-config-input-group input {
     padding: 10px;
     border: 2px solid #e0e0e0;
     border-radius: 6px;
@@ -38,12 +38,12 @@
     transition: border-color 0.3s;
 }
 
-.inputGroup input:focus {
+.azure-config-input-group input:focus {
     outline: none;
     border-color: #667eea;
 }
 
-.helpText {
+.azure-config-help-text {
     font-size: 13px;
     color: #777;
     margin-top: 5px;
@@ -51,7 +51,7 @@
 }
 
 @media (max-width: 768px) {
-    .configGrid {
+    .azure-config-grid {
         grid-template-columns: 1fr;
     }
 }

@@ -1,5 +1,5 @@
 import type { AzureConfig as AzureConfigType } from '../../types';
-import styles from './AzureConfig.module.css';
+import './AzureConfig.css';
 
 interface AzureConfigProps {
     config: AzureConfigType;
@@ -12,10 +12,10 @@ export function AzureConfig({config, onChange}: AzureConfigProps) {
     };
 
     return (
-        <div className={styles.section}>
-            <div className={styles.sectionTitle}>Azure OpenAI Configuration</div>
-            <div className={styles.configGrid}>
-                <div className={styles.inputGroup}>
+        <div className="azure-config-section">
+            <div className="azure-config-section-title">Azure OpenAI Configuration</div>
+            <div className="azure-config-grid">
+                <div className="azure-config-input-group">
                     <label htmlFor="azureEndpoint">Azure OpenAI Endpoint *</label>
                     <input
                         id="azureEndpoint"
@@ -24,9 +24,9 @@ export function AzureConfig({config, onChange}: AzureConfigProps) {
                         value={config.endpoint}
                         onChange={(e) => handleChange('endpoint', e.target.value)}
                     />
-                    <span className={styles.helpText}>Your Azure OpenAI resource endpoint</span>
+                    <span className="azure-config-help-text">Your Azure OpenAI resource endpoint</span>
                 </div>
-                <div className={styles.inputGroup}>
+                <div className="azure-config-input-group">
                     <label htmlFor="azureKey">API Key *</label>
                     <input
                         id="azureKey"
@@ -35,9 +35,9 @@ export function AzureConfig({config, onChange}: AzureConfigProps) {
                         value={config.key}
                         onChange={(e) => handleChange('key', e.target.value)}
                     />
-                    <span className={styles.helpText}>Found in Azure Portal under Keys and Endpoint</span>
+                    <span className="azure-config-help-text">Found in Azure Portal under Keys and Endpoint</span>
                 </div>
-                <div className={styles.inputGroup}>
+                <div className="azure-config-input-group">
                     <label htmlFor="azureDeployment">Deployment Name *</label>
                     <input
                         id="azureDeployment"
@@ -46,7 +46,8 @@ export function AzureConfig({config, onChange}: AzureConfigProps) {
                         value={config.deployment}
                         onChange={(e) => handleChange('deployment', e.target.value)}
                     />
-                    <span className={styles.helpText}>Your model deployment name (e.g., gpt-4, gpt-35-turbo)</span>
+                    <span
+                        className="azure-config-help-text">Your model deployment name (e.g., gpt-4, gpt-35-turbo)</span>
                 </div>
             </div>
         </div>

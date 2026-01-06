@@ -1,19 +1,19 @@
 import { useState } from 'react';
-import styles from './HowItWorks.module.css';
+import './HowItWorks.css';
 
 export function HowItWorks() {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     return (
-        <div className={styles.section}>
-            <div className={styles.howItWorks}>
+        <div className="how-it-works-section">
+            <div className="how-it-works-box">
                 <h3
-                    className={`${styles.toggle} ${isCollapsed ? styles.collapsed : ''}`}
+                    className={`how-it-works-toggle ${isCollapsed ? 'collapsed' : ''}`}
                     onClick={() => setIsCollapsed(!isCollapsed)}
                 >
                     How It Works
                 </h3>
-                <div className={`${styles.content} ${isCollapsed ? styles.contentCollapsed : ''}`}>
+                <div className={`how-it-works-content ${isCollapsed ? 'content-collapsed' : ''}`}>
                     <ol>
                         <li>
                             <strong>Upload Your Data:</strong> Choose a CSV file from your computer or provide a URL

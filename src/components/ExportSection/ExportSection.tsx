@@ -1,4 +1,4 @@
-import styles from './ExportSection.module.css';
+import './ExportSection.css';
 
 interface ExportSectionProps {
     onExport: () => void;
@@ -6,9 +6,9 @@ interface ExportSectionProps {
 
 export function ExportSection({onExport}: ExportSectionProps) {
     return (
-        <div className={styles.exportSection}>
+        <div className="export-section">
             <h4>Export Results</h4>
-            <button className={styles.btnExport} onClick={onExport}>
+            <button className="export-section-btn" onClick={onExport}>
                 Download as JSON
             </button>
         </div>
