@@ -1,0 +1,84 @@
+import { useState } from 'react';
+import styles from './CsvInput.module.css';
+
+interface CsvInputProps {
+    onAnalyze: (method: 'file' | 'url', file?: File, url?: string, appToken?: string) => void;
+    isProcessing: boolean;
+}
+
+export function CsvInput({onAnalyze, isProcessing}: CsvInputProps) {
+    const [inputMethod, setInputMethod] = useState<'file' | 'url'>('url');
+    const [file, setFile] = useState<File | null>(null);
+    const [url, setUrl] = useState('https://data.wa.gov/api/v3/views/6fex-3r7d/query.csv');
+    const [appToken, setAppToken] = useState('nl6ItoEvwkB3QS7JgIcDAQrXU');
+
+    const handleAnalyze = () => {
+        if (inputMethod === 'file' && file) {
+            onAnalyze('file', file);
+        } else if (inputMethod === 'url' && url) {
+            onAnalyze('url', undefined, url, appToken);
+        }
+    };
+
+    return (
+        <div className={styles.section}>
+            <div className={styles.sectionTitle}>CSV Data Source</div>
+            <div className={styles.inputGroup}>
+                <label>Choose Input Method</label>
+                <select value={inputMethod} onChange={(e) => setInputMethod(e.target.value as 'file' | 'url')}>
+                    <option value="url">Load from URL</option>
+                    <option value="file">Upload Local File</option>
+                </select>
+            </div>
+
+            {inputMethod === 'file' ? (
+                <div className={styles.inputGroup} style={{marginTop: '15px'}}>
+                    <label htmlFor="csvFile">Select CSV File *</label>
+                    <div className={styles.fileInputWrapper}>
+                        <input
+                            id="csvFile"
+                            type="file"
+                            accept=".csv"
+                            onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        />
+                    </div>
+                </div>
+            ) : (
+                <div style={{marginTop: '15px'}}>
+                    <div className={styles.inputGroup}>
+                        <label htmlFor="csvUrl">CSV URL *</label>
+                        <input
+                            id="csvUrl"
+                            type="text"
+                            placeholder="https://example.com/data.csv"
+                            value={url}
+                            onChange={(e) => setUrl(e.target.value)}
+                            className={styles.urlInput}
+                        />
+                        <span className={styles.helpText}>Direct link to a CSV file</span>
+                    </div>
+                    <div className={styles.inputGroup} style={{marginTop: '10px'}}>
+                        <label htmlFor="csvReqToken">App Token (Optional)</label>
+                        <input
+                            id="csvReqToken"
+                            type="text"
+                            placeholder="Your App Token"
+                            value={appToken}
+                            onChange={(e) => setAppToken(e.target.value)}
+                            className={styles.urlInput}
+                        />
+                    </div>
+                </div>
+            )}
+
+            <button
+                className={styles.btnPrimary}
+                onClick={handleAnalyze}
+                disabled={isProcessing || (inputMethod === 'file' && !file) || (inputMethod === 'url' && !url)}
+                style={{marginTop: '20px'}}
+            >
+                {isProcessing ? 'Processing...' : 'Analyze CSV'}
+            </button>
+        </div>
+    );
+}

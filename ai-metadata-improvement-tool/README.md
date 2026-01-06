@@ -1,80 +1,158 @@
-# React + TypeScript + Vite
+# AI Metadata Improvement Tool
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Generative AI tool designed to assist data publishers in improving the quality, consistency, and accessibility of
+metadata on the Washington State Open Data Portal ([data.wa.gov](https://data.wa.gov)).
 
-Currently, two official plugins are available:
+## Project Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react)
-  uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used
-  in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc)
-  uses [SWC](https://swc.rs/) for Fast Refresh
+This project was developed as part of the **MSIM Capstone** program in partnership with **Washington Technology
+Solutions** and the **State of Washington Open Data Program**.
 
-## React Compiler
+High-value datasets regarding state licensing, transportation, healthcare, and fiscal matters are hosted on the Socrata
+platform. However, metadata often falls short of completeness or fails to use "plain language," making it difficult for
+the public to utilize these resources. This tool addresses that gap by using AI to generate compliant, descriptive
+metadata automatically.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it,
-see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Goals and Objectives
 
-## Expanding the ESLint configuration
+- **Automate Metadata Generation**: Utilize LLMs to analyze dataset samples and schemas to suggest titles, descriptions,
+  and column definitions automatically
+- **Enhance Accessibility & Consistency**: Enforce Plain Language standards (expanding acronyms, simplifying jargon) and
+  ensure consistency with U.S. open data standards
+- **Enable User Iteration**: Create a "Human-in-the-Loop" workflow that lets publishers accept, reject, or regenerate
+  suggestions with specific instructions
+- **Cost & Performance Optimization**: Generate high-quality descriptions quickly and cost-effectively for sustainable
+  public-sector use
+- **Platform Independence**: Free, open-access tool deployable without reliance on ongoing subscriptions
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Features
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **CSV Input**: Upload local files or load directly from Socrata API URLs
+- **Automatic Column Analysis**: Detects numeric, categorical, and text columns with statistical summaries
+- **AI-Powered Descriptions**: Generates dataset overviews and column descriptions using Azure OpenAI
+- **Human-in-the-Loop Workflow**: Accept, reject, or regenerate suggestions with custom instructions (e.g., "make this
+  more concise")
+- **Customizable Prompts**: Edit AI prompt templates to align with metadata guidelines
+- **Regeneration Options**: Regenerate with different styles (concise, detailed, or custom instructions)
+- **JSON Export**: Download results in structured format for integration with Socrata
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Getting Started
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Prerequisites
+
+- Node.js 18+
+- An Azure OpenAI resource with a deployed model (e.g., GPT-4, GPT-3.5-turbo)
+
+### Installation
+
+```bash
+cd csv-analyzer
+npm install
 ```
 
-You can also
-install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x)
-and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom)
-for React-specific lint rules:
+### Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
 ```
+
+Opens the app at [http://localhost:5173](http://localhost:5173)
+
+### Production Build
+
+```bash
+npm run build
+```
+
+## Usage
+
+1. **Configure Azure OpenAI**: Enter your Azure OpenAI endpoint, API key, and deployment name
+2. **Load CSV Data**:
+
+- Upload a local CSV file, or
+- Provide a Socrata API URL (e.g., `https://data.wa.gov/api/v3/views/{dataset-id}/query.csv`)
+
+3. **Analyze**: Click "Analyze CSV" to start the analysis
+4. **Review Results**: View the generated dataset description and individual column descriptions
+5. **Iterate**:
+
+- Edit descriptions inline with the ✏️ button
+- Regenerate with "More Concise", "More Detailed", or custom instructions
+
+6. **Export**: Download results as JSON for documentation or Socrata integration
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── Header/              # App header with project info
+│   ├── HowItWorks/          # User instructions
+│   ├── AzureConfig/         # Azure OpenAI configuration
+│   ├── PromptEditor/        # Customizable prompt templates
+│   ├── CsvInput/            # File upload / URL input
+│   ├── StatusMessage/       # Status and error alerts
+│   ├── DatasetDescription/  # Dataset overview with edit/regenerate
+│   ├── ColumnCard/          # Column cards with stats and descriptions
+│   └── ExportSection/       # JSON export functionality
+├── hooks/
+│   └── useAzureOpenAI.ts    # Azure OpenAI API integration
+├── utils/
+│   ├── columnAnalyzer.ts    # Column type detection & statistics
+│   └── csvParser.ts         # CSV parsing (PapaParse wrapper)
+├── types/
+│   └── index.ts             # TypeScript type definitions
+├── styles/
+│   └── global.css           # Global styles
+├── App.tsx                  # Main application component
+└── main.tsx                 # Entry point
+```
+
+## Technology Stack
+
+| Category      | Technology                       |
+|---------------|----------------------------------|
+| Frontend      | React 18, TypeScript, Vite       |
+| Styling       | CSS Modules                      |
+| CSV Parsing   | PapaParse                        |
+| AI/LLM        | Microsoft Azure OpenAI           |
+| Data Platform | Tyler Technologies / Socrata API |
+
+## Integration with Socrata
+
+This tool is designed to work with government data portals running on the **Tyler Technologies Socrata platform**,
+including:
+
+- Washington State ([data.wa.gov](https://data.wa.gov))
+- And dozens of other U.S. cities, counties, and states
+
+To fetch data directly from Socrata:
+
+1. Select "Load from URL" in the CSV Data Source section
+2. Enter the Socrata API endpoint URL
+3. Provide your App Token (if required)
+
+## Project Sponsor
+
+**Washington Technology Solutions**
+State of Washington Open Data Program
+
+## Team
+
+| Name       | Role                     |
+|------------|--------------------------|
+| Wynter Lin | AI & Cloud Computing     |
+| Danny Yue  | UI/UX & Machine Learning |
+| Felix Zhao | DS & Backend Development |
+| Julia Zhu  | BI & Data Visualization  |
+
+## License
+
+This project is open-access and free to use, designed for replication by other government data portals using the Socrata
+platform.
+
+## Acknowledgments
+
+- Washington State Open Data Program
+- Cathi Greenwood, Open Data Program Manager
+- Kathleen Sullivan, Open Data Literacy Consultant

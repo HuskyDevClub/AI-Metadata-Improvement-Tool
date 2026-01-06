@@ -1,0 +1,29 @@
+.status {
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.info {
+    background: #e3f2fd;
+    color: #1976d2;
+    border-left: 4px solid #1976d2;
+}
+
+.success {
+    background: #e8f5e9;
+    color: #388e3c;
+    border-left: 4px solid #388e3c;
+}
+
+.error {
+    background: #ffebee;
+    color: #c62828;
+    border-left: 4px solid #c62828;
+}
+
+.warning {
+    background: #fff3e0;
+    color: #f57c00;
+    border-left: 4px solid #f57c00;
+}

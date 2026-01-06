@@ -1,0 +1,57 @@
+.section {
+    margin-bottom: 30px;
+}
+
+.sectionTitle {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #667eea;
+}
+
+.configGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+}
+
+.inputGroup label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.inputGroup input {
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.inputGroup input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.helpText {
+    font-size: 13px;
+    color: #777;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .configGrid {
+        grid-template-columns: 1fr;
+    }
+}

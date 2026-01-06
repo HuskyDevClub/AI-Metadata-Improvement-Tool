@@ -1,0 +1,91 @@
+.section {
+    margin-bottom: 30px;
+}
+
+.sectionTitle {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #667eea;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+}
+
+.inputGroup label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.inputGroup input,
+.inputGroup select {
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.inputGroup input:focus,
+.inputGroup select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.urlInput {
+    width: 50%;
+}
+
+.fileInputWrapper {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.fileInputWrapper input[type='file'] {
+    flex: 1;
+}
+
+.helpText {
+    font-size: 13px;
+    color: #777;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.btnPrimary {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btnPrimary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btnPrimary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+@media (max-width: 768px) {
+    .urlInput {
+        width: 100%;
+    }
+}
