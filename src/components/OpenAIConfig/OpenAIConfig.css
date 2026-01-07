@@ -1,8 +1,8 @@
-.azure-config-section {
+.openai-config-section {
     margin-bottom: 30px;
 }
 
-.azure-config-section-title {
+.openai-config-section-title {
     font-size: 20px;
     font-weight: 600;
     color: #333;
@@ -11,26 +11,26 @@
     border-bottom: 2px solid #667eea;
 }
 
-.azure-config-grid {
+.openai-config-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 15px;
     margin-bottom: 20px;
 }
 
-.azure-config-input-group {
+.openai-config-input-group {
     display: flex;
     flex-direction: column;
 }
 
-.azure-config-input-group label {
+.openai-config-input-group label {
     font-size: 14px;
     font-weight: 500;
     color: #555;
     margin-bottom: 5px;
 }
 
-.azure-config-input-group input {
+.openai-config-input-group input {
     padding: 10px;
     border: 2px solid #e0e0e0;
     border-radius: 6px;
@@ -38,12 +38,12 @@
     transition: border-color 0.3s;
 }
 
-.azure-config-input-group input:focus {
+.openai-config-input-group input:focus {
     outline: none;
     border-color: #667eea;
 }
 
-.azure-config-help-text {
+.openai-config-help-text {
     font-size: 13px;
     color: #777;
     margin-top: 5px;
@@ -51,7 +51,7 @@
 }
 
 @media (max-width: 768px) {
-    .azure-config-grid {
+    .openai-config-grid {
         grid-template-columns: 1fr;
     }
 }

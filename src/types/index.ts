@@ -1,7 +1,7 @@
-export interface AzureConfig {
-    endpoint: string;
-    key: string;
-    deployment: string;
+export interface OpenAIConfig {
+    baseURL: string;
+    apiKey: string;
+    model: string;
 }
 
 export interface NumericStats {

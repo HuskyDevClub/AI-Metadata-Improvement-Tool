@@ -1,23 +1,23 @@
 import { useCallback, useState } from 'react';
 import { Header } from './components/Header/Header';
 import { HowItWorks } from './components/HowItWorks/HowItWorks';
-import { AzureConfig } from './components/AzureConfig/AzureConfig';
+import { OpenAIConfig } from './components/OpenAIConfig/OpenAIConfig';
 import { PromptEditor } from './components/PromptEditor/PromptEditor';
 import { CsvInput } from './components/CsvInput/CsvInput';
 import { StatusMessage } from './components/StatusMessage/StatusMessage';
 import { DatasetDescription } from './components/DatasetDescription/DatasetDescription';
 import { ColumnCard } from './components/ColumnCard/ColumnCard';
 import { ExportSection } from './components/ExportSection/ExportSection';
-import { useAzureOpenAI } from './hooks/useAzureOpenAI';
+import { useOpenAI } from './hooks/useOpenAI';
 import { parseFile, parseUrl } from './utils/csvParser';
 import { analyzeColumn, getColumnStatsText } from './utils/columnAnalyzer';
 import type {
-    AzureConfig as AzureConfigType,
     CategoricalStats,
     ColumnInfo,
     CsvRow,
     GeneratedResults,
     NumericStats,
+    OpenAIConfig as OpenAIConfigType,
     PromptTemplates,
     Status,
 } from './types';
@@ -43,10 +43,10 @@ Column statistics:
 Describe what this column represents and its role in the dataset.`;
 
 function App() {
-    const [azureConfig, setAzureConfig] = useState<AzureConfigType>({
-        endpoint: '',
-        key: '',
-        deployment: 'gpt-5-nano',
+    const [openaiConfig, setOpenaiConfig] = useState<OpenAIConfigType>({
+        baseURL: import.meta.env.VITE_AZURE_ENDPOINT || '',
+        apiKey: import.meta.env.VITE_AZURE_KEY || '',
+        model: import.meta.env.VITE_AZURE_MODEL || '',
     });
 
     const [promptTemplates, setPromptTemplates] = useState<PromptTemplates>({
@@ -69,15 +69,15 @@ function App() {
     const [regeneratingDataset, setRegeneratingDataset] = useState(false);
     const [regeneratingColumns, setRegeneratingColumns] = useState<Set<string>>(new Set());
 
-    const {callAzureOpenAI} = useAzureOpenAI();
+    const {callOpenAI} = useOpenAI();
 
     const validateConfig = useCallback((): boolean => {
-        if (!azureConfig.endpoint || !azureConfig.key || !azureConfig.deployment) {
-            setStatus({message: 'Please fill in all Azure OpenAI configuration fields', type: 'error'});
+        if (!openaiConfig.baseURL || !openaiConfig.apiKey || !openaiConfig.model) {
+            setStatus({message: 'Please fill in all OpenAI configuration fields', type: 'error'});
             return false;
         }
         return true;
-    }, [azureConfig]);
+    }, [openaiConfig]);
 
     const buildColumnInfo = useCallback((stats: Record<string, ColumnInfo>): string => {
         return Object.entries(stats)
@@ -122,9 +122,9 @@ function App() {
                 prompt += `\n\nAdditional instruction: ${customInstruction}`;
             }
 
-            return await callAzureOpenAI(prompt, azureConfig);
+            return await callOpenAI(prompt, openaiConfig);
         },
-        [azureConfig, promptTemplates.dataset, buildColumnInfo, callAzureOpenAI]
+        [openaiConfig, promptTemplates.dataset, buildColumnInfo, callOpenAI]
     );
 
     const generateColumnDescription = useCallback(
@@ -152,9 +152,9 @@ function App() {
                 prompt += `\n\nAdditional instruction: ${customInstruction}`;
             }
 
-            return await callAzureOpenAI(prompt, azureConfig);
+            return await callOpenAI(prompt, openaiConfig);
         },
-        [azureConfig, promptTemplates.column, callAzureOpenAI]
+        [openaiConfig, promptTemplates.column, callOpenAI]
     );
 
     const handleAnalyze = useCallback(
@@ -343,7 +343,7 @@ function App() {
             <Header/>
             <div className="content">
                 <HowItWorks/>
-                <AzureConfig config={azureConfig} onChange={setAzureConfig}/>
+                <OpenAIConfig config={openaiConfig} onChange={setOpenaiConfig}/>
                 <PromptEditor templates={promptTemplates} onChange={setPromptTemplates}/>
                 <CsvInput onAnalyze={handleAnalyze} isProcessing={isProcessing}/>
 
