@@ -8,6 +8,7 @@ import { StatusMessage } from './components/StatusMessage/StatusMessage';
 import { DatasetDescription } from './components/DatasetDescription/DatasetDescription';
 import { ColumnCard } from './components/ColumnCard/ColumnCard';
 import { ExportSection } from './components/ExportSection/ExportSection';
+import type { TokenUsage } from './hooks/useOpenAI';
 import { useOpenAI } from './hooks/useOpenAI';
 import { parseFile, parseUrl } from './utils/csvParser';
 import { analyzeColumn, getColumnStatsText } from './utils/columnAnalyzer';
@@ -42,6 +43,33 @@ Column statistics:
 
 Describe what this column represents and its role in the dataset.`;
 
+// Pricing per 1M tokens (USD) - updated as of Jan 2025
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+    'gpt-5-nano': {input: 0.05, output: 0.40},
+    'gpt-5-mini': {input: 0.25, output: 2.00},
+    'gpt-4o-mini': {input: 0.15, output: 0.60},
+};
+
+function getEstimatedCost(
+    model: string,
+    promptTokens: number,
+    completionTokens: number
+): number | null {
+    // Find matching pricing (case-insensitive, partial match)
+    const modelLower = model.toLowerCase();
+    const pricingKey = Object.keys(MODEL_PRICING).find((key) =>
+        modelLower.includes(key)
+    );
+
+    if (!pricingKey) return null;
+
+    const pricing = MODEL_PRICING[pricingKey];
+    const inputCost = (promptTokens / 1_000_000) * pricing.input;
+    const outputCost = (completionTokens / 1_000_000) * pricing.output;
+
+    return inputCost + outputCost;
+}
+
 function App() {
     const [openaiConfig, setOpenaiConfig] = useState<OpenAIConfigType>({
         baseURL: import.meta.env.VITE_AZURE_ENDPOINT || '',
@@ -68,8 +96,21 @@ function App() {
     const [generatingColumns, setGeneratingColumns] = useState<Set<string>>(new Set());
     const [regeneratingDataset, setRegeneratingDataset] = useState(false);
     const [regeneratingColumns, setRegeneratingColumns] = useState<Set<string>>(new Set());
+    const [tokenUsage, setTokenUsage] = useState<TokenUsage>({
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+    });
 
     const {callOpenAI} = useOpenAI();
+
+    const addTokenUsage = useCallback((usage: TokenUsage) => {
+        setTokenUsage((prev) => ({
+            promptTokens: prev.promptTokens + usage.promptTokens,
+            completionTokens: prev.completionTokens + usage.completionTokens,
+            totalTokens: prev.totalTokens + usage.totalTokens,
+        }));
+    }, []);
 
     const validateConfig = useCallback((): boolean => {
         if (!openaiConfig.baseURL || !openaiConfig.apiKey || !openaiConfig.model) {
@@ -122,9 +163,11 @@ function App() {
                 prompt += `\n\nAdditional instruction: ${customInstruction}`;
             }
 
-            return await callOpenAI(prompt, openaiConfig);
+            const response = await callOpenAI(prompt, openaiConfig);
+            addTokenUsage(response.usage);
+            return response.content;
         },
-        [openaiConfig, promptTemplates.dataset, buildColumnInfo, callOpenAI]
+        [openaiConfig, promptTemplates.dataset, buildColumnInfo, callOpenAI, addTokenUsage]
     );
 
     const generateColumnDescription = useCallback(
@@ -152,9 +195,11 @@ function App() {
                 prompt += `\n\nAdditional instruction: ${customInstruction}`;
             }
 
-            return await callOpenAI(prompt, openaiConfig);
+            const response = await callOpenAI(prompt, openaiConfig);
+            addTokenUsage(response.usage);
+            return response.content;
         },
-        [openaiConfig, promptTemplates.column, callOpenAI]
+        [openaiConfig, promptTemplates.column, callOpenAI, addTokenUsage]
     );
 
     const handleAnalyze = useCallback(
@@ -164,6 +209,7 @@ function App() {
             setIsProcessing(true);
             setShowResults(false);
             setGeneratedResults({datasetDescription: '', columnDescriptions: {}});
+            setTokenUsage({promptTokens: 0, completionTokens: 0, totalTokens: 0});
 
             try {
                 // Parse CSV
@@ -348,6 +394,30 @@ function App() {
                 <CsvInput onAnalyze={handleAnalyze} isProcessing={isProcessing}/>
 
                 <StatusMessage status={status}/>
+
+                {tokenUsage.totalTokens > 0 && (
+                    <div className="tokenUsage">
+                        <span className="tokenLabel">Token Usage:</span>
+                        <span className="tokenValue">{tokenUsage.promptTokens.toLocaleString()} prompt</span>
+                        <span className="tokenSeparator">|</span>
+                        <span className="tokenValue">{tokenUsage.completionTokens.toLocaleString()} completion</span>
+                        <span className="tokenSeparator">|</span>
+                        <span className="tokenValue tokenTotal">{tokenUsage.totalTokens.toLocaleString()} total</span>
+                        {(() => {
+                            const cost = getEstimatedCost(
+                                openaiConfig.model,
+                                tokenUsage.promptTokens,
+                                tokenUsage.completionTokens
+                            );
+                            return cost !== null ? (
+                                <>
+                                    <span className="tokenSeparator">|</span>
+                                    <span className="tokenCost">~${cost.toFixed(4)}</span>
+                                </>
+                            ) : null;
+                        })()}
+                    </div>
+                )}
 
                 {showResults && (
                     <div className="results">

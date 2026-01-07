@@ -40,3 +40,41 @@
         grid-template-columns: 1fr;
     }
 }
+
+.tokenUsage {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 1px solid #bae6fd;
+    border-radius: var(--radius-sm);
+    margin-top: 16px;
+    font-size: 14px;
+}
+
+.tokenLabel {
+    font-weight: 600;
+    color: #0369a1;
+}
+
+.tokenValue {
+    color: #0c4a6e;
+}
+
+.tokenSeparator {
+    color: #7dd3fc;
+}
+
+.tokenTotal {
+    font-weight: 600;
+    color: #0369a1;
+}
+
+.tokenCost {
+    font-weight: 600;
+    color: #047857;
+    background: #d1fae5;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
