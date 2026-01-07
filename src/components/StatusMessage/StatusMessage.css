@@ -2,6 +2,39 @@
     padding: 12px;
     border-radius: 6px;
     margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-message-text {
+    flex: 1;
+}
+
+.status-message-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.status-btn {
+    padding: 6px 16px;
+    border-radius: 4px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-btn-stop {
+    background: #ef5350;
+    color: white;
+}
+
+.status-btn-stop:hover {
+    background: #d32f2f;
 }
 
 .status-message-info {
