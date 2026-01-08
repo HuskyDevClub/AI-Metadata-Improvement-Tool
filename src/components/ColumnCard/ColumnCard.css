@@ -77,9 +77,24 @@
     color: #764ba2;
 }
 
-.column-card-generating {
-    color: #999;
-    font-style: italic;
+.column-card-streaming {
+    min-height: 40px;
+}
+
+.column-card-cursor {
+    display: inline-block;
+    color: #667eea;
+    font-weight: bold;
+    animation: column-card-blink 0.8s infinite;
+}
+
+@keyframes column-card-blink {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0;
+    }
 }
 
 .column-card-edit-mode {

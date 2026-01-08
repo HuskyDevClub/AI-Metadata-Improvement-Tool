@@ -1,17 +1,6 @@
 import { useCallback } from 'react';
 import OpenAI from 'openai';
-import type { OpenAIConfig } from '../types';
-
-export interface TokenUsage {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-}
-
-export interface OpenAIResponse {
-    content: string;
-    usage: TokenUsage;
-}
+import type { OpenAIConfig, OpenAIResponse, TokenUsage } from '../types';
 
 export function useOpenAI() {
     const callOpenAI = useCallback(

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Header } from './components/Header/Header';
 import { HowItWorks } from './components/HowItWorks/HowItWorks';
 import { OpenAIConfig } from './components/OpenAIConfig/OpenAIConfig';
@@ -8,7 +8,6 @@ import { StatusMessage } from './components/StatusMessage/StatusMessage';
 import { DatasetDescription } from './components/DatasetDescription/DatasetDescription';
 import { ColumnCard } from './components/ColumnCard/ColumnCard';
 import { ExportSection } from './components/ExportSection/ExportSection';
-import type { TokenUsage } from './hooks/useOpenAI';
 import { useOpenAI } from './hooks/useOpenAI';
 import { parseFile, parseUrl } from './utils/csvParser';
 import { analyzeColumn, getColumnStatsText } from './utils/columnAnalyzer';
@@ -21,6 +20,7 @@ import type {
     OpenAIConfig as OpenAIConfigType,
     PromptTemplates,
     Status,
+    TokenUsage,
 } from './types';
 import './App.css';
 
@@ -102,7 +102,10 @@ function App() {
         totalTokens: 0,
     });
 
-    const {callOpenAI} = useOpenAI();
+    // Abort controller for stopping generation
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    const {callOpenAIStream} = useOpenAI();
 
     const addTokenUsage = useCallback((usage: TokenUsage) => {
         setTokenUsage((prev) => ({
@@ -145,8 +148,9 @@ function App() {
             name: string,
             stats: Record<string, ColumnInfo>,
             modifier: '' | 'concise' | 'detailed' = '',
-            customInstruction?: string
-        ): Promise<string> => {
+            customInstruction?: string,
+            abortSignal?: AbortSignal
+        ): Promise<{ content: string; aborted: boolean }> => {
             const columnInfo = buildColumnInfo(stats);
             let prompt = promptTemplates.dataset
                 .replace('{fileName}', name)
@@ -163,11 +167,18 @@ function App() {
                 prompt += `\n\nAdditional instruction: ${customInstruction}`;
             }
 
-            const response = await callOpenAI(prompt, openaiConfig);
-            addTokenUsage(response.usage);
-            return response.content;
+            let fullContent = '';
+            const result = await callOpenAIStream(prompt, openaiConfig, (chunk) => {
+                fullContent += chunk;
+                setGeneratedResults((prev) => ({
+                    ...prev,
+                    datasetDescription: fullContent,
+                }));
+            }, abortSignal);
+            addTokenUsage(result.usage);
+            return {content: fullContent, aborted: result.aborted};
         },
-        [openaiConfig, promptTemplates.dataset, buildColumnInfo, callOpenAI, addTokenUsage]
+        [openaiConfig, promptTemplates.dataset, buildColumnInfo, callOpenAIStream, addTokenUsage]
     );
 
     const generateColumnDescription = useCallback(
@@ -176,8 +187,9 @@ function App() {
             info: ColumnInfo,
             datasetDesc: string,
             modifier: '' | 'concise' | 'detailed' = '',
-            customInstruction?: string
-        ): Promise<string> => {
+            customInstruction?: string,
+            abortSignal?: AbortSignal
+        ): Promise<{ content: string; aborted: boolean }> => {
             const statsText = getColumnStatsText(info);
 
             let prompt = promptTemplates.column
@@ -195,16 +207,27 @@ function App() {
                 prompt += `\n\nAdditional instruction: ${customInstruction}`;
             }
 
-            const response = await callOpenAI(prompt, openaiConfig);
-            addTokenUsage(response.usage);
-            return response.content;
+            let fullContent = '';
+            const result = await callOpenAIStream(prompt, openaiConfig, (chunk) => {
+                fullContent += chunk;
+                setGeneratedResults((prev) => ({
+                    ...prev,
+                    columnDescriptions: {...prev.columnDescriptions, [columnName]: fullContent},
+                }));
+            }, abortSignal);
+            addTokenUsage(result.usage);
+            return {content: fullContent, aborted: result.aborted};
         },
-        [openaiConfig, promptTemplates.column, callOpenAI, addTokenUsage]
+        [openaiConfig, promptTemplates.column, callOpenAIStream, addTokenUsage]
     );
 
     const handleAnalyze = useCallback(
         async (method: 'file' | 'url', file?: File, url?: string, appToken?: string) => {
             if (!validateConfig()) return;
+
+            // Create new abort controller
+            abortControllerRef.current = new AbortController();
+            const abortSignal = abortControllerRef.current.signal;
 
             setIsProcessing(true);
             setShowResults(false);
@@ -245,39 +268,50 @@ function App() {
 
                 // Generate dataset description
                 setStatus({message: 'Generating dataset description...', type: 'info'});
-                const datasetDesc = await generateDatasetDescription(result.data, result.fileName, stats);
+                const datasetResult = await generateDatasetDescription(result.data, result.fileName, stats, '', undefined, abortSignal);
 
+                if (datasetResult.aborted) {
+                    setGeneratingColumns(new Set());
+                    setStatus({message: 'Generation stopped.', type: 'info'});
+                    setIsProcessing(false);
+                    return;
+                }
+
+                const datasetDesc = datasetResult.content;
                 setGeneratedResults((prev) => ({...prev, datasetDescription: datasetDesc}));
 
-                // Generate column descriptions one by one
-                const columnDescriptions: Record<string, string> = {};
+                // Generate all column descriptions in parallel
+                setStatus({message: `Generating descriptions for ${columns.length} columns...`, type: 'info'});
+                setGeneratingColumns(new Set(columns));
 
-                for (let i = 0; i < columns.length; i++) {
-                    const col = columns[i];
+                const columnPromises = columns.map(async (col) => {
                     const info = stats[col];
+                    const colResult = await generateColumnDescription(col, info, datasetDesc, '', undefined, abortSignal);
+                    return {col, result: colResult};
+                });
 
-                    setStatus({
-                        message: `Generating description for column "${col}" (${i + 1}/${columns.length})`,
-                        type: 'info'
-                    });
-                    setGeneratingColumns(new Set([col]));
+                const columnResults = await Promise.all(columnPromises);
 
-                    const colDesc = await generateColumnDescription(col, info, datasetDesc);
-                    columnDescriptions[col] = colDesc;
-
-                    setGeneratedResults((prev) => ({
-                        ...prev,
-                        columnDescriptions: {...prev.columnDescriptions, [col]: colDesc},
-                    }));
+                // Check if any were aborted
+                const abortedColumns = columnResults.filter(r => r.result.aborted);
+                if (abortedColumns.length > 0) {
+                    setGeneratingColumns(new Set());
+                    setStatus({message: 'Generation stopped.', type: 'info'});
+                    setIsProcessing(false);
+                    return;
                 }
 
                 setGeneratingColumns(new Set());
                 setStatus({message: 'Analysis complete! All descriptions generated successfully.', type: 'success'});
             } catch (error) {
-                setStatus({
-                    message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                    type: 'error'
-                });
+                if (error instanceof Error && error.name === 'AbortError') {
+                    setStatus({message: 'Generation stopped.', type: 'info'});
+                } else {
+                    setStatus({
+                        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                        type: 'error'
+                    });
+                }
             } finally {
                 setIsProcessing(false);
             }
@@ -285,14 +319,20 @@ function App() {
         [validateConfig, generateDatasetDescription, generateColumnDescription]
     );
 
+    const handleStop = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+    }, []);
+
     const handleRegenerateDataset = useCallback(
         async (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
             if (!validateConfig() || !csvData) return;
 
             setRegeneratingDataset(true);
             try {
-                const newDesc = await generateDatasetDescription(csvData, fileName, columnStats, modifier, customInstruction);
-                setGeneratedResults((prev) => ({...prev, datasetDescription: newDesc}));
+                const result = await generateDatasetDescription(csvData, fileName, columnStats, modifier, customInstruction);
+                setGeneratedResults((prev) => ({...prev, datasetDescription: result.content}));
                 setStatus({message: 'Successfully regenerated dataset description!', type: 'success'});
             } catch (error) {
                 setStatus({
@@ -313,7 +353,7 @@ function App() {
             setRegeneratingColumns((prev) => new Set(prev).add(columnName));
             try {
                 const info = columnStats[columnName];
-                const newDesc = await generateColumnDescription(
+                const result = await generateColumnDescription(
                     columnName,
                     info,
                     generatedResults.datasetDescription,
@@ -322,7 +362,7 @@ function App() {
                 );
                 setGeneratedResults((prev) => ({
                     ...prev,
-                    columnDescriptions: {...prev.columnDescriptions, [columnName]: newDesc},
+                    columnDescriptions: {...prev.columnDescriptions, [columnName]: result.content},
                 }));
                 setStatus({message: `Successfully regenerated column "${columnName}" description!`, type: 'success'});
             } catch (error) {
@@ -393,7 +433,11 @@ function App() {
                 <PromptEditor templates={promptTemplates} onChange={setPromptTemplates}/>
                 <CsvInput onAnalyze={handleAnalyze} isProcessing={isProcessing}/>
 
-                <StatusMessage status={status}/>
+                <StatusMessage
+                    status={status}
+                    isProcessing={isProcessing}
+                    onStop={handleStop}
+                />
 
                 {tokenUsage.totalTokens > 0 && (
                     <div className="tokenUsage">
@@ -433,25 +477,27 @@ function App() {
                             />
                         )}
 
-                        <div className="section">
-                            <div className="sectionTitle">Column Descriptions</div>
-                            <div className="columnsGrid">
-                                {Object.entries(columnStats).map(([name, info]) => (
-                                    <ColumnCard
-                                        key={name}
-                                        name={name}
-                                        info={info}
-                                        description={generatedResults.columnDescriptions[name] || ''}
-                                        onEdit={(newDesc) => handleEditColumnDescription(name, newDesc)}
-                                        onRegenerate={(modifier, customInstruction) =>
-                                            handleRegenerateColumn(name, modifier, customInstruction)
-                                        }
-                                        isRegenerating={regeneratingColumns.has(name)}
-                                        isGenerating={generatingColumns.has(name)}
-                                    />
-                                ))}
+                        {(generatingColumns.size > 0 || Object.keys(generatedResults.columnDescriptions).length > 0) && (
+                            <div className="section">
+                                <div className="sectionTitle">Column Descriptions</div>
+                                <div className="columnsGrid">
+                                    {Object.entries(columnStats).map(([name, info]) => (
+                                        <ColumnCard
+                                            key={name}
+                                            name={name}
+                                            info={info}
+                                            description={generatedResults.columnDescriptions[name] || ''}
+                                            onEdit={(newDesc) => handleEditColumnDescription(name, newDesc)}
+                                            onRegenerate={(modifier, customInstruction) =>
+                                                handleRegenerateColumn(name, modifier, customInstruction)
+                                            }
+                                            isRegenerating={regeneratingColumns.has(name)}
+                                            isGenerating={generatingColumns.has(name)}
+                                        />
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {Object.keys(generatedResults.columnDescriptions).length > 0 && (
                             <ExportSection onExport={handleExport}/>

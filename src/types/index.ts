@@ -51,4 +51,15 @@ export interface PromptTemplates {
     column: string;
 }
 
+export interface TokenUsage {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+}
+
+export interface OpenAIResponse {
+    content: string;
+    usage: TokenUsage;
+}
+
 export type CsvRow = Record<string, string>;
