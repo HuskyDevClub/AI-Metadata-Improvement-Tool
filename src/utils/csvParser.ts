@@ -1,6 +1,8 @@
 import Papa from 'papaparse';
 import type { CsvRow } from '../types';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
 interface ParseResult {
     data: CsvRow[];
     fileName: string;
@@ -24,27 +26,36 @@ export function parseFile(file: File): Promise<ParseResult> {
     });
 }
 
-export function parseUrl(url: string, appToken?: string): Promise<ParseResult> {
-    return new Promise((resolve, reject) => {
-        const downloadRequestHeaders: Record<string, string> = {};
-        if (appToken) {
-            downloadRequestHeaders['X-App-Token'] = appToken;
-        }
+export async function parseUrl(url: string): Promise<ParseResult> {
+    // Fetch raw CSV from the backend
+    const response = await fetch(`${API_BASE_URL}/api/csv/fetch`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({url}),
+    });
 
-        Papa.parse<CsvRow>(url, {
-            download: true,
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch CSV');
+    }
+
+    const result = await response.json();
+
+    // Parse CSV on the frontend
+    return new Promise((resolve, reject) => {
+        Papa.parse<CsvRow>(result.csvText, {
             header: true,
             skipEmptyLines: true,
-            downloadRequestHeaders,
-            complete: (results) => {
-                const fileName = url.split('/').pop() || 'remote-data.csv';
+            complete: (parseResult) => {
                 resolve({
-                    data: results.data,
-                    fileName,
+                    data: parseResult.data,
+                    fileName: result.fileName,
                 });
             },
             error: (error) => {
-                reject(new Error(`Error fetching CSV: ${error.message}`));
+                reject(new Error(`Error parsing CSV: ${error.message}`));
             },
         });
     });

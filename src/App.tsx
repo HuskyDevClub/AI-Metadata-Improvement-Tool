@@ -115,14 +115,6 @@ function App() {
         }));
     }, []);
 
-    const validateConfig = useCallback((): boolean => {
-        if (!openaiConfig.baseURL || !openaiConfig.apiKey || !openaiConfig.model) {
-            setStatus({message: 'Please fill in all OpenAI configuration fields', type: 'error'});
-            return false;
-        }
-        return true;
-    }, [openaiConfig]);
-
     const buildColumnInfo = useCallback((stats: Record<string, ColumnInfo>): string => {
         return Object.entries(stats)
             .map(([col, info]) => {
@@ -222,8 +214,7 @@ function App() {
     );
 
     const handleAnalyze = useCallback(
-        async (method: 'file' | 'url', file?: File, url?: string, appToken?: string) => {
-            if (!validateConfig()) return;
+        async (method: 'file' | 'url', file?: File, url?: string) => {
 
             // Create new abort controller
             abortControllerRef.current = new AbortController();
@@ -241,7 +232,7 @@ function App() {
                     type: 'info'
                 });
 
-                const result = method === 'file' && file ? await parseFile(file) : await parseUrl(url!, appToken);
+                const result = method === 'file' && file ? await parseFile(file) : await parseUrl(url!);
 
                 if (!result.data || result.data.length === 0) {
                     setStatus({message: 'No data found in CSV file', type: 'error'});
@@ -316,7 +307,7 @@ function App() {
                 setIsProcessing(false);
             }
         },
-        [validateConfig, generateDatasetDescription, generateColumnDescription]
+        [generateDatasetDescription, generateColumnDescription]
     );
 
     const handleStop = useCallback(() => {
@@ -327,7 +318,7 @@ function App() {
 
     const handleRegenerateDataset = useCallback(
         async (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
-            if (!validateConfig() || !csvData) return;
+            if (!csvData) return;
 
             setRegeneratingDataset(true);
             try {
@@ -343,12 +334,11 @@ function App() {
                 setRegeneratingDataset(false);
             }
         },
-        [validateConfig, csvData, fileName, columnStats, generateDatasetDescription]
+        [csvData, fileName, columnStats, generateDatasetDescription]
     );
 
     const handleRegenerateColumn = useCallback(
         async (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
-            if (!validateConfig()) return;
 
             setRegeneratingColumns((prev) => new Set(prev).add(columnName));
             try {
@@ -378,7 +368,7 @@ function App() {
                 });
             }
         },
-        [validateConfig, columnStats, generatedResults.datasetDescription, generateColumnDescription]
+        [columnStats, generatedResults.datasetDescription, generateColumnDescription]
     );
 
     const handleEditDatasetDescription = useCallback((newDescription: string) => {

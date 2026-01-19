@@ -1,42 +1,36 @@
 import { useCallback } from 'react';
-import OpenAI from 'openai';
 import type { OpenAIConfig, OpenAIResponse, TokenUsage } from '../types';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export function useOpenAI() {
     const callOpenAI = useCallback(
         async (prompt: string, config: OpenAIConfig): Promise<OpenAIResponse> => {
-            const client = new OpenAI({
-                baseURL: config.baseURL,
-                apiKey: config.apiKey,
-                dangerouslyAllowBrowser: true,
+            const response = await fetch(`${API_BASE_URL}/api/openai/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    prompt,
+                    baseURL: config.baseURL,
+                    apiKey: config.apiKey,
+                    model: config.model,
+                }),
             });
 
-            const response = await client.chat.completions.create({
-                model: config.model,
-                messages: [
-                    {
-                        role: 'system',
-                        content:
-                            'You are a data analyst expert who creates clear, concise, and informative descriptions of datasets and their columns.',
-                    },
-                    {
-                        role: 'user',
-                        content: prompt,
-                    },
-                ],
-            });
-
-            const content = response.choices[0].message.content;
-            if (!content) {
-                throw new Error('No response content from OpenAI');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to call OpenAI API');
             }
 
+            const data = await response.json();
             return {
-                content,
+                content: data.content,
                 usage: {
-                    promptTokens: response.usage?.prompt_tokens ?? 0,
-                    completionTokens: response.usage?.completion_tokens ?? 0,
-                    totalTokens: response.usage?.total_tokens ?? 0,
+                    promptTokens: data.usage.promptTokens,
+                    completionTokens: data.usage.completionTokens,
+                    totalTokens: data.usage.totalTokens,
                 },
             };
         },
@@ -50,32 +44,31 @@ export function useOpenAI() {
             onChunk: (chunk: string) => void,
             abortSignal?: AbortSignal
         ): Promise<{ usage: TokenUsage; aborted: boolean }> => {
-            const client = new OpenAI({
-                baseURL: config.baseURL,
-                apiKey: config.apiKey,
-                dangerouslyAllowBrowser: true,
+            const response = await fetch(`${API_BASE_URL}/api/openai/chat/stream`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    prompt,
+                    baseURL: config.baseURL,
+                    apiKey: config.apiKey,
+                    model: config.model,
+                }),
+                signal: abortSignal,
             });
 
-            const stream = await client.chat.completions.create(
-                {
-                    model: config.model,
-                    messages: [
-                        {
-                            role: 'system',
-                            content:
-                                'You are a data analyst expert who creates clear, concise, and informative descriptions of datasets and their columns.',
-                        },
-                        {
-                            role: 'user',
-                            content: prompt,
-                        },
-                    ],
-                    stream: true,
-                    stream_options: {include_usage: true},
-                },
-                {signal: abortSignal}
-            );
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to call OpenAI API');
+            }
 
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error('No response body');
+            }
+
+            const decoder = new TextDecoder();
             let usage: TokenUsage = {
                 promptTokens: 0,
                 completionTokens: 0,
@@ -83,20 +76,37 @@ export function useOpenAI() {
             };
 
             try {
-                for await (const chunk of stream) {
-                    if (abortSignal?.aborted) {
-                        return {usage, aborted: true};
-                    }
-                    const content = chunk.choices[0]?.delta?.content;
-                    if (content) {
-                        onChunk(content);
-                    }
-                    if (chunk.usage) {
-                        usage = {
-                            promptTokens: chunk.usage.prompt_tokens ?? 0,
-                            completionTokens: chunk.usage.completion_tokens ?? 0,
-                            totalTokens: chunk.usage.total_tokens ?? 0,
-                        };
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) break;
+
+                    const text = decoder.decode(value, {stream: true});
+                    const lines = text.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data === '[DONE]') continue;
+
+                            try {
+                                const parsed = JSON.parse(data);
+                                if (parsed.type === 'content' && parsed.content) {
+                                    onChunk(parsed.content);
+                                } else if (parsed.type === 'usage' && parsed.usage) {
+                                    usage = {
+                                        promptTokens: parsed.usage.promptTokens,
+                                        completionTokens: parsed.usage.completionTokens,
+                                        totalTokens: parsed.usage.totalTokens,
+                                    };
+                                } else if (parsed.type === 'error') {
+                                    throw new Error(parsed.error);
+                                }
+                            } catch (e) {
+                                // Ignore JSON parse errors for incomplete chunks
+                                if (e instanceof SyntaxError) continue;
+                                throw e;
+                            }
+                        }
                     }
                 }
             } catch (error) {

@@ -26,4 +26,4 @@ dist-ssr
 
 # System files
 **/.claude
-WDFW-Fish_Plants_20251030.csv
+**/package-lock.json

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './CsvInput.css';
 
 interface CsvInputProps {
-    onAnalyze: (method: 'file' | 'url', file?: File, url?: string, appToken?: string) => void;
+    onAnalyze: (method: 'file' | 'url', file?: File, url?: string) => void;
     isProcessing: boolean;
 }
 
@@ -10,13 +10,12 @@ export function CsvInput({onAnalyze, isProcessing}: CsvInputProps) {
     const [inputMethod, setInputMethod] = useState<'file' | 'url'>('url');
     const [file, setFile] = useState<File | null>(null);
     const [url, setUrl] = useState('https://data.wa.gov/api/v3/views/6fex-3r7d/query.csv');
-    const [appToken, setAppToken] = useState('nl6ItoEvwkB3QS7JgIcDAQrXU');
 
     const handleAnalyze = () => {
         if (inputMethod === 'file' && file) {
             onAnalyze('file', file);
         } else if (inputMethod === 'url' && url) {
-            onAnalyze('url', undefined, url, appToken);
+            onAnalyze('url', undefined, url);
         }
     };
 
@@ -56,17 +55,6 @@ export function CsvInput({onAnalyze, isProcessing}: CsvInputProps) {
                             className="csv-input-url-input"
                         />
                         <span className="csv-input-help-text">Direct link to a CSV file</span>
-                    </div>
-                    <div className="csv-input-group" style={{marginTop: '10px'}}>
-                        <label htmlFor="csvReqToken">App Token (Optional)</label>
-                        <input
-                            id="csvReqToken"
-                            type="text"
-                            placeholder="Your App Token"
-                            value={appToken}
-                            onChange={(e) => setAppToken(e.target.value)}
-                            className="csv-input-url-input"
-                        />
                     </div>
                 </div>
             )}
