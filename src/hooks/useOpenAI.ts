@@ -1,42 +1,9 @@
 import { useCallback } from 'react';
-import type { OpenAIConfig, OpenAIResponse, TokenUsage } from '../types';
+import type { OpenAIConfig, TokenUsage } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export function useOpenAI() {
-    const callOpenAI = useCallback(
-        async (prompt: string, config: OpenAIConfig): Promise<OpenAIResponse> => {
-            const response = await fetch(`${API_BASE_URL}/api/openai/chat`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    prompt,
-                    baseURL: config.baseURL,
-                    apiKey: config.apiKey,
-                    model: config.model,
-                }),
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to call OpenAI API');
-            }
-
-            const data = await response.json();
-            return {
-                content: data.content,
-                usage: {
-                    promptTokens: data.usage.promptTokens,
-                    completionTokens: data.usage.completionTokens,
-                    totalTokens: data.usage.totalTokens,
-                },
-            };
-        },
-        []
-    );
-
     const callOpenAIStream = useCallback(
         async (
             prompt: string,
@@ -121,5 +88,5 @@ export function useOpenAI() {
         []
     );
 
-    return {callOpenAI, callOpenAIStream};
+    return {callOpenAIStream};
 }

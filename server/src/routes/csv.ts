@@ -44,37 +44,4 @@ router.post('/fetch', async (req: Request, res: Response) => {
     }
 });
 
-// Proxy endpoint for Socrata metadata
-router.get('/socrata-metadata', async (req: Request, res: Response) => {
-    try {
-        const {domain, datasetId} = req.query;
-
-        if (!domain || !datasetId) {
-            res.status(400).json({error: 'Domain and datasetId are required'});
-            return;
-        }
-
-        const metadataUrl = `https://${domain}/api/views/${datasetId}.json`;
-        const headers: Record<string, string> = {
-            'X-App-Token': process.env.SOCRATA_APP_TOKEN!,
-        };
-
-        const response = await fetch(metadataUrl, {headers});
-
-        if (!response.ok) {
-            res.status(response.status).json({
-                error: `Failed to fetch metadata: ${response.statusText}`,
-            });
-            return;
-        }
-
-        const metadata = await response.json();
-        res.json(metadata);
-    } catch (error) {
-        console.error('Socrata metadata error:', error);
-        const message = error instanceof Error ? error.message : 'Failed to fetch metadata';
-        res.status(500).json({error: message});
-    }
-});
-
 export { router as csvRouter };

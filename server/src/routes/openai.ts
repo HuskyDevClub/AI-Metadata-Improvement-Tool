@@ -20,54 +20,6 @@ function getOpenAIConfig(req: ChatRequest) {
     };
 }
 
-// Non-streaming chat completion
-router.post('/chat', async (req: Request, res: Response) => {
-    try {
-        const body = req.body as ChatRequest;
-        const config = getOpenAIConfig(body);
-
-        if (!config.apiKey) {
-            res.status(400).json({error: 'API key is required'});
-            return;
-        }
-
-        const client = new OpenAI({
-            baseURL: config.baseURL,
-            apiKey: config.apiKey,
-        });
-
-        const systemPrompt = body.systemPrompt ||
-            'You are a data analyst expert who creates clear, concise, and informative descriptions of datasets and their columns.';
-
-        const response = await client.chat.completions.create({
-            model: config.model,
-            messages: [
-                {role: 'system', content: systemPrompt},
-                {role: 'user', content: body.prompt},
-            ],
-        });
-
-        const content = response.choices[0].message.content;
-        if (!content) {
-            res.status(500).json({error: 'No response content from OpenAI'});
-            return;
-        }
-
-        res.json({
-            content,
-            usage: {
-                promptTokens: response.usage?.prompt_tokens ?? 0,
-                completionTokens: response.usage?.completion_tokens ?? 0,
-                totalTokens: response.usage?.total_tokens ?? 0,
-            },
-        });
-    } catch (error) {
-        console.error('OpenAI chat error:', error);
-        const message = error instanceof Error ? error.message : 'OpenAI API error';
-        res.status(500).json({error: message});
-    }
-});
-
 // Streaming chat completion
 router.post('/chat/stream', async (req: Request, res: Response) => {
     try {

@@ -57,9 +57,4 @@ export interface TokenUsage {
     totalTokens: number;
 }
 
-export interface OpenAIResponse {
-    content: string;
-    usage: TokenUsage;
-}
-
 export type CsvRow = Record<string, string>;
