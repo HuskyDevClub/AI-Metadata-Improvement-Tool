@@ -14,9 +14,9 @@ interface ChatRequest {
 // Get OpenAI client configuration
 function getOpenAIConfig(req: ChatRequest) {
     return {
-        baseURL: req.baseURL || process.env.AZURE_ENDPOINT!,
-        apiKey: req.apiKey || process.env.AZURE_KEY!,
-        model: req.model || process.env.AZURE_MODEL!,
+        baseURL: req.baseURL || process.env.AZURE_ENDPOINT || '',
+        apiKey: req.apiKey || process.env.AZURE_KEY || '',
+        model: req.model || process.env.AZURE_MODEL || '',
     };
 }
 
@@ -26,8 +26,15 @@ router.post('/chat/stream', async (req: Request, res: Response) => {
         const body = req.body as ChatRequest;
         const config = getOpenAIConfig(body);
 
-        if (!config.apiKey) {
-            res.status(400).json({error: 'API key is required'});
+        const missingConfig: string[] = [];
+        if (!config.baseURL) missingConfig.push('Base URL (AZURE_ENDPOINT)');
+        if (!config.apiKey) missingConfig.push('API Key (AZURE_KEY)');
+        if (!config.model) missingConfig.push('Model (AZURE_MODEL)');
+
+        if (missingConfig.length > 0) {
+            res.status(400).json({
+                error: `Missing required configuration: ${missingConfig.join(', ')}. Please set these in the backend .env file, frontend .env file (VITE_AZURE_*), or enter them in the UI.`
+            });
             return;
         }
 

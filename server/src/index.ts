@@ -7,7 +7,7 @@ import { csvRouter } from './routes/csv.js';
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ['AZURE_ENDPOINT', 'AZURE_KEY', 'AZURE_MODEL', 'SOCRATA_APP_TOKEN'] as const;
+const requiredEnvVars = ['SOCRATA_APP_TOKEN'] as const;
 const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
@@ -15,6 +15,17 @@ if (missingEnvVars.length > 0) {
     missingEnvVars.forEach((envVar) => console.error(`  - ${envVar}`));
     console.error('\nPlease create a .env file with these variables. See .env.example for reference.');
     process.exit(1);
+}
+
+// Warn if Azure OpenAI env vars are not set in production (can be provided via frontend or user input)
+if (process.env.NODE_ENV === 'production') {
+    const azureEnvVars = ['AZURE_ENDPOINT', 'AZURE_KEY', 'AZURE_MODEL'] as const;
+    const missingAzureVars = azureEnvVars.filter((envVar) => !process.env[envVar]);
+    if (missingAzureVars.length > 0) {
+        console.warn('Warning: Azure OpenAI environment variables not set:');
+        missingAzureVars.forEach((envVar) => console.warn(`  - ${envVar}`));
+        console.warn('These can be provided via frontend environment variables (VITE_AZURE_*) or user input in the UI.');
+    }
 }
 
 const app = express();
