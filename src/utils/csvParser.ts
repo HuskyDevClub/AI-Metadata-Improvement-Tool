@@ -1,7 +1,9 @@
 import Papa from 'papaparse';
 import type { CsvRow } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+// For Databricks deployment, use empty string (relative URL) when not specified
+// For local development, default to localhost:3001 (Express) or localhost:8000 (Python)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 interface ParseResult {
     data: CsvRow[];
