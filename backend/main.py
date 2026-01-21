@@ -3,20 +3,20 @@ FastAPI backend for AI Metadata Improvement Tool
 Designed for Databricks Apps deployment
 """
 
-import os
 import json
-from datetime import datetime
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+import httpx
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
-from pydantic import BaseModel
-import httpx
 from openai import AsyncOpenAI
-from dotenv import load_dotenv
+from pydantic import BaseModel
 
 # Load environment variables from .env file
 load_dotenv()
@@ -30,6 +30,12 @@ CORS_ORIGIN = os.getenv("CORS_ORIGIN", "*")
 
 # For Databricks Apps, the port is typically provided via environment variable
 PORT = int(os.getenv("PORT", "8000"))
+
+# Validate required configuration at startup
+if not SOCRATA_APP_TOKEN:
+    raise RuntimeError(
+        "SOCRATA_APP_TOKEN is required. Please set it in the environment variables."
+    )
 
 app = FastAPI(
     title="AI Metadata Improvement Tool API",
@@ -72,13 +78,16 @@ class HealthResponse(BaseModel):
 
 # Health check endpoint
 @app.get("/health", response_model=HealthResponse)
-async def health_check():
-    return HealthResponse(status="ok", timestamp=datetime.utcnow().isoformat() + "Z")
+async def health_check() -> HealthResponse:
+    return HealthResponse(
+        status="ok",
+        timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    )
 
 
 # CSV fetch endpoint
 @app.post("/api/csv/fetch", response_model=FetchCsvResponse)
-async def fetch_csv(request: FetchCsvRequest):
+async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
     if not request.url:
         raise HTTPException(status_code=400, detail="URL is required")
 
@@ -114,8 +123,10 @@ async def fetch_csv(request: FetchCsvRequest):
 
 # OpenAI streaming chat endpoint
 @app.post("/api/openai/chat/stream")
-async def openai_chat_stream(request: ChatRequest, http_request: Request):
-    # Get configuration from request or environment
+async def openai_chat_stream(
+    request: ChatRequest, http_request: Request
+) -> StreamingResponse:
+    # Get configuration from the request or environment
     base_url = request.baseURL or AZURE_ENDPOINT
     api_key = request.apiKey or AZURE_KEY
     model = request.model or AZURE_MODEL
@@ -142,7 +153,7 @@ async def openai_chat_stream(request: ChatRequest, http_request: Request):
     )
 
     async def generate():
-        usage = {
+        usage: dict[str, int] = {
             "promptTokens": 0,
             "completionTokens": 0,
             "totalTokens": 0,
@@ -165,7 +176,7 @@ async def openai_chat_stream(request: ChatRequest, http_request: Request):
             )
 
             async for chunk in stream:
-                # Check if client disconnected
+                # Check if the client disconnected
                 if await http_request.is_disconnected():
                     break
 
@@ -203,9 +214,17 @@ static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static_assets")
 
+    # Root route - serve index.html
+    @app.get("/")
+    async def serve_root() -> FileResponse:
+        index_path = static_dir / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+        raise HTTPException(status_code=404, detail="Frontend not built")
+
     # Serve index.html for all non-API routes (SPA support)
     @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
+    async def serve_spa(full_path: str) -> FileResponse:
         # Don't interfere with API routes
         if full_path.startswith("api/") or full_path == "health":
             raise HTTPException(status_code=404, detail="Not found")

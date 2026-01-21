@@ -42,7 +42,7 @@ export function OpenAIConfig({config, onChange}: OpenAIConfigProps) {
                     <input
                         id="openaiModel"
                         type="text"
-                        placeholder="gpt-5"
+                        placeholder="gpt-5-nano"
                         value={config.model}
                         onChange={(e) => handleChange('model', e.target.value)}
                     />

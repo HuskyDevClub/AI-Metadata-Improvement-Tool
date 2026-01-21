@@ -2,12 +2,13 @@
 # See: https://docs.databricks.com/en/dev-tools/databricks-apps/index.html
 
 command:
-  - "uvicorn"
-  - "backend.main:app"
-  - "--host"
-  - "0.0.0.0"
-  - "--port"
-  - "8000"
+  - "sh"
+  - "-c"
+  - |
+    pip install -r backend/requirements.txt && \
+    npm install && \
+    npm run build:databricks && \
+    uvicorn backend.main:app --host 0.0.0.0 --port 8000
 
 env:
   # Socrata API token for fetching public datasets
