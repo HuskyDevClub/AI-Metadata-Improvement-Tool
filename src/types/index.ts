@@ -58,3 +58,50 @@ export interface TokenUsage {
 }
 
 export type CsvRow = Record<string, string>;
+
+// Comparison Mode Types
+
+export interface ComparisonConfig {
+    baseURL: string;
+    apiKey: string;
+    modelA: string;
+    modelB: string;
+    judgeModel: string;
+}
+
+export interface JudgeMetrics {
+    clarity: number;
+    completeness: number;
+    accuracy: number;
+    conciseness: number;
+    plainLanguage: number;
+    reasoning: string;
+}
+
+export interface JudgeResult {
+    modelA: JudgeMetrics;
+    modelB: JudgeMetrics;
+    winner: 'A' | 'B' | 'tie';
+    winnerReasoning: string;
+}
+
+export interface DatasetComparisonResult {
+    modelAOutput: string;
+    modelBOutput: string;
+    judgeResult: JudgeResult | null;
+    isJudging: boolean;
+}
+
+export interface ColumnComparisonResult {
+    modelAOutput: string;
+    modelBOutput: string;
+    judgeResult: JudgeResult | null;
+    isJudging: boolean;
+}
+
+export interface ComparisonTokenUsage {
+    modelA: TokenUsage;
+    modelB: TokenUsage;
+    judge: TokenUsage;
+    total: TokenUsage;
+}

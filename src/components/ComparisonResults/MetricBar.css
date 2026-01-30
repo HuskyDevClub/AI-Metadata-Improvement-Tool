@@ -1,0 +1,83 @@
+.metric-bar {
+    margin-bottom: 8px;
+}
+
+.metric-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-scores {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.metric-score-container {
+    flex: 1;
+    position: relative;
+    height: 24px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.metric-bar-fill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.model-a .metric-bar-fill {
+    left: 0;
+    background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+}
+
+.model-b .metric-bar-fill {
+    right: 0;
+    left: auto;
+    background: linear-gradient(90deg, #34d399 0%, #22c55e 100%);
+}
+
+.metric-score-value {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    z-index: 1;
+}
+
+.model-a .metric-score-value {
+    left: 8px;
+}
+
+.model-b .metric-score-value {
+    right: 8px;
+}
+
+.metric-divider {
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+/* Winner highlights */
+.metric-bar.a-wins .model-a .metric-score-value {
+    color: #1d4ed8;
+}
+
+.metric-bar.b-wins .model-b .metric-score-value {
+    color: #15803d;
+}
+
+.metric-bar.tie .metric-score-value {
+    color: #6b7280;
+}

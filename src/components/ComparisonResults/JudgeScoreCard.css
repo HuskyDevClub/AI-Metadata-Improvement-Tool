@@ -1,0 +1,174 @@
+.judge-score-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.judge-score-card.compact {
+    padding: 12px;
+    margin-top: 12px;
+}
+
+.judge-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.judge-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e5e7eb;
+    border-top-color: #a855f7;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.judge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.judge-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.judge-title::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #a855f7;
+    border-radius: 50%;
+}
+
+.judge-winner {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 12px;
+}
+
+.judge-winner.model-a {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.judge-winner.model-b {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.judge-winner.tie {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.judge-metrics {
+    margin-bottom: 12px;
+}
+
+.judge-totals {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: #fff;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.total {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.total.model-a {
+    color: #3b82f6;
+}
+
+.total.model-b {
+    color: #22c55e;
+}
+
+.judge-reasoning {
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.5;
+    padding: 10px;
+    background: #fff;
+    border-radius: 6px;
+    border-left: 3px solid #a855f7;
+}
+
+.judge-reasoning strong {
+    color: #374151;
+}
+
+.judge-individual-reasoning {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.reasoning-section {
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.5;
+    padding: 10px;
+    background: #fff;
+    border-radius: 6px;
+}
+
+.reasoning-section.model-a {
+    border-left: 3px solid #3b82f6;
+}
+
+.reasoning-section.model-b {
+    border-left: 3px solid #22c55e;
+}
+
+.reasoning-section strong {
+    color: #374151;
+}
+
+.judge-score-card.compact .judge-header {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+}
+
+.judge-score-card.compact .judge-metrics {
+    margin-bottom: 8px;
+}
+
+.judge-score-card.compact .judge-reasoning {
+    font-size: 12px;
+    padding: 8px;
+}
+
+@media (max-width: 768px) {
+    .judge-individual-reasoning {
+        grid-template-columns: 1fr;
+    }
+}

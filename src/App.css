@@ -78,3 +78,57 @@
     padding: 2px 8px;
     border-radius: 4px;
 }
+
+/* Comparison mode token usage */
+.tokenUsage.comparison {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+    border-color: #fbbf24;
+}
+
+.tokenUsageRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tokenUsageRow .tokenLabel {
+    min-width: 70px;
+    color: #92400e;
+}
+
+.tokenUsageRow .tokenValue {
+    flex: 1;
+}
+
+.tokenUsageRow.total {
+    padding-top: 8px;
+    margin-top: 4px;
+    border-top: 1px solid #fcd34d;
+}
+
+.tokenUsageRow.total .tokenLabel {
+    font-weight: 700;
+}
+
+.tokenCost.modelA {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.tokenCost.modelB {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.tokenCost.judge {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.tokenCost.total {
+    background: #fef08a;
+    color: #854d0e;
+}

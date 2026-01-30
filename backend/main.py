@@ -71,6 +71,32 @@ class ChatRequest(BaseModel):
     apiKey: Optional[str] = None
 
 
+class JudgeRequest(BaseModel):
+    context: str  # Dataset context (fileName, rowCount, columns)
+    candidateA: str  # Model A output
+    candidateB: str  # Model B output
+    model: Optional[str] = None
+    baseURL: Optional[str] = None
+    apiKey: Optional[str] = None
+
+
+class JudgeMetrics(BaseModel):
+    clarity: int
+    completeness: int
+    accuracy: int
+    conciseness: int
+    plainLanguage: int
+    reasoning: str
+
+
+class JudgeResponse(BaseModel):
+    modelA: JudgeMetrics
+    modelB: JudgeMetrics
+    winner: str  # 'A', 'B', or 'tie'
+    winnerReasoning: str
+    usage: dict
+
+
 class HealthResponse(BaseModel):
     status: str
     timestamp: str
@@ -206,6 +232,146 @@ async def openai_chat_stream(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# Judge endpoint for comparison mode
+JUDGE_SYSTEM_PROMPT = """
+You are an expert evaluator assessing metadata descriptions for government open data.
+You will compare two candidate descriptions and score each on the following metrics (1-10 scale):
+
+1. CLARITY - How easy is it to understand? Uses plain language, avoids jargon.
+2. COMPLETENESS - Does it cover the content, purpose, and potential use cases?
+3. ACCURACY - Does it correctly describe what the data contains?
+4. CONCISENESS - Is it brief while still being informative? No unnecessary padding.
+5. PLAIN LANGUAGE - Uses active voice, simple words, short sentences.
+
+You must respond with valid JSON in exactly this format:
+{
+  "modelA": {
+    "clarity": <1-10>,
+    "completeness": <1-10>,
+    "accuracy": <1-10>,
+    "conciseness": <1-10>,
+    "plainLanguage": <1-10>,
+    "reasoning": "<brief explanation for Model A scores>"
+  },
+  "modelB": {
+    "clarity": <1-10>,
+    "completeness": <1-10>,
+    "accuracy": <1-10>,
+    "conciseness": <1-10>,
+    "plainLanguage": <1-10>,
+    "reasoning": "<brief explanation for Model B scores>"
+  },
+  "winner": "<A, B, or tie>",
+  "winnerReasoning": "<1-2 sentence explanation of why this candidate is better or why it's a tie>"
+}
+"""
+
+
+@app.post("/api/openai/judge", response_model=JudgeResponse)
+async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
+    """Evaluate two model outputs and return structured metrics."""
+    # Get configuration from the request or environment
+    base_url = request.baseURL or AZURE_ENDPOINT
+    api_key = request.apiKey or AZURE_KEY
+    model = request.model or AZURE_MODEL
+
+    # Validate configuration
+    missing_config = []
+    if not base_url:
+        missing_config.append("Base URL (AZURE_ENDPOINT)")
+    if not api_key:
+        missing_config.append("API Key (AZURE_KEY)")
+    if not model:
+        missing_config.append("Model (AZURE_MODEL)")
+
+    if missing_config:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required configuration: {', '.join(missing_config)}. "
+            "Please set these in the environment or enter them in the UI.",
+        )
+
+    user_prompt = f"""
+    CONTEXT:
+    {request.context}
+    
+    CANDIDATE A:
+    {request.candidateA}
+    
+    CANDIDATE B:
+    {request.candidateB}
+    
+    Evaluate both candidates and respond with the JSON structure as specified.
+    """
+
+    try:
+        client = AsyncOpenAI(
+            base_url=base_url,
+            api_key=api_key,
+        )
+
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            response_format={"type": "json_object"},
+        )
+
+        content = response.choices[0].message.content
+        if not content:
+            raise HTTPException(
+                status_code=500, detail="Empty response from judge model"
+            )
+
+        result = json.loads(content)
+
+        usage = {
+            "promptTokens": response.usage.prompt_tokens if response.usage else 0,
+            "completionTokens": (
+                response.usage.completion_tokens if response.usage else 0
+            ),
+            "totalTokens": response.usage.total_tokens if response.usage else 0,
+        }
+
+        return JudgeResponse(
+            modelA=JudgeMetrics(
+                clarity=result["modelA"]["clarity"],
+                completeness=result["modelA"]["completeness"],
+                accuracy=result["modelA"]["accuracy"],
+                conciseness=result["modelA"]["conciseness"],
+                plainLanguage=result["modelA"]["plainLanguage"],
+                reasoning=result["modelA"]["reasoning"],
+            ),
+            modelB=JudgeMetrics(
+                clarity=result["modelB"]["clarity"],
+                completeness=result["modelB"]["completeness"],
+                accuracy=result["modelB"]["accuracy"],
+                conciseness=result["modelB"]["conciseness"],
+                plainLanguage=result["modelB"]["plainLanguage"],
+                reasoning=result["modelB"]["reasoning"],
+            ),
+            winner=result["winner"],
+            winnerReasoning=result["winnerReasoning"],
+            usage=usage,
+        )
+
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to parse judge response: {str(e)}"
+        )
+    except KeyError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Invalid judge response structure: missing {str(e)}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Judge evaluation failed: {str(e)}"
+        )
 
 
 # Serve static files (React frontend) - must be last
