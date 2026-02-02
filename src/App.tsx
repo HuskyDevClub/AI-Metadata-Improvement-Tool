@@ -16,6 +16,7 @@ import { useComparisonGeneration } from './hooks/useComparisonGeneration';
 import { parseFile, parseUrl } from './utils/csvParser';
 import { analyzeColumn, getColumnStatsText } from './utils/columnAnalyzer';
 import type {
+    APIConfig,
     CategoricalStats,
     ColumnComparisonResult,
     ColumnInfo,
@@ -81,11 +82,20 @@ function getEstimatedCost(
 const EMPTY_TOKEN_USAGE: TokenUsage = {promptTokens: 0, completionTokens: 0, totalTokens: 0};
 
 function App() {
-    const [openaiConfig, setOpenaiConfig] = useState<OpenAIConfigType>({
+    // Shared API configuration for all modes
+    const [apiConfig, setApiConfig] = useState<APIConfig>({
         baseURL: import.meta.env.VITE_AZURE_ENDPOINT || '',
         apiKey: import.meta.env.VITE_AZURE_KEY || '',
-        model: import.meta.env.VITE_AZURE_MODEL || '',
     });
+
+    // Model for non-comparison mode
+    const [model, setModel] = useState<string>(import.meta.env.VITE_AZURE_MODEL || '');
+
+    // Combined config for hooks that need the full OpenAIConfig
+    const openaiConfig: OpenAIConfigType = {
+        ...apiConfig,
+        model,
+    };
 
     const [promptTemplates, setPromptTemplates] = useState<PromptTemplates>({
         dataset: DEFAULT_DATASET_PROMPT,
@@ -115,11 +125,9 @@ function App() {
     // Comparison Mode State
     const [comparisonEnabled, setComparisonEnabled] = useState(false);
     const [comparisonConfig, setComparisonConfig] = useState<ComparisonConfig>({
-        baseURL: '',
-        apiKey: '',
-        modelA: '',
-        modelB: '',
-        judgeModel: '',
+        modelA: import.meta.env.VITE_COMPARISON_MODEL_A || '',
+        modelB: import.meta.env.VITE_COMPARISON_MODEL_B || '',
+        judgeModel: import.meta.env.VITE_COMPARISON_JUDGE_MODEL || '',
     });
     const [datasetComparison, setDatasetComparison] = useState<DatasetComparisonResult>({
         modelAOutput: '',
@@ -295,12 +303,11 @@ function App() {
         [openaiConfig, buildColumnPrompt, callOpenAIStream, addTokenUsage]
     );
 
-    // Build OpenAIConfig from comparison config for a specific model
-    const getComparisonModelConfig = useCallback((model: string): OpenAIConfigType => ({
-        baseURL: comparisonConfig.baseURL,
-        apiKey: comparisonConfig.apiKey,
-        model,
-    }), [comparisonConfig.baseURL, comparisonConfig.apiKey]);
+    // Build OpenAIConfig from shared API config for a specific model
+    const getComparisonModelConfig = useCallback((modelName: string): OpenAIConfigType => ({
+        ...apiConfig,
+        model: modelName,
+    }), [apiConfig]);
 
     // Comparison mode generation
     const generateDatasetComparisonDescription = useCallback(
@@ -889,17 +896,21 @@ function App() {
             <div className="content">
                 <HowItWorks/>
 
+                <OpenAIConfig
+                    config={openaiConfig}
+                    onChange={(newConfig) => {
+                        setApiConfig({baseURL: newConfig.baseURL, apiKey: newConfig.apiKey});
+                        setModel(newConfig.model);
+                    }}
+                    showModel={!comparisonEnabled}
+                />
+
                 <ComparisonMode
                     enabled={comparisonEnabled}
                     onToggle={setComparisonEnabled}
                     config={comparisonConfig}
                     onChange={setComparisonConfig}
-                    defaultConfig={openaiConfig}
                 />
-
-                {!comparisonEnabled && (
-                    <OpenAIConfig config={openaiConfig} onChange={setOpenaiConfig}/>
-                )}
 
                 <PromptEditor templates={promptTemplates} onChange={setPromptTemplates}/>
                 <CsvInput onAnalyze={handleAnalyze} isProcessing={isProcessing}/>

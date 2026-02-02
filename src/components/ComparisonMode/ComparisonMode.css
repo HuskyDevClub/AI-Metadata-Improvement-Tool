@@ -83,78 +83,8 @@
 .comparison-mode-description {
     font-size: 14px;
     color: #78350f;
-    margin-bottom: 20px;
-    line-height: 1.5;
-}
-
-/* Shared API Configuration */
-.comparison-shared-config {
-    background: white;
-    border-radius: 8px;
-    padding: 16px;
     margin-bottom: 16px;
-    border: 1px solid #fcd34d;
-}
-
-.shared-config-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.shared-config-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #92400e;
-}
-
-.copy-default-btn {
-    font-size: 12px;
-    padding: 4px 10px;
-    background: #fef3c7;
-    border: 1px solid #fbbf24;
-    border-radius: 4px;
-    color: #92400e;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.copy-default-btn:hover {
-    background: #fde68a;
-}
-
-.shared-config-fields {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
-.config-input-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.config-input-group label {
-    font-size: 12px;
-    font-weight: 500;
-    color: #78350f;
-    margin-bottom: 4px;
-}
-
-.config-input-group input {
-    padding: 8px 10px;
-    border: 1px solid #fcd34d;
-    border-radius: 4px;
-    font-size: 13px;
-    background: white;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.config-input-group input:focus {
-    outline: none;
-    border-color: #f59e0b;
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    line-height: 1.5;
 }
 
 /* Model Selection */
@@ -235,10 +165,6 @@
 }
 
 @media (max-width: 768px) {
-    .shared-config-fields {
-        grid-template-columns: 1fr;
-    }
-
     .comparison-models-config {
         grid-template-columns: 1fr;
     }

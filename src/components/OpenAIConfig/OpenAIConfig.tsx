@@ -4,16 +4,21 @@ import './OpenAIConfig.css';
 interface OpenAIConfigProps {
     config: OpenAIConfigType;
     onChange: (config: OpenAIConfigType) => void;
+    showModel?: boolean;
 }
 
-export function OpenAIConfig({config, onChange}: OpenAIConfigProps) {
+export function OpenAIConfig({
+                                 config,
+                                 onChange,
+                                 showModel = true,
+                             }: OpenAIConfigProps) {
     const handleChange = (field: keyof OpenAIConfigType, value: string) => {
         onChange({...config, [field]: value});
     };
 
     return (
         <div className="openai-config-section">
-            <div className="openai-config-section-title">OpenAI Configuration</div>
+            <div className="openai-config-section-title">API Configuration</div>
             <div className="openai-config-grid">
                 <div className="openai-config-input-group">
                     <label htmlFor="openaiBaseURL">Base URL *</label>
@@ -31,23 +36,25 @@ export function OpenAIConfig({config, onChange}: OpenAIConfigProps) {
                     <input
                         id="openaiKey"
                         type="password"
-                        placeholder="Your Azure OpenAI API key"
+                        placeholder="Your API key"
                         value={config.apiKey}
                         onChange={(e) => handleChange('apiKey', e.target.value)}
                     />
                     <span className="openai-config-help-text">Your API key</span>
                 </div>
-                <div className="openai-config-input-group">
-                    <label htmlFor="openaiModel">Model *</label>
-                    <input
-                        id="openaiModel"
-                        type="text"
-                        placeholder="gpt-5-nano"
-                        value={config.model}
-                        onChange={(e) => handleChange('model', e.target.value)}
-                    />
-                    <span className="openai-config-help-text">Model name (e.g., gpt-5, gpt-4o, gpt-4-turbo)</span>
-                </div>
+                {showModel && (
+                    <div className="openai-config-input-group">
+                        <label htmlFor="openaiModel">Model *</label>
+                        <input
+                            id="openaiModel"
+                            type="text"
+                            placeholder="e.g., gpt-5, gpt-4o, gpt-4-turbo"
+                            value={config.model}
+                            onChange={(e) => handleChange('model', e.target.value)}
+                        />
+                        <span className="openai-config-help-text">Model name (e.g., gpt-5, gpt-4o, gpt-4-turbo)</span>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -7,7 +7,6 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 import httpx
 from dotenv import load_dotenv
@@ -15,8 +14,16 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from models import (
+    ChatRequest,
+    FetchCsvRequest,
+    FetchCsvResponse,
+    HealthResponse,
+    JudgeMetrics,
+    JudgeRequest,
+    JudgeResponse,
+)
 from openai import AsyncOpenAI
-from pydantic import BaseModel
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,6 +34,10 @@ AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "")
 AZURE_KEY = os.getenv("AZURE_KEY", "")
 AZURE_MODEL = os.getenv("AZURE_MODEL", "")
 CORS_ORIGIN = os.getenv("CORS_ORIGIN", "*")
+
+# Load JSON schemas
+SCHEMAS_DIR = Path(__file__).parent / "schemas"
+JUDGE_RESPONSE_SCHEMA = json.loads((SCHEMAS_DIR / "judge_response.json").read_text())
 
 # For Databricks Apps, the port is typically provided via environment variable
 PORT = int(os.getenv("PORT", "8000"))
@@ -51,55 +62,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# Request/Response Models
-class FetchCsvRequest(BaseModel):
-    url: str
-
-
-class FetchCsvResponse(BaseModel):
-    csvText: str
-    fileName: str
-
-
-class ChatRequest(BaseModel):
-    prompt: str
-    systemPrompt: Optional[str] = None
-    model: Optional[str] = None
-    baseURL: Optional[str] = None
-    apiKey: Optional[str] = None
-
-
-class JudgeRequest(BaseModel):
-    context: str  # Dataset context (fileName, rowCount, columns)
-    candidateA: str  # Model A output
-    candidateB: str  # Model B output
-    model: Optional[str] = None
-    baseURL: Optional[str] = None
-    apiKey: Optional[str] = None
-
-
-class JudgeMetrics(BaseModel):
-    clarity: int
-    completeness: int
-    accuracy: int
-    conciseness: int
-    plainLanguage: int
-    reasoning: str
-
-
-class JudgeResponse(BaseModel):
-    modelA: JudgeMetrics
-    modelB: JudgeMetrics
-    winner: str  # 'A', 'B', or 'tie'
-    winnerReasoning: str
-    usage: dict
-
-
-class HealthResponse(BaseModel):
-    status: str
-    timestamp: str
 
 
 # Health check endpoint
@@ -247,24 +209,24 @@ You will compare two candidate descriptions and score each on the following metr
 
 You must respond with valid JSON in exactly this format:
 {
-  "modelA": {
-    "clarity": <1-10>,
-    "completeness": <1-10>,
-    "accuracy": <1-10>,
-    "conciseness": <1-10>,
-    "plainLanguage": <1-10>,
-    "reasoning": "<brief explanation for Model A scores>"
-  },
-  "modelB": {
-    "clarity": <1-10>,
-    "completeness": <1-10>,
-    "accuracy": <1-10>,
-    "conciseness": <1-10>,
-    "plainLanguage": <1-10>,
-    "reasoning": "<brief explanation for Model B scores>"
-  },
-  "winner": "<A, B, or tie>",
-  "winnerReasoning": "<1-2 sentence explanation of why this candidate is better or why it's a tie>"
+    "modelA": {
+        "clarity": <1-10>,
+        "completeness": <1-10>,
+        "accuracy": <1-10>,
+        "conciseness": <1-10>,
+        "plainLanguage": <1-10>,
+        "reasoning": "<brief explanation for Model A scores>"
+    },
+    "modelB": {
+        "clarity": <1-10>,
+        "completeness": <1-10>,
+        "accuracy": <1-10>,
+        "conciseness": <1-10>,
+        "plainLanguage": <1-10>,
+        "reasoning": "<brief explanation for Model B scores>"
+    },
+    "winner": "<A, B, or tie>",
+    "winnerReasoning": "<1-2 sentence explanation of why this candidate is better or why it's a tie>"
 }
 """
 
@@ -318,7 +280,10 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
                 {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
-            response_format={"type": "json_object"},
+            response_format={
+                "type": "json_schema",
+                "json_schema": JUDGE_RESPONSE_SCHEMA,
+            },
         )
 
         content = response.choices[0].message.content
@@ -338,22 +303,8 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
         }
 
         return JudgeResponse(
-            modelA=JudgeMetrics(
-                clarity=result["modelA"]["clarity"],
-                completeness=result["modelA"]["completeness"],
-                accuracy=result["modelA"]["accuracy"],
-                conciseness=result["modelA"]["conciseness"],
-                plainLanguage=result["modelA"]["plainLanguage"],
-                reasoning=result["modelA"]["reasoning"],
-            ),
-            modelB=JudgeMetrics(
-                clarity=result["modelB"]["clarity"],
-                completeness=result["modelB"]["completeness"],
-                accuracy=result["modelB"]["accuracy"],
-                conciseness=result["modelB"]["conciseness"],
-                plainLanguage=result["modelB"]["plainLanguage"],
-                reasoning=result["modelB"]["reasoning"],
-            ),
+            modelA=JudgeMetrics.from_dict(result["modelA"]),
+            modelB=JudgeMetrics.from_dict(result["modelB"]),
             winner=result["winner"],
             winnerReasoning=result["winnerReasoning"],
             usage=usage,

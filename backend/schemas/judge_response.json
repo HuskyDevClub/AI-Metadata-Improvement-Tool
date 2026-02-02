@@ -1,0 +1,91 @@
+{
+    "name": "judge_response",
+    "schema": {
+        "additionalProperties": false,
+        "properties": {
+            "modelA": {
+                "additionalProperties": false,
+                "properties": {
+                    "accuracy": {
+                        "type": "integer"
+                    },
+                    "clarity": {
+                        "type": "integer"
+                    },
+                    "completeness": {
+                        "type": "integer"
+                    },
+                    "conciseness": {
+                        "type": "integer"
+                    },
+                    "plainLanguage": {
+                        "type": "integer"
+                    },
+                    "reasoning": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "clarity",
+                    "completeness",
+                    "accuracy",
+                    "conciseness",
+                    "plainLanguage",
+                    "reasoning"
+                ],
+                "type": "object"
+            },
+            "modelB": {
+                "additionalProperties": false,
+                "properties": {
+                    "accuracy": {
+                        "type": "integer"
+                    },
+                    "clarity": {
+                        "type": "integer"
+                    },
+                    "completeness": {
+                        "type": "integer"
+                    },
+                    "conciseness": {
+                        "type": "integer"
+                    },
+                    "plainLanguage": {
+                        "type": "integer"
+                    },
+                    "reasoning": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "clarity",
+                    "completeness",
+                    "accuracy",
+                    "conciseness",
+                    "plainLanguage",
+                    "reasoning"
+                ],
+                "type": "object"
+            },
+            "winner": {
+                "enum": [
+                    "A",
+                    "B",
+                    "tie"
+                ],
+                "type": "string"
+            },
+            "winnerReasoning": {
+                "type": "string"
+            }
+        },
+        "required": [
+            "modelA",
+            "modelB",
+            "winner",
+            "winnerReasoning"
+        ],
+        "type": "object"
+    },
+    "strict": true
+}

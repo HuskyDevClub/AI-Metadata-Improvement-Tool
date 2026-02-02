@@ -1,4 +1,4 @@
-import type { ComparisonConfig, OpenAIConfig } from '../../types';
+import type { ComparisonConfig } from '../../types';
 import './ComparisonMode.css';
 
 interface ComparisonModeProps {
@@ -6,7 +6,6 @@ interface ComparisonModeProps {
     onToggle: (enabled: boolean) => void;
     config: ComparisonConfig;
     onChange: (config: ComparisonConfig) => void;
-    defaultConfig: OpenAIConfig;
 }
 
 export function ComparisonMode({
@@ -14,18 +13,9 @@ export function ComparisonMode({
                                    onToggle,
                                    config,
                                    onChange,
-                                   defaultConfig,
                                }: ComparisonModeProps) {
     const handleChange = (field: keyof ComparisonConfig, value: string) => {
         onChange({...config, [field]: value});
-    };
-
-    const copyFromDefault = () => {
-        onChange({
-            ...config,
-            baseURL: defaultConfig.baseURL,
-            apiKey: defaultConfig.apiKey,
-        });
     };
 
     return (
@@ -50,46 +40,14 @@ export function ComparisonMode({
                 <>
                     <p className="comparison-mode-description">
                         Compare outputs from two models side-by-side with AI-powered evaluation.
-                        All models use the same API endpoint.
+                        All models use the same API endpoint configured above.
                     </p>
-
-                    <div className="comparison-shared-config">
-                        <div className="shared-config-header">
-                            <span className="shared-config-title">API Configuration</span>
-                            <button
-                                className="copy-default-btn"
-                                onClick={copyFromDefault}
-                                title="Copy from default OpenAI configuration"
-                            >
-                                Copy from default
-                            </button>
-                        </div>
-                        <div className="shared-config-fields">
-                            <div className="config-input-group">
-                                <label>Base URL</label>
-                                <input
-                                    type="text"
-                                    placeholder="https://api.openai.com/v1"
-                                    value={config.baseURL}
-                                    onChange={(e) => handleChange('baseURL', e.target.value)}
-                                />
-                            </div>
-                            <div className="config-input-group">
-                                <label>API Key</label>
-                                <input
-                                    type="password"
-                                    placeholder="API key"
-                                    value={config.apiKey}
-                                    onChange={(e) => handleChange('apiKey', e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    </div>
 
                     <div className="comparison-models-config">
                         <div className="model-input-group model-a">
-                            <label>Model A</label>
+                            <label htmlFor="comparisonModelA">Model A</label>
                             <input
+                                id="comparisonModelA"
                                 type="text"
                                 placeholder="e.g., gpt-4o"
                                 value={config.modelA}
@@ -97,8 +55,9 @@ export function ComparisonMode({
                             />
                         </div>
                         <div className="model-input-group model-b">
-                            <label>Model B</label>
+                            <label htmlFor="comparisonModelB">Model B</label>
                             <input
+                                id="comparisonModelB"
                                 type="text"
                                 placeholder="e.g., gpt-4o-mini"
                                 value={config.modelB}
@@ -106,8 +65,9 @@ export function ComparisonMode({
                             />
                         </div>
                         <div className="model-input-group judge">
-                            <label>Judge Model</label>
+                            <label htmlFor="comparisonJudgeModel">Judge Model</label>
                             <input
+                                id="comparisonJudgeModel"
                                 type="text"
                                 placeholder="e.g., gpt-4o"
                                 value={config.judgeModel}

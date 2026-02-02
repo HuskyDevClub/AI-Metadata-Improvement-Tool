@@ -1,6 +1,9 @@
-export interface OpenAIConfig {
+export interface APIConfig {
     baseURL: string;
     apiKey: string;
+}
+
+export interface OpenAIConfig extends APIConfig {
     model: string;
 }
 
@@ -62,8 +65,6 @@ export type CsvRow = Record<string, string>;
 // Comparison Mode Types
 
 export interface ComparisonConfig {
-    baseURL: string;
-    apiKey: string;
     modelA: string;
     modelB: string;
     judgeModel: string;
