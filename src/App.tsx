@@ -14,17 +14,17 @@ import { DatasetComparison } from './components/DatasetComparison/DatasetCompari
 import { ColumnComparison } from './components/ColumnComparison/ColumnComparison';
 import { useOpenAI } from './hooks/useOpenAI';
 import { useComparisonGeneration } from './hooks/useComparisonGeneration';
+import { useComparisonState } from './hooks/useComparisonState';
 import { parseFile, parseUrl } from './utils/csvParser';
 import { analyzeColumn, getColumnStatsText } from './utils/columnAnalyzer';
+import { getEstimatedCost } from './utils/pricing';
+import { addToSet, handleJudgeError, handleRegenerationError, removeFromSet } from './utils/stateHelpers';
 import type {
     APIConfig,
     CategoricalStats,
     ColumnComparisonResult,
     ColumnInfo,
-    ComparisonConfig,
-    ComparisonTokenUsage,
     CsvRow,
-    DatasetComparisonResult,
     GeneratedResults,
     NumericStats,
     OpenAIConfig as OpenAIConfigType,
@@ -52,33 +52,6 @@ Column statistics:
 {columnStats}
 
 Describe what this column represents and its role in the dataset.`;
-
-// Pricing per 1M tokens (USD) - updated as of Jan 2025
-const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-    'gpt-5-nano': {input: 0.05, output: 0.40},
-    'gpt-5-mini': {input: 0.25, output: 2.00},
-    'gpt-4o-mini': {input: 0.15, output: 0.60},
-};
-
-function getEstimatedCost(
-    model: string,
-    promptTokens: number,
-    completionTokens: number
-): number | null {
-    // Find matching pricing (case-insensitive, partial match)
-    const modelLower = model.toLowerCase();
-    const pricingKey = Object.keys(MODEL_PRICING).find((key) =>
-        modelLower.includes(key)
-    );
-
-    if (!pricingKey) return null;
-
-    const pricing = MODEL_PRICING[pricingKey];
-    const inputCost = (promptTokens / 1_000_000) * pricing.input;
-    const outputCost = (completionTokens / 1_000_000) * pricing.output;
-
-    return inputCost + outputCost;
-}
 
 const EMPTY_TOKEN_USAGE: TokenUsage = {promptTokens: 0, completionTokens: 0, totalTokens: 0};
 
@@ -123,40 +96,41 @@ function App() {
         totalTokens: 0,
     });
 
-    // Comparison Mode State
-    const [comparisonEnabled, setComparisonEnabled] = useState(false);
-    const [comparisonConfig, setComparisonConfig] = useState<ComparisonConfig>({
-        modelA: import.meta.env.VITE_COMPARISON_MODEL_A || '',
-        modelB: import.meta.env.VITE_COMPARISON_MODEL_B || '',
-        judgeModel: import.meta.env.VITE_COMPARISON_JUDGE_MODEL || '',
-    });
-    const [datasetComparison, setDatasetComparison] = useState<DatasetComparisonResult>({
-        modelAOutput: '',
-        modelBOutput: '',
-        judgeResult: null,
-        isJudging: false,
-    });
-    const [columnComparisons, setColumnComparisons] = useState<Record<string, ColumnComparisonResult>>({});
-    const [generatingColumnsA, setGeneratingColumnsA] = useState<Set<string>>(new Set());
-    const [generatingColumnsB, setGeneratingColumnsB] = useState<Set<string>>(new Set());
-    const [generatingDatasetA, setGeneratingDatasetA] = useState(false);
-    const [generatingDatasetB, setGeneratingDatasetB] = useState(false);
-    const [comparisonTokenUsage, setComparisonTokenUsage] = useState<ComparisonTokenUsage>({
-        modelA: {...EMPTY_TOKEN_USAGE},
-        modelB: {...EMPTY_TOKEN_USAGE},
-        judge: {...EMPTY_TOKEN_USAGE},
-        total: {...EMPTY_TOKEN_USAGE},
-    });
-
-    // Regeneration state for comparison mode
-    const [regeneratingDatasetA, setRegeneratingDatasetA] = useState(false);
-    const [regeneratingDatasetB, setRegeneratingDatasetB] = useState(false);
-    const [regeneratingColumnsA, setRegeneratingColumnsA] = useState<Set<string>>(new Set());
-    const [regeneratingColumnsB, setRegeneratingColumnsB] = useState<Set<string>>(new Set());
-
-    // Re-judging state
-    const [reJudgingDataset, setReJudgingDataset] = useState(false);
-    const [reJudgingColumns, setReJudgingColumns] = useState<Set<string>>(new Set());
+    // Comparison Mode State (extracted to custom hook)
+    const {
+        comparisonEnabled,
+        comparisonConfig,
+        datasetComparison,
+        columnComparisons,
+        comparisonTokenUsage,
+        generatingColumnsA,
+        generatingColumnsB,
+        generatingDatasetA,
+        generatingDatasetB,
+        regeneratingDatasetA,
+        regeneratingDatasetB,
+        regeneratingColumnsA,
+        regeneratingColumnsB,
+        reJudgingDataset,
+        reJudgingColumns,
+        setComparisonEnabled,
+        setComparisonConfig,
+        setDatasetComparison,
+        setColumnComparisons,
+        setComparisonTokenUsage,
+        setGeneratingColumnsA,
+        setGeneratingColumnsB,
+        setGeneratingDatasetA,
+        setGeneratingDatasetB,
+        setRegeneratingColumnsA,
+        setRegeneratingColumnsB,
+        setRegeneratingDatasetA,
+        setRegeneratingDatasetB,
+        setReJudgingDataset,
+        setReJudgingColumns,
+        resetComparisonState,
+        addComparisonTokenUsage,
+    } = useComparisonState();
 
     // Abort controller for stopping generation
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -178,7 +152,7 @@ function App() {
                 total: {...EMPTY_TOKEN_USAGE},
             });
         }
-    }, []);
+    }, [setComparisonEnabled, setComparisonTokenUsage]);
     const {generateParallel, callJudge} = useComparisonGeneration();
 
     const addTokenUsage = useCallback((usage: TokenUsage) => {
@@ -187,26 +161,6 @@ function App() {
             completionTokens: prev.completionTokens + usage.completionTokens,
             totalTokens: prev.totalTokens + usage.totalTokens,
         }));
-    }, []);
-
-    const addComparisonTokenUsage = useCallback((
-        model: 'modelA' | 'modelB' | 'judge',
-        usage: TokenUsage
-    ) => {
-        setComparisonTokenUsage((prev) => {
-            const newUsage = {...prev};
-            newUsage[model] = {
-                promptTokens: prev[model].promptTokens + usage.promptTokens,
-                completionTokens: prev[model].completionTokens + usage.completionTokens,
-                totalTokens: prev[model].totalTokens + usage.totalTokens,
-            };
-            newUsage.total = {
-                promptTokens: prev.total.promptTokens + usage.promptTokens,
-                completionTokens: prev.total.completionTokens + usage.completionTokens,
-                totalTokens: prev.total.totalTokens + usage.totalTokens,
-            };
-            return newUsage;
-        });
     }, []);
 
     const buildColumnInfo = useCallback((stats: Record<string, ColumnInfo>): string => {
@@ -353,7 +307,7 @@ function App() {
             judgeResult: judgeResult.result,
             isJudging: false,
         }));
-    }, [comparisonConfig.judgeModel, getComparisonModelConfig, callJudge, addComparisonTokenUsage]);
+    }, [getComparisonModelConfig, comparisonConfig.judgeModel, callJudge, addComparisonTokenUsage, setDatasetComparison]);
 
     // Helper to judge column outputs and update the state
     const judgeColumnOutputs = useCallback(async (
@@ -375,7 +329,7 @@ function App() {
                 isJudging: false,
             },
         }));
-    }, [comparisonConfig.judgeModel, getComparisonModelConfig, callJudge, addComparisonTokenUsage]);
+    }, [getComparisonModelConfig, comparisonConfig.judgeModel, callJudge, addComparisonTokenUsage, setColumnComparisons]);
 
     // Comparison mode generation
     const generateDatasetComparisonDescription = useCallback(
@@ -437,7 +391,7 @@ function App() {
 
             return {aborted: false};
         },
-        [buildDatasetPrompt, getComparisonModelConfig, comparisonConfig.modelA, comparisonConfig.modelB, generateParallel, addComparisonTokenUsage, judgeDatasetOutputs]
+        [buildDatasetPrompt, setGeneratingDatasetA, setGeneratingDatasetB, getComparisonModelConfig, comparisonConfig.modelA, comparisonConfig.modelB, generateParallel, addComparisonTokenUsage, setDatasetComparison, judgeDatasetOutputs]
     );
 
     const generateColumnComparisonDescription = useCallback(
@@ -517,7 +471,7 @@ function App() {
 
             return {aborted: false};
         },
-        [buildColumnPrompt, getComparisonModelConfig, comparisonConfig.modelA, comparisonConfig.modelB, callOpenAIStream, addComparisonTokenUsage, judgeColumnOutputs]
+        [buildColumnPrompt, setGeneratingColumnsA, setGeneratingColumnsB, getComparisonModelConfig, comparisonConfig.modelA, comparisonConfig.modelB, callOpenAIStream, addComparisonTokenUsage, setColumnComparisons, judgeColumnOutputs]
     );
 
     const handleAnalyze = useCallback(
@@ -534,19 +488,7 @@ function App() {
 
             // Reset comparison state
             if (comparisonEnabled) {
-                setDatasetComparison({
-                    modelAOutput: '',
-                    modelBOutput: '',
-                    judgeResult: null,
-                    isJudging: false,
-                });
-                setColumnComparisons({});
-                setComparisonTokenUsage({
-                    modelA: {...EMPTY_TOKEN_USAGE},
-                    modelB: {...EMPTY_TOKEN_USAGE},
-                    judge: {...EMPTY_TOKEN_USAGE},
-                    total: {...EMPTY_TOKEN_USAGE},
-                });
+                resetComparisonState();
             }
 
             try {
@@ -700,7 +642,7 @@ function App() {
                 setIsProcessing(false);
             }
         },
-        [comparisonEnabled, generateDatasetDescription, generateColumnDescription, generateDatasetComparisonDescription, generateColumnComparisonDescription]
+        [comparisonEnabled, resetComparisonState, setColumnComparisons, generateDatasetComparisonDescription, setDatasetComparison, generateColumnComparisonDescription, generateDatasetDescription, generateColumnDescription]
     );
 
     const handleStop = useCallback(() => {
@@ -732,8 +674,7 @@ function App() {
 
     const handleRegenerateColumn = useCallback(
         async (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
-
-            setRegeneratingColumns((prev) => new Set(prev).add(columnName));
+            setRegeneratingColumns(addToSet(columnName));
             try {
                 const info = columnStats[columnName];
                 const result = await generateColumnDescription(
@@ -749,16 +690,9 @@ function App() {
                 }));
                 setStatus({message: `Successfully regenerated column "${columnName}" description!`, type: 'success'});
             } catch (error) {
-                setStatus({
-                    message: `Error regenerating: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                    type: 'error'
-                });
+                handleRegenerationError(error, setStatus);
             } finally {
-                setRegeneratingColumns((prev) => {
-                    const next = new Set(prev);
-                    next.delete(columnName);
-                    return next;
-                });
+                setRegeneratingColumns(removeFromSet(columnName));
             }
         },
         [columnStats, generatedResults.datasetDescription, generateColumnDescription]
@@ -816,21 +750,15 @@ function App() {
                     setStatus({message: `Successfully regenerated Model ${model} description!`, type: 'success'});
                 } catch (error) {
                     setDatasetComparison((prev) => ({...prev, isJudging: false}));
-                    setStatus({
-                        message: `Judge error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                        type: 'warning'
-                    });
+                    handleJudgeError(error, setStatus);
                 }
             } catch (error) {
-                setStatus({
-                    message: `Error regenerating: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                    type: 'error'
-                });
+                handleRegenerationError(error, setStatus);
             } finally {
                 setRegenerating(false);
             }
         },
-        [csvData, fileName, columnStats, comparisonConfig, buildDatasetPrompt, getComparisonModelConfig, callOpenAIStream, judgeDatasetOutputs, addComparisonTokenUsage]
+        [csvData, setRegeneratingDatasetA, setRegeneratingDatasetB, buildDatasetPrompt, fileName, columnStats, comparisonConfig.modelA, comparisonConfig.modelB, getComparisonModelConfig, callOpenAIStream, addComparisonTokenUsage, setDatasetComparison, judgeDatasetOutputs]
     );
 
     const handleRegenerateComparisonColumn = useCallback(
@@ -844,7 +772,7 @@ function App() {
             if (!info) return;
 
             const setRegenerating = model === 'A' ? setRegeneratingColumnsA : setRegeneratingColumnsB;
-            setRegenerating((prev) => new Set(prev).add(columnName));
+            setRegenerating(addToSet(columnName));
 
             try {
                 // Get the dataset description for context
@@ -869,11 +797,7 @@ function App() {
 
                 if (result.aborted) {
                     setStatus({message: 'Regeneration stopped.', type: 'info'});
-                    setRegenerating((prev) => {
-                        const next = new Set(prev);
-                        next.delete(columnName);
-                        return next;
-                    });
+                    setRegenerating(removeFromSet(columnName));
                     return;
                 }
 
@@ -904,16 +828,10 @@ function App() {
                         ...prev,
                         [columnName]: {...prev[columnName], isJudging: false},
                     }));
-                    setStatus({
-                        message: `Judge error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                        type: 'warning'
-                    });
+                    handleJudgeError(error, setStatus);
                 }
             } catch (error) {
-                setStatus({
-                    message: `Error regenerating: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                    type: 'error'
-                });
+                handleRegenerationError(error, setStatus);
             } finally {
                 setRegenerating((prev) => {
                     const next = new Set(prev);
@@ -922,7 +840,7 @@ function App() {
                 });
             }
         },
-        [columnStats, datasetComparison, comparisonConfig, buildColumnPrompt, getComparisonModelConfig, callOpenAIStream, judgeColumnOutputs, addComparisonTokenUsage]
+        [columnStats, setRegeneratingColumnsA, setRegeneratingColumnsB, datasetComparison.modelAOutput, datasetComparison.modelBOutput, buildColumnPrompt, comparisonConfig.modelA, comparisonConfig.modelB, getComparisonModelConfig, callOpenAIStream, addComparisonTokenUsage, setColumnComparisons, judgeColumnOutputs]
     );
 
     // Re-judge handlers
@@ -945,14 +863,14 @@ function App() {
         } finally {
             setReJudgingDataset(false);
         }
-    }, [csvData, fileName, columnStats, datasetComparison, judgeDatasetOutputs]);
+    }, [csvData, datasetComparison.modelAOutput, datasetComparison.modelBOutput, setReJudgingDataset, setDatasetComparison, fileName, columnStats, judgeDatasetOutputs]);
 
     const handleReJudgeColumn = useCallback(async (columnName: string) => {
         const info = columnStats[columnName];
         const columnResult = columnComparisons[columnName];
         if (!info || !columnResult?.modelAOutput || !columnResult?.modelBOutput) return;
 
-        setReJudgingColumns((prev) => new Set(prev).add(columnName));
+        setReJudgingColumns(addToSet(columnName));
         setColumnComparisons((prev) => ({
             ...prev,
             [columnName]: {...prev[columnName], isJudging: true},
@@ -967,18 +885,11 @@ function App() {
                 ...prev,
                 [columnName]: {...prev[columnName], isJudging: false},
             }));
-            setStatus({
-                message: `Judge error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                type: 'error'
-            });
+            handleJudgeError(error, setStatus);
         } finally {
-            setReJudgingColumns((prev) => {
-                const next = new Set(prev);
-                next.delete(columnName);
-                return next;
-            });
+            setReJudgingColumns(removeFromSet(columnName));
         }
-    }, [columnStats, columnComparisons, judgeColumnOutputs]);
+    }, [columnStats, columnComparisons, setReJudgingColumns, setColumnComparisons, judgeColumnOutputs]);
 
     const handleEditDatasetDescription = useCallback((newDescription: string) => {
         setGeneratedResults((prev) => ({...prev, datasetDescription: newDescription}));
@@ -990,6 +901,25 @@ function App() {
             columnDescriptions: {...prev.columnDescriptions, [columnName]: newDescription},
         }));
     }, []);
+
+    // Memoized callback for OpenAIConfig onChange
+    const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
+        setApiConfig({baseURL: newConfig.baseURL, apiKey: newConfig.apiKey});
+        setModel(newConfig.model);
+    }, []);
+
+    // Memoized callbacks for comparison dataset regeneration
+    const handleRegenerateDatasetA = useCallback(
+        (modifier: '' | 'concise' | 'detailed', customInstruction?: string) =>
+            handleRegenerateComparisonDataset('A', modifier, customInstruction),
+        [handleRegenerateComparisonDataset]
+    );
+
+    const handleRegenerateDatasetB = useCallback(
+        (modifier: '' | 'concise' | 'detailed', customInstruction?: string) =>
+            handleRegenerateComparisonDataset('B', modifier, customInstruction),
+        [handleRegenerateComparisonDataset]
+    );
 
     const handleExport = useCallback(() => {
         if (!csvData) return;
@@ -1162,10 +1092,7 @@ function App() {
 
                 <OpenAIConfig
                     config={openaiConfig}
-                    onChange={(newConfig) => {
-                        setApiConfig({baseURL: newConfig.baseURL, apiKey: newConfig.apiKey});
-                        setModel(newConfig.model);
-                    }}
+                    onChange={handleOpenAIConfigChange}
                     showModel={!comparisonEnabled}
                 />
 
@@ -1202,12 +1129,8 @@ function App() {
                                         modelBName={`Model B (${comparisonConfig.modelB || 'Not set'})`}
                                         isGeneratingA={generatingDatasetA}
                                         isGeneratingB={generatingDatasetB}
-                                        onRegenerateA={(modifier, customInstruction) =>
-                                            handleRegenerateComparisonDataset('A', modifier, customInstruction)
-                                        }
-                                        onRegenerateB={(modifier, customInstruction) =>
-                                            handleRegenerateComparisonDataset('B', modifier, customInstruction)
-                                        }
+                                        onRegenerateA={handleRegenerateDatasetA}
+                                        onRegenerateB={handleRegenerateDatasetB}
                                         isRegeneratingA={regeneratingDatasetA}
                                         isRegeneratingB={regeneratingDatasetB}
                                         onReJudge={handleReJudgeDataset}
