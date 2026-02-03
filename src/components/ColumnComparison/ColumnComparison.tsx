@@ -1,4 +1,5 @@
 import type { ColumnComparisonResult, ColumnInfo } from '../../types';
+import type { RegenerationModifier } from '../ComparisonResults/RegenerationControls';
 import { SideBySideView } from '../ComparisonResults/SideBySideView';
 import { JudgeScoreCard } from '../ComparisonResults/JudgeScoreCard';
 import './ColumnComparison.css';
@@ -11,6 +12,14 @@ interface ColumnComparisonProps {
     modelBName?: string;
     isGeneratingA: boolean;
     isGeneratingB: boolean;
+    // Regeneration props
+    onRegenerateA?: (modifier: RegenerationModifier, customInstruction?: string) => void;
+    onRegenerateB?: (modifier: RegenerationModifier, customInstruction?: string) => void;
+    isRegeneratingA?: boolean;
+    isRegeneratingB?: boolean;
+    // Re-judge props
+    onReJudge?: () => void;
+    isReJudging?: boolean;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -28,6 +37,12 @@ export function ColumnComparison({
                                      modelBName = 'Model B',
                                      isGeneratingA,
                                      isGeneratingB,
+                                     onRegenerateA,
+                                     onRegenerateB,
+                                     isRegeneratingA = false,
+                                     isRegeneratingB = false,
+                                     onReJudge,
+                                     isReJudging = false,
                                  }: ColumnComparisonProps) {
     return (
         <div className="column-comparison-card">
@@ -49,9 +64,20 @@ export function ColumnComparison({
                 isGeneratingA={isGeneratingA}
                 isGeneratingB={isGeneratingB}
                 winner={result.judgeResult?.winner}
+                onRegenerateA={onRegenerateA}
+                onRegenerateB={onRegenerateB}
+                isRegeneratingA={isRegeneratingA}
+                isRegeneratingB={isRegeneratingB}
+                isJudging={result.isJudging}
             />
 
-            <JudgeScoreCard result={result.judgeResult} isJudging={result.isJudging} compact/>
+            <JudgeScoreCard
+                result={result.judgeResult}
+                isJudging={result.isJudging}
+                compact
+                onReJudge={onReJudge}
+                isReJudging={isReJudging}
+            />
         </div>
     );
 }

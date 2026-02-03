@@ -1,4 +1,5 @@
 import type { JudgeResult } from '../../types';
+import { RegenerationControls, type RegenerationModifier } from './RegenerationControls';
 import './SideBySideView.css';
 
 interface SideBySideViewProps {
@@ -9,6 +10,12 @@ interface SideBySideViewProps {
     isGeneratingA: boolean;
     isGeneratingB: boolean;
     winner?: JudgeResult['winner'] | null;
+    // Regeneration props
+    onRegenerateA?: (modifier: RegenerationModifier, customInstruction?: string) => void;
+    onRegenerateB?: (modifier: RegenerationModifier, customInstruction?: string) => void;
+    isRegeneratingA?: boolean;
+    isRegeneratingB?: boolean;
+    isJudging?: boolean;
 }
 
 export function SideBySideView({
@@ -19,12 +26,19 @@ export function SideBySideView({
                                    isGeneratingA,
                                    isGeneratingB,
                                    winner,
+                                   onRegenerateA,
+                                   onRegenerateB,
+                                   isRegeneratingA = false,
+                                   isRegeneratingB = false,
+                                   isJudging = false,
                                }: SideBySideViewProps) {
     const getWinnerClass = (model: 'A' | 'B') => {
         if (!winner) return '';
         if (winner === 'tie') return 'tie';
         return winner === model ? 'winner' : 'loser';
     };
+
+    const showRegenerationControls = !isGeneratingA && !isGeneratingB;
 
     return (
         <div className="side-by-side-view">
@@ -37,6 +51,16 @@ export function SideBySideView({
                     {modelAOutput || (isGeneratingA ? '' : <span className="placeholder">Waiting...</span>)}
                     {isGeneratingA && <span className="streaming-cursor">|</span>}
                 </div>
+                {showRegenerationControls && onRegenerateA && (
+                    <RegenerationControls
+                        model="A"
+                        isRegenerating={isRegeneratingA}
+                        isGenerating={isGeneratingA}
+                        isJudging={isJudging}
+                        onRegenerate={onRegenerateA}
+                        disabled={isRegeneratingB}
+                    />
+                )}
             </div>
 
             <div className={`side-panel model-b ${getWinnerClass('B')}`}>
@@ -48,6 +72,16 @@ export function SideBySideView({
                     {modelBOutput || (isGeneratingB ? '' : <span className="placeholder">Waiting...</span>)}
                     {isGeneratingB && <span className="streaming-cursor">|</span>}
                 </div>
+                {showRegenerationControls && onRegenerateB && (
+                    <RegenerationControls
+                        model="B"
+                        isRegenerating={isRegeneratingB}
+                        isGenerating={isGeneratingB}
+                        isJudging={isJudging}
+                        onRegenerate={onRegenerateB}
+                        disabled={isRegeneratingA}
+                    />
+                )}
             </div>
         </div>
     );

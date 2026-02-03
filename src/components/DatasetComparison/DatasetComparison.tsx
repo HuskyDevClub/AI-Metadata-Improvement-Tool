@@ -1,4 +1,5 @@
 import type { DatasetComparisonResult } from '../../types';
+import type { RegenerationModifier } from '../ComparisonResults/RegenerationControls';
 import { SideBySideView } from '../ComparisonResults/SideBySideView';
 import { JudgeScoreCard } from '../ComparisonResults/JudgeScoreCard';
 import './DatasetComparison.css';
@@ -12,8 +13,14 @@ interface DatasetComparisonProps {
     modelBName?: string;
     isGeneratingA: boolean;
     isGeneratingB: boolean;
-    onRegenerateA?: () => void;
-    onRegenerateB?: () => void;
+    // Regeneration props
+    onRegenerateA?: (modifier: RegenerationModifier, customInstruction?: string) => void;
+    onRegenerateB?: (modifier: RegenerationModifier, customInstruction?: string) => void;
+    isRegeneratingA?: boolean;
+    isRegeneratingB?: boolean;
+    // Re-judge props
+    onReJudge?: () => void;
+    isReJudging?: boolean;
 }
 
 export function DatasetComparison({
@@ -27,9 +34,11 @@ export function DatasetComparison({
                                       isGeneratingB,
                                       onRegenerateA,
                                       onRegenerateB,
+                                      isRegeneratingA = false,
+                                      isRegeneratingB = false,
+                                      onReJudge,
+                                      isReJudging = false,
                                   }: DatasetComparisonProps) {
-    const isGenerating = isGeneratingA || isGeneratingB;
-
     return (
         <div className="dataset-comparison-section">
             <div className="dataset-comparison-header">
@@ -48,24 +57,19 @@ export function DatasetComparison({
                 isGeneratingA={isGeneratingA}
                 isGeneratingB={isGeneratingB}
                 winner={result.judgeResult?.winner}
+                onRegenerateA={onRegenerateA}
+                onRegenerateB={onRegenerateB}
+                isRegeneratingA={isRegeneratingA}
+                isRegeneratingB={isRegeneratingB}
+                isJudging={result.isJudging}
             />
 
-            {!isGenerating && (onRegenerateA || onRegenerateB) && (
-                <div className="dataset-comparison-actions">
-                    {onRegenerateA && (
-                        <button className="regen-btn model-a" onClick={onRegenerateA}>
-                            Regenerate A
-                        </button>
-                    )}
-                    {onRegenerateB && (
-                        <button className="regen-btn model-b" onClick={onRegenerateB}>
-                            Regenerate B
-                        </button>
-                    )}
-                </div>
-            )}
-
-            <JudgeScoreCard result={result.judgeResult} isJudging={result.isJudging}/>
+            <JudgeScoreCard
+                result={result.judgeResult}
+                isJudging={result.isJudging}
+                onReJudge={onReJudge}
+                isReJudging={isReJudging}
+            />
         </div>
     );
 }

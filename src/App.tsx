@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Header } from './components/Header/Header';
 import { HowItWorks } from './components/HowItWorks/HowItWorks';
 import { OpenAIConfig } from './components/OpenAIConfig/OpenAIConfig';
@@ -147,10 +148,37 @@ function App() {
         total: {...EMPTY_TOKEN_USAGE},
     });
 
+    // Regeneration state for comparison mode
+    const [regeneratingDatasetA, setRegeneratingDatasetA] = useState(false);
+    const [regeneratingDatasetB, setRegeneratingDatasetB] = useState(false);
+    const [regeneratingColumnsA, setRegeneratingColumnsA] = useState<Set<string>>(new Set());
+    const [regeneratingColumnsB, setRegeneratingColumnsB] = useState<Set<string>>(new Set());
+
+    // Re-judging state
+    const [reJudgingDataset, setReJudgingDataset] = useState(false);
+    const [reJudgingColumns, setReJudgingColumns] = useState<Set<string>>(new Set());
+
     // Abort controller for stopping generation
     const abortControllerRef = useRef<AbortController | null>(null);
 
     const {callOpenAIStream} = useOpenAI();
+
+    // Handler for toggling comparison mode - clears status and token usage
+    const handleComparisonToggle = useCallback((enabled: boolean) => {
+        setComparisonEnabled(enabled);
+        setStatus(null);
+        // Clear token usage when switching modes
+        if (enabled) {
+            setTokenUsage({promptTokens: 0, completionTokens: 0, totalTokens: 0});
+        } else {
+            setComparisonTokenUsage({
+                modelA: {...EMPTY_TOKEN_USAGE},
+                modelB: {...EMPTY_TOKEN_USAGE},
+                judge: {...EMPTY_TOKEN_USAGE},
+                total: {...EMPTY_TOKEN_USAGE},
+            });
+        }
+    }, []);
     const {generateParallel, callJudge} = useComparisonGeneration();
 
     const addTokenUsage = useCallback((usage: TokenUsage) => {
@@ -309,6 +337,46 @@ function App() {
         model: modelName,
     }), [apiConfig]);
 
+    // Helper to judge dataset outputs and update state
+    const judgeDatasetOutputs = useCallback(async (
+        context: string,
+        outputA: string,
+        outputB: string
+    ): Promise<void> => {
+        const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
+        const judgeResult = await callJudge(context, outputA, outputB, judgeConfig);
+
+        addComparisonTokenUsage('judge', judgeResult.usage);
+
+        setDatasetComparison((prev) => ({
+            ...prev,
+            judgeResult: judgeResult.result,
+            isJudging: false,
+        }));
+    }, [comparisonConfig.judgeModel, getComparisonModelConfig, callJudge, addComparisonTokenUsage]);
+
+    // Helper to judge column outputs and update the state
+    const judgeColumnOutputs = useCallback(async (
+        columnName: string,
+        context: string,
+        outputA: string,
+        outputB: string
+    ): Promise<void> => {
+        const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
+        const judgeResult = await callJudge(context, outputA, outputB, judgeConfig);
+
+        addComparisonTokenUsage('judge', judgeResult.usage);
+
+        setColumnComparisons((prev) => ({
+            ...prev,
+            [columnName]: {
+                ...prev[columnName],
+                judgeResult: judgeResult.result,
+                isJudging: false,
+            },
+        }));
+    }, [comparisonConfig.judgeModel, getComparisonModelConfig, callJudge, addComparisonTokenUsage]);
+
     // Comparison mode generation
     const generateDatasetComparisonDescription = useCallback(
         async (
@@ -358,16 +426,7 @@ function App() {
 
             try {
                 const context = `File: ${name}, Rows: ${data.length}, Columns: ${Object.keys(stats).join(', ')}`;
-                const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
-                const judgeResult = await callJudge(context, outputA, outputB, judgeConfig);
-
-                addComparisonTokenUsage('judge', judgeResult.usage);
-
-                setDatasetComparison((prev) => ({
-                    ...prev,
-                    judgeResult: judgeResult.result,
-                    isJudging: false,
-                }));
+                await judgeDatasetOutputs(context, outputA, outputB);
             } catch (error) {
                 setDatasetComparison((prev) => ({...prev, isJudging: false}));
                 setStatus({
@@ -378,7 +437,7 @@ function App() {
 
             return {aborted: false};
         },
-        [comparisonConfig, buildDatasetPrompt, generateParallel, callJudge, addComparisonTokenUsage, getComparisonModelConfig]
+        [buildDatasetPrompt, getComparisonModelConfig, comparisonConfig.modelA, comparisonConfig.modelB, generateParallel, addComparisonTokenUsage, judgeDatasetOutputs]
     );
 
     const generateColumnComparisonDescription = useCallback(
@@ -439,7 +498,7 @@ function App() {
                 return {aborted: true};
             }
 
-            // Call judge for this column
+            // Call the judge for this column
             setColumnComparisons((prev) => ({
                 ...prev,
                 [columnName]: {...prev[columnName], isJudging: true},
@@ -447,20 +506,9 @@ function App() {
 
             try {
                 const context = `Column "${columnName}" (${info.type}): ${getColumnStatsText(info)}`;
-                const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
-                const judgeResult = await callJudge(context, outputA, outputB, judgeConfig);
-
-                addComparisonTokenUsage('judge', judgeResult.usage);
-
-                setColumnComparisons((prev) => ({
-                    ...prev,
-                    [columnName]: {
-                        ...prev[columnName],
-                        judgeResult: judgeResult.result,
-                        isJudging: false,
-                    },
-                }));
+                await judgeColumnOutputs(columnName, context, outputA, outputB);
             } catch (error) {
+                console.error(error);
                 setColumnComparisons((prev) => ({
                     ...prev,
                     [columnName]: {...prev[columnName], isJudging: false},
@@ -469,13 +517,13 @@ function App() {
 
             return {aborted: false};
         },
-        [comparisonConfig, buildColumnPrompt, callOpenAIStream, callJudge, addComparisonTokenUsage, getComparisonModelConfig]
+        [buildColumnPrompt, getComparisonModelConfig, comparisonConfig.modelA, comparisonConfig.modelB, callOpenAIStream, addComparisonTokenUsage, judgeColumnOutputs]
     );
 
     const handleAnalyze = useCallback(
         async (method: 'file' | 'url', file?: File, url?: string) => {
 
-            // Create new abort controller
+            // Create a new abort controller
             abortControllerRef.current = new AbortController();
             const abortSignal = abortControllerRef.current.signal;
 
@@ -716,6 +764,222 @@ function App() {
         [columnStats, generatedResults.datasetDescription, generateColumnDescription]
     );
 
+    // Comparison mode regeneration handlers
+    const handleRegenerateComparisonDataset = useCallback(
+        async (
+            model: 'A' | 'B',
+            modifier: '' | 'concise' | 'detailed',
+            customInstruction?: string
+        ) => {
+            if (!csvData) return;
+
+            const setRegenerating = model === 'A' ? setRegeneratingDatasetA : setRegeneratingDatasetB;
+            setRegenerating(true);
+
+            try {
+                const prompt = buildDatasetPrompt(csvData, fileName, columnStats, modifier, customInstruction);
+                const modelName = model === 'A' ? comparisonConfig.modelA : comparisonConfig.modelB;
+                const config = getComparisonModelConfig(modelName);
+
+                let output = '';
+                const result = await callOpenAIStream(prompt, config, (chunk) => {
+                    output += chunk;
+                    setDatasetComparison((prev) => ({
+                        ...prev,
+                        [model === 'A' ? 'modelAOutput' : 'modelBOutput']: output,
+                    }));
+                });
+
+                addComparisonTokenUsage(model === 'A' ? 'modelA' : 'modelB', result.usage);
+
+                if (result.aborted) {
+                    setStatus({message: 'Regeneration stopped.', type: 'info'});
+                    setRegenerating(false);
+                    return;
+                }
+
+                // Get the other model's output for judging using flushSync to ensure a synchronous update
+                let outputA = model === 'A' ? output : '';
+                let outputB = model === 'B' ? output : '';
+                flushSync(() => {
+                    setDatasetComparison((prev) => {
+                        outputA = model === 'A' ? output : prev.modelAOutput;
+                        outputB = model === 'B' ? output : prev.modelBOutput;
+                        return {...prev, isJudging: true};
+                    });
+                });
+
+                // Call judge with both outputs
+                try {
+                    const context = `File: ${fileName}, Rows: ${csvData.length}, Columns: ${Object.keys(columnStats).join(', ')}`;
+                    await judgeDatasetOutputs(context, outputA, outputB);
+                    setStatus({message: `Successfully regenerated Model ${model} description!`, type: 'success'});
+                } catch (error) {
+                    setDatasetComparison((prev) => ({...prev, isJudging: false}));
+                    setStatus({
+                        message: `Judge error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                        type: 'warning'
+                    });
+                }
+            } catch (error) {
+                setStatus({
+                    message: `Error regenerating: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    type: 'error'
+                });
+            } finally {
+                setRegenerating(false);
+            }
+        },
+        [csvData, fileName, columnStats, comparisonConfig, buildDatasetPrompt, getComparisonModelConfig, callOpenAIStream, judgeDatasetOutputs, addComparisonTokenUsage]
+    );
+
+    const handleRegenerateComparisonColumn = useCallback(
+        async (
+            columnName: string,
+            model: 'A' | 'B',
+            modifier: '' | 'concise' | 'detailed',
+            customInstruction?: string
+        ) => {
+            const info = columnStats[columnName];
+            if (!info) return;
+
+            const setRegenerating = model === 'A' ? setRegeneratingColumnsA : setRegeneratingColumnsB;
+            setRegenerating((prev) => new Set(prev).add(columnName));
+
+            try {
+                // Get the dataset description for context
+                const datasetDesc = model === 'A' ? datasetComparison.modelAOutput : datasetComparison.modelBOutput;
+                const prompt = buildColumnPrompt(columnName, info, datasetDesc, modifier, customInstruction);
+                const modelName = model === 'A' ? comparisonConfig.modelA : comparisonConfig.modelB;
+                const config = getComparisonModelConfig(modelName);
+
+                let output = '';
+                const result = await callOpenAIStream(prompt, config, (chunk) => {
+                    output += chunk;
+                    setColumnComparisons((prev) => ({
+                        ...prev,
+                        [columnName]: {
+                            ...prev[columnName],
+                            [model === 'A' ? 'modelAOutput' : 'modelBOutput']: output,
+                        },
+                    }));
+                });
+
+                addComparisonTokenUsage(model === 'A' ? 'modelA' : 'modelB', result.usage);
+
+                if (result.aborted) {
+                    setStatus({message: 'Regeneration stopped.', type: 'info'});
+                    setRegenerating((prev) => {
+                        const next = new Set(prev);
+                        next.delete(columnName);
+                        return next;
+                    });
+                    return;
+                }
+
+                // Get the other model's output for judging using flushSync to ensure a synchronous update
+                let outputA = model === 'A' ? output : '';
+                let outputB = model === 'B' ? output : '';
+                flushSync(() => {
+                    setColumnComparisons((prev) => {
+                        outputA = model === 'A' ? output : prev[columnName]?.modelAOutput || '';
+                        outputB = model === 'B' ? output : prev[columnName]?.modelBOutput || '';
+                        return {
+                            ...prev,
+                            [columnName]: {...prev[columnName], isJudging: true},
+                        };
+                    });
+                });
+
+                // Call judge with both outputs
+                try {
+                    const context = `Column "${columnName}" (${info.type}): ${getColumnStatsText(info)}`;
+                    await judgeColumnOutputs(columnName, context, outputA, outputB);
+                    setStatus({
+                        message: `Successfully regenerated Model ${model} description for "${columnName}"!`,
+                        type: 'success'
+                    });
+                } catch (error) {
+                    setColumnComparisons((prev) => ({
+                        ...prev,
+                        [columnName]: {...prev[columnName], isJudging: false},
+                    }));
+                    setStatus({
+                        message: `Judge error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                        type: 'warning'
+                    });
+                }
+            } catch (error) {
+                setStatus({
+                    message: `Error regenerating: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    type: 'error'
+                });
+            } finally {
+                setRegenerating((prev) => {
+                    const next = new Set(prev);
+                    next.delete(columnName);
+                    return next;
+                });
+            }
+        },
+        [columnStats, datasetComparison, comparisonConfig, buildColumnPrompt, getComparisonModelConfig, callOpenAIStream, judgeColumnOutputs, addComparisonTokenUsage]
+    );
+
+    // Re-judge handlers
+    const handleReJudgeDataset = useCallback(async () => {
+        if (!csvData || !datasetComparison.modelAOutput || !datasetComparison.modelBOutput) return;
+
+        setReJudgingDataset(true);
+        setDatasetComparison((prev) => ({...prev, isJudging: true}));
+
+        try {
+            const context = `File: ${fileName}, Rows: ${csvData.length}, Columns: ${Object.keys(columnStats).join(', ')}`;
+            await judgeDatasetOutputs(context, datasetComparison.modelAOutput, datasetComparison.modelBOutput);
+            setStatus({message: 'Successfully re-judged dataset descriptions!', type: 'success'});
+        } catch (error) {
+            setDatasetComparison((prev) => ({...prev, isJudging: false}));
+            setStatus({
+                message: `Judge error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                type: 'error'
+            });
+        } finally {
+            setReJudgingDataset(false);
+        }
+    }, [csvData, fileName, columnStats, datasetComparison, judgeDatasetOutputs]);
+
+    const handleReJudgeColumn = useCallback(async (columnName: string) => {
+        const info = columnStats[columnName];
+        const columnResult = columnComparisons[columnName];
+        if (!info || !columnResult?.modelAOutput || !columnResult?.modelBOutput) return;
+
+        setReJudgingColumns((prev) => new Set(prev).add(columnName));
+        setColumnComparisons((prev) => ({
+            ...prev,
+            [columnName]: {...prev[columnName], isJudging: true},
+        }));
+
+        try {
+            const context = `Column "${columnName}" (${info.type}): ${getColumnStatsText(info)}`;
+            await judgeColumnOutputs(columnName, context, columnResult.modelAOutput, columnResult.modelBOutput);
+            setStatus({message: `Successfully re-judged "${columnName}" descriptions!`, type: 'success'});
+        } catch (error) {
+            setColumnComparisons((prev) => ({
+                ...prev,
+                [columnName]: {...prev[columnName], isJudging: false},
+            }));
+            setStatus({
+                message: `Judge error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                type: 'error'
+            });
+        } finally {
+            setReJudgingColumns((prev) => {
+                const next = new Set(prev);
+                next.delete(columnName);
+                return next;
+            });
+        }
+    }, [columnStats, columnComparisons, judgeColumnOutputs]);
+
     const handleEditDatasetDescription = useCallback((newDescription: string) => {
         setGeneratedResults((prev) => ({...prev, datasetDescription: newDescription}));
     }, []);
@@ -907,7 +1171,7 @@ function App() {
 
                 <ComparisonMode
                     enabled={comparisonEnabled}
-                    onToggle={setComparisonEnabled}
+                    onToggle={handleComparisonToggle}
                     config={comparisonConfig}
                     onChange={setComparisonConfig}
                 />
@@ -938,6 +1202,16 @@ function App() {
                                         modelBName={`Model B (${comparisonConfig.modelB || 'Not set'})`}
                                         isGeneratingA={generatingDatasetA}
                                         isGeneratingB={generatingDatasetB}
+                                        onRegenerateA={(modifier, customInstruction) =>
+                                            handleRegenerateComparisonDataset('A', modifier, customInstruction)
+                                        }
+                                        onRegenerateB={(modifier, customInstruction) =>
+                                            handleRegenerateComparisonDataset('B', modifier, customInstruction)
+                                        }
+                                        isRegeneratingA={regeneratingDatasetA}
+                                        isRegeneratingB={regeneratingDatasetB}
+                                        onReJudge={handleReJudgeDataset}
+                                        isReJudging={reJudgingDataset}
                                     />
                                 )}
 
@@ -959,6 +1233,16 @@ function App() {
                                                 modelBName={comparisonConfig.modelB || 'Model B'}
                                                 isGeneratingA={generatingColumnsA.has(name)}
                                                 isGeneratingB={generatingColumnsB.has(name)}
+                                                onRegenerateA={(modifier, customInstruction) =>
+                                                    handleRegenerateComparisonColumn(name, 'A', modifier, customInstruction)
+                                                }
+                                                onRegenerateB={(modifier, customInstruction) =>
+                                                    handleRegenerateComparisonColumn(name, 'B', modifier, customInstruction)
+                                                }
+                                                isRegeneratingA={regeneratingColumnsA.has(name)}
+                                                isRegeneratingB={regeneratingColumnsB.has(name)}
+                                                onReJudge={() => handleReJudgeColumn(name)}
+                                                isReJudging={reJudgingColumns.has(name)}
                                             />
                                         ))}
                                     </div>

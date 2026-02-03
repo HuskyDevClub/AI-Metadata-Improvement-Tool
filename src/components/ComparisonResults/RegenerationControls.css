@@ -1,0 +1,156 @@
+.regeneration-controls {
+    padding: 10px 14px;
+    border-top: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.regeneration-controls.model-a {
+    background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+    border-top-color: #93c5fd;
+}
+
+.regeneration-controls.model-b {
+    background: linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%);
+    border-top-color: #86efac;
+}
+
+.preset-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.regen-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.regen-btn:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.regen-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.regen-btn.again {
+    border-color: #6366f1;
+    color: #4f46e5;
+}
+
+.regen-btn.again:hover:not(:disabled) {
+    background: #eef2ff;
+    border-color: #4f46e5;
+}
+
+.regen-btn.concise {
+    border-color: #f59e0b;
+    color: #d97706;
+}
+
+.regen-btn.concise:hover:not(:disabled) {
+    background: #fffbeb;
+    border-color: #d97706;
+}
+
+.regen-btn.detailed {
+    border-color: #10b981;
+    color: #059669;
+}
+
+.regen-btn.detailed:hover:not(:disabled) {
+    background: #ecfdf5;
+    border-color: #059669;
+}
+
+.regen-btn.custom-toggle {
+    border-color: #8b5cf6;
+    color: #7c3aed;
+}
+
+.regen-btn.custom-toggle:hover:not(:disabled),
+.regen-btn.custom-toggle.active {
+    background: #f5f3ff;
+    border-color: #7c3aed;
+}
+
+.regen-btn.apply {
+    border-color: #3b82f6;
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.regen-btn.apply:hover:not(:disabled) {
+    background: #dbeafe;
+    border-color: #2563eb;
+}
+
+.custom-instruction-container {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.custom-instruction-input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.custom-instruction-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.custom-instruction-input:disabled {
+    background: #f3f4f6;
+    cursor: not-allowed;
+}
+
+.regenerating-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6366f1;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e5e7eb;
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 480px) {
+    .preset-buttons {
+        gap: 6px;
+    }
+
+    .regen-btn {
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+}

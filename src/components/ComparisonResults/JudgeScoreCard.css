@@ -63,11 +63,34 @@
     border-radius: 50%;
 }
 
+.judge-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .judge-winner {
     font-size: 13px;
     font-weight: 600;
     padding: 4px 12px;
     border-radius: 12px;
+}
+
+.rejudge-btn {
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.15s ease;
+}
+
+.rejudge-btn:hover {
+    background: #e5e7eb;
+    color: #374151;
+    border-color: #9ca3af;
 }
 
 .judge-winner.model-a {

@@ -6,15 +6,23 @@ interface JudgeScoreCardProps {
     result: JudgeResult | null;
     isJudging: boolean;
     compact?: boolean;
+    onReJudge?: () => void;
+    isReJudging?: boolean;
 }
 
-export function JudgeScoreCard({result, isJudging, compact = false}: JudgeScoreCardProps) {
-    if (isJudging) {
+export function JudgeScoreCard({
+                                   result,
+                                   isJudging,
+                                   compact = false,
+                                   onReJudge,
+                                   isReJudging = false
+                               }: JudgeScoreCardProps) {
+    if (isJudging || isReJudging) {
         return (
             <div className={`judge-score-card ${compact ? 'compact' : ''}`}>
                 <div className="judge-loading">
                     <div className="judge-spinner"></div>
-                    <span>Judge is evaluating...</span>
+                    <span>{isReJudging ? 'Re-judging...' : 'Judge is evaluating...'}</span>
                 </div>
             </div>
         );
@@ -54,7 +62,18 @@ export function JudgeScoreCard({result, isJudging, compact = false}: JudgeScoreC
         <div className={`judge-score-card ${compact ? 'compact' : ''}`}>
             <div className="judge-header">
                 <span className="judge-title">Judge Evaluation</span>
-                <span className={`judge-winner ${winner.className}`}>{winner.text}</span>
+                <div className="judge-header-actions">
+                    <span className={`judge-winner ${winner.className}`}>{winner.text}</span>
+                    {onReJudge && (
+                        <button
+                            className="rejudge-btn"
+                            onClick={onReJudge}
+                            title="Re-run judge evaluation"
+                        >
+                            ⟳
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="judge-metrics">
