@@ -135,10 +135,11 @@ async def openai_chat_stream(
             "Please set these in the environment or enter them in the UI.",
         )
 
-    system_prompt = request.systemPrompt or (
-        "You are a data analyst expert who creates clear, concise, "
-        "and informative descriptions of datasets and their columns."
-    )
+    # Build messages array, only include system prompt if provided
+    messages: list[dict[str, str]] = []
+    if request.systemPrompt and request.systemPrompt.strip():
+        messages.append({"role": "system", "content": request.systemPrompt})
+    messages.append({"role": "user", "content": request.prompt})
 
     async def generate():
         usage: dict[str, int] = {
@@ -155,10 +156,7 @@ async def openai_chat_stream(
 
             stream = await client.chat.completions.create(
                 model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": request.prompt},
-                ],
+                messages=messages,
                 stream=True,
                 stream_options={"include_usage": True},
             )

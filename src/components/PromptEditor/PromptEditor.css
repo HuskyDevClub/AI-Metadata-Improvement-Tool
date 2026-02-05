@@ -76,3 +76,10 @@
     margin-top: 10px;
     font-style: italic;
 }
+
+.prompt-editor-field-help {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+    font-style: italic;
+}

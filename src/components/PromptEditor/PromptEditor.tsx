@@ -20,6 +20,20 @@ export function PromptEditor({templates, onChange}: PromptEditorProps) {
             </div>
             <div className={`prompt-editor-content ${isCollapsed ? 'content-collapsed' : ''}`}>
                 <div className="prompt-editor-box">
+                    <h4>System Prompt</h4>
+                    <textarea
+                        value={templates.systemPrompt}
+                        onChange={(e) => onChange({...templates, systemPrompt: e.target.value})}
+                        placeholder="Enter the system prompt that defines the AI's behavior..."
+                        rows={6}
+                    />
+                    <p className="prompt-editor-field-help">
+                        Instructs the AI how to generate descriptions (e.g., tone, style, focus areas). A default prompt
+                        optimized for government open data is provided.
+                    </p>
+                </div>
+
+                <div className="prompt-editor-box">
                     <h4>Dataset Description Prompt Template</h4>
                     <textarea
                         value={templates.dataset}

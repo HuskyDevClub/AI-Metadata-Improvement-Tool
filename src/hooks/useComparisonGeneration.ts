@@ -25,12 +25,13 @@ export function useComparisonGeneration() {
             prompt: string,
             configA: OpenAIConfig,
             configB: OpenAIConfig,
+            systemPrompt: string,
             onChunkA: (chunk: string) => void,
             onChunkB: (chunk: string) => void,
             abortSignal?: AbortSignal
         ): Promise<ParallelGenerationResult> => {
-            const resultA = callOpenAIStream(prompt, configA, onChunkA, abortSignal);
-            const resultB = callOpenAIStream(prompt, configB, onChunkB, abortSignal);
+            const resultA = callOpenAIStream(prompt, configA, systemPrompt, onChunkA, abortSignal);
+            const resultB = callOpenAIStream(prompt, configB, systemPrompt, onChunkB, abortSignal);
 
             const [resA, resB] = await Promise.all([resultA, resultB]);
 

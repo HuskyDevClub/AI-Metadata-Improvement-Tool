@@ -50,6 +50,7 @@ export interface Status {
 }
 
 export interface PromptTemplates {
+    systemPrompt: string;
     dataset: string;
     column: string;
 }

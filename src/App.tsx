@@ -34,6 +34,19 @@ import type {
 } from './types';
 import './App.css';
 
+const DEFAULT_SYSTEM_PROMPT = `You are an expert technical writer specializing in government open data documentation.
+
+Your task is to generate clear, accessible metadata descriptions that help the public understand and use government datasets.
+
+Guidelines:
+- Use plain language: avoid jargon, acronyms, and technical terms when possible
+- When acronyms are necessary, expand them on first use
+- Write in active voice with simple, direct sentences
+- Be concise but complete: cover what the data contains and how it can be used
+- Focus on practical value: who would use this data and why
+- Maintain a neutral, professional tone appropriate for government publications
+- Follow U.S. open data standards for consistency and accessibility`;
+
 const DEFAULT_DATASET_PROMPT = `Generate a concise 2-3 sentence description of this dataset:
 
 File Name: {fileName}
@@ -72,6 +85,7 @@ function App() {
     };
 
     const [promptTemplates, setPromptTemplates] = useState<PromptTemplates>({
+        systemPrompt: DEFAULT_SYSTEM_PROMPT,
         dataset: DEFAULT_DATASET_PROMPT,
         column: DEFAULT_COLUMN_PROMPT,
     });
@@ -247,7 +261,7 @@ function App() {
             const prompt = buildDatasetPrompt(data, name, stats, modifier, customInstruction);
 
             let fullContent = '';
-            const result = await callOpenAIStream(prompt, openaiConfig, (chunk) => {
+            const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 setGeneratedResults((prev) => ({
                     ...prev,
@@ -257,7 +271,7 @@ function App() {
             addTokenUsage(result.usage);
             return {content: fullContent, aborted: result.aborted};
         },
-        [openaiConfig, buildDatasetPrompt, callOpenAIStream, addTokenUsage]
+        [openaiConfig, promptTemplates.systemPrompt, buildDatasetPrompt, callOpenAIStream, addTokenUsage]
     );
 
     const generateColumnDescription = useCallback(
@@ -272,7 +286,7 @@ function App() {
             const prompt = buildColumnPrompt(columnName, info, datasetDesc, modifier, customInstruction);
 
             let fullContent = '';
-            const result = await callOpenAIStream(prompt, openaiConfig, (chunk) => {
+            const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 setGeneratedResults((prev) => ({
                     ...prev,
@@ -282,7 +296,7 @@ function App() {
             addTokenUsage(result.usage);
             return {content: fullContent, aborted: result.aborted};
         },
-        [openaiConfig, buildColumnPrompt, callOpenAIStream, addTokenUsage]
+        [openaiConfig, promptTemplates.systemPrompt, buildColumnPrompt, callOpenAIStream, addTokenUsage]
     );
 
     // Build OpenAIConfig from shared API config for a specific model
@@ -354,6 +368,7 @@ function App() {
                 prompt,
                 configA,
                 configB,
+                promptTemplates.systemPrompt,
                 (chunk) => {
                     outputA += chunk;
                     setDatasetComparison((prev) => ({...prev, modelAOutput: outputA}));
@@ -416,7 +431,7 @@ function App() {
             const configB = getComparisonModelConfig(comparisonConfig.modelB);
 
             // Generate in parallel but with potentially different prompts if dataset descriptions differ
-            const resultA = callOpenAIStream(promptA, configA, (chunk) => {
+            const resultA = callOpenAIStream(promptA, configA, promptTemplates.systemPrompt, (chunk) => {
                 outputA += chunk;
                 setColumnComparisons((prev) => ({
                     ...prev,
@@ -424,7 +439,7 @@ function App() {
                 }));
             }, abortSignal);
 
-            const resultB = callOpenAIStream(promptB, configB, (chunk) => {
+            const resultB = callOpenAIStream(promptB, configB, promptTemplates.systemPrompt, (chunk) => {
                 outputB += chunk;
                 setColumnComparisons((prev) => ({
                     ...prev,
@@ -716,7 +731,7 @@ function App() {
                 const config = getComparisonModelConfig(modelName);
 
                 let output = '';
-                const result = await callOpenAIStream(prompt, config, (chunk) => {
+                const result = await callOpenAIStream(prompt, config, promptTemplates.systemPrompt, (chunk) => {
                     output += chunk;
                     setDatasetComparison((prev) => ({
                         ...prev,
@@ -782,7 +797,7 @@ function App() {
                 const config = getComparisonModelConfig(modelName);
 
                 let output = '';
-                const result = await callOpenAIStream(prompt, config, (chunk) => {
+                const result = await callOpenAIStream(prompt, config, promptTemplates.systemPrompt, (chunk) => {
                     output += chunk;
                     setColumnComparisons((prev) => ({
                         ...prev,
@@ -1103,8 +1118,14 @@ function App() {
                     onChange={setComparisonConfig}
                 />
 
-                <PromptEditor templates={promptTemplates} onChange={setPromptTemplates}/>
-                <CsvInput onAnalyze={handleAnalyze} isProcessing={isProcessing}/>
+                <PromptEditor
+                    templates={promptTemplates}
+                    onChange={setPromptTemplates}
+                />
+                <CsvInput
+                    onAnalyze={handleAnalyze}
+                    isProcessing={isProcessing}
+                />
 
                 <StatusMessage
                     status={status}

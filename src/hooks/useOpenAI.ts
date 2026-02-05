@@ -10,6 +10,7 @@ export function useOpenAI() {
         async (
             prompt: string,
             config: OpenAIConfig,
+            systemPrompt: string,
             onChunk: (chunk: string) => void,
             abortSignal?: AbortSignal
         ): Promise<{ usage: TokenUsage; aborted: boolean }> => {
@@ -20,6 +21,7 @@ export function useOpenAI() {
                 },
                 body: JSON.stringify({
                     prompt,
+                    systemPrompt,
                     baseURL: config.baseURL,
                     apiKey: config.apiKey,
                     model: config.model,
