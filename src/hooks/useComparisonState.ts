@@ -23,6 +23,37 @@ const INITIAL_TOKEN_USAGE: ComparisonTokenUsage = {
     total: {...EMPTY_TOKEN_USAGE},
 };
 
+const DEFAULT_JUDGE_SYSTEM_PROMPT = `You are an expert evaluator assessing metadata descriptions for government open data.
+You will compare two candidate descriptions and score each on the following metrics (1-10 scale):
+
+1. CLARITY - How easy is it to understand? Uses plain language, avoids jargon.
+2. COMPLETENESS - Does it cover the content, purpose, and potential use cases?
+3. ACCURACY - Does it correctly describe what the data contains?
+4. CONCISENESS - Is it brief while still being informative? No unnecessary padding.
+5. PLAIN LANGUAGE - Uses active voice, simple words, short sentences.
+
+You must respond with valid JSON in exactly this format:
+{
+    "modelA": {
+        "clarity": <1-10>,
+        "completeness": <1-10>,
+        "accuracy": <1-10>,
+        "conciseness": <1-10>,
+        "plainLanguage": <1-10>,
+        "reasoning": "<brief explanation for Model A scores>"
+    },
+    "modelB": {
+        "clarity": <1-10>,
+        "completeness": <1-10>,
+        "accuracy": <1-10>,
+        "conciseness": <1-10>,
+        "plainLanguage": <1-10>,
+        "reasoning": "<brief explanation for Model B scores>"
+    },
+    "winner": "<A, B, or tie>",
+    "winnerReasoning": "<1-2 sentence explanation of why this candidate is better or why it's a tie>"
+}`;
+
 export function useComparisonState() {
     // Comparison Mode State
     const [comparisonEnabled, setComparisonEnabled] = useState(false);
@@ -30,6 +61,7 @@ export function useComparisonState() {
         modelA: import.meta.env.VITE_COMPARISON_MODEL_A || '',
         modelB: import.meta.env.VITE_COMPARISON_MODEL_B || '',
         judgeModel: import.meta.env.VITE_COMPARISON_JUDGE_MODEL || '',
+        judgeSystemPrompt: import.meta.env.VITE_COMPARISON_JUDGE_SYSTEM_PROMPT || DEFAULT_JUDGE_SYSTEM_PROMPT,
     });
     const [datasetComparison, setDatasetComparison] = useState<DatasetComparisonResult>(INITIAL_DATASET_COMPARISON);
     const [columnComparisons, setColumnComparisons] = useState<Record<string, ColumnComparisonResult>>({});

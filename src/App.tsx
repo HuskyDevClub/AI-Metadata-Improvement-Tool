@@ -312,7 +312,7 @@ function App() {
         outputB: string
     ): Promise<void> => {
         const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
-        const judgeResult = await callJudge(context, outputA, outputB, judgeConfig);
+        const judgeResult = await callJudge(context, outputA, outputB, judgeConfig, comparisonConfig.judgeSystemPrompt);
 
         addComparisonTokenUsage('judge', judgeResult.usage);
 
@@ -321,7 +321,7 @@ function App() {
             judgeResult: judgeResult.result,
             isJudging: false,
         }));
-    }, [getComparisonModelConfig, comparisonConfig.judgeModel, callJudge, addComparisonTokenUsage, setDatasetComparison]);
+    }, [getComparisonModelConfig, comparisonConfig.judgeModel, comparisonConfig.judgeSystemPrompt, callJudge, addComparisonTokenUsage, setDatasetComparison]);
 
     // Helper to judge column outputs and update the state
     const judgeColumnOutputs = useCallback(async (
@@ -331,7 +331,7 @@ function App() {
         outputB: string
     ): Promise<void> => {
         const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
-        const judgeResult = await callJudge(context, outputA, outputB, judgeConfig);
+        const judgeResult = await callJudge(context, outputA, outputB, judgeConfig, comparisonConfig.judgeSystemPrompt);
 
         addComparisonTokenUsage('judge', judgeResult.usage);
 
@@ -343,7 +343,7 @@ function App() {
                 isJudging: false,
             },
         }));
-    }, [getComparisonModelConfig, comparisonConfig.judgeModel, callJudge, addComparisonTokenUsage, setColumnComparisons]);
+    }, [getComparisonModelConfig, comparisonConfig.judgeModel, comparisonConfig.judgeSystemPrompt, callJudge, addComparisonTokenUsage, setColumnComparisons]);
 
     // Comparison mode generation
     const generateDatasetComparisonDescription = useCallback(
@@ -1121,6 +1121,11 @@ function App() {
                 <PromptEditor
                     templates={promptTemplates}
                     onChange={setPromptTemplates}
+                    comparisonEnabled={comparisonEnabled}
+                    judgeSystemPrompt={comparisonConfig.judgeSystemPrompt}
+                    onJudgeSystemPromptChange={(prompt) =>
+                        setComparisonConfig((prev) => ({...prev, judgeSystemPrompt: prompt}))
+                    }
                 />
                 <CsvInput
                     onAnalyze={handleAnalyze}

@@ -83,3 +83,16 @@
     margin-top: 8px;
     font-style: italic;
 }
+
+.prompt-editor-box.judge-prompt-box {
+    border-color: #c4b5fd;
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+}
+
+.prompt-editor-box.judge-prompt-box h4 {
+    color: #7c3aed;
+}
+
+.prompt-editor-box.judge-prompt-box textarea:focus {
+    border-color: #a855f7;
+}

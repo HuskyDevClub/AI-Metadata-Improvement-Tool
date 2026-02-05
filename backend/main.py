@@ -5,6 +5,7 @@ Designed for Databricks Apps deployment
 
 import json
 import os
+from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -24,6 +25,7 @@ from models import (
     JudgeResponse,
 )
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
 # Load environment variables from .env file
 load_dotenv()
@@ -136,12 +138,12 @@ async def openai_chat_stream(
         )
 
     # Build messages array, only include system prompt if provided
-    messages: list[dict[str, str]] = []
+    messages: list[ChatCompletionMessageParam] = []
     if request.systemPrompt and request.systemPrompt.strip():
         messages.append({"role": "system", "content": request.systemPrompt})
     messages.append({"role": "user", "content": request.prompt})
 
-    async def generate():
+    async def generate() -> AsyncGenerator[str, None]:
         usage: dict[str, int] = {
             "promptTokens": 0,
             "completionTokens": 0,
@@ -194,41 +196,6 @@ async def openai_chat_stream(
     )
 
 
-# Judge endpoint for comparison mode
-JUDGE_SYSTEM_PROMPT = """
-You are an expert evaluator assessing metadata descriptions for government open data.
-You will compare two candidate descriptions and score each on the following metrics (1-10 scale):
-
-1. CLARITY - How easy is it to understand? Uses plain language, avoids jargon.
-2. COMPLETENESS - Does it cover the content, purpose, and potential use cases?
-3. ACCURACY - Does it correctly describe what the data contains?
-4. CONCISENESS - Is it brief while still being informative? No unnecessary padding.
-5. PLAIN LANGUAGE - Uses active voice, simple words, short sentences.
-
-You must respond with valid JSON in exactly this format:
-{
-    "modelA": {
-        "clarity": <1-10>,
-        "completeness": <1-10>,
-        "accuracy": <1-10>,
-        "conciseness": <1-10>,
-        "plainLanguage": <1-10>,
-        "reasoning": "<brief explanation for Model A scores>"
-    },
-    "modelB": {
-        "clarity": <1-10>,
-        "completeness": <1-10>,
-        "accuracy": <1-10>,
-        "conciseness": <1-10>,
-        "plainLanguage": <1-10>,
-        "reasoning": "<brief explanation for Model B scores>"
-    },
-    "winner": "<A, B, or tie>",
-    "winnerReasoning": "<1-2 sentence explanation of why this candidate is better or why it's a tie>"
-}
-"""
-
-
 @app.post("/api/openai/judge", response_model=JudgeResponse)
 async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
     """Evaluate two model outputs and return structured metrics."""
@@ -272,12 +239,15 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
             api_key=api_key,
         )
 
+        # Build messages array, only include system prompt if provided
+        messages: list[ChatCompletionMessageParam] = []
+        if request.judgeSystemPrompt and request.judgeSystemPrompt.strip():
+            messages.append({"role": "system", "content": request.judgeSystemPrompt})
+        messages.append({"role": "user", "content": user_prompt})
+
         response = await client.chat.completions.create(
             model=model,
-            messages=[
-                {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
+            messages=messages,
             response_format={
                 "type": "json_schema",
                 "json_schema": JUDGE_RESPONSE_SCHEMA,

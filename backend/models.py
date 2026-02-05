@@ -50,6 +50,7 @@ class JudgeRequest(BaseModel):
     model: str | None = None  # Falls back to AZURE_MODEL env var
     baseURL: str | None = None  # Falls back to AZURE_ENDPOINT env var
     apiKey: str | None = None  # Falls back to AZURE_KEY env var
+    judgeSystemPrompt: str | None = None  # Custom judge system prompt
 
 
 class JudgeMetrics(BaseModel):

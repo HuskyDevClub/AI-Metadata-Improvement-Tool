@@ -51,7 +51,8 @@ export function useComparisonGeneration() {
             context: string,
             candidateA: string,
             candidateB: string,
-            judgeConfig: OpenAIConfig
+            judgeConfig: OpenAIConfig,
+            judgeSystemPrompt?: string
         ): Promise<JudgeCallResult> => {
             const response = await fetch(`${API_BASE_URL}/api/openai/judge`, {
                 method: 'POST',
@@ -65,6 +66,7 @@ export function useComparisonGeneration() {
                     baseURL: judgeConfig.baseURL,
                     apiKey: judgeConfig.apiKey,
                     model: judgeConfig.model,
+                    judgeSystemPrompt: judgeSystemPrompt || undefined,
                 }),
             });
 

@@ -69,6 +69,7 @@ export interface ComparisonConfig {
     modelA: string;
     modelB: string;
     judgeModel: string;
+    judgeSystemPrompt: string;
 }
 
 export interface JudgeMetrics {
