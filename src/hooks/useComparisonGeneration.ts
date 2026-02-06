@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { JudgeResult, OpenAIConfig, TokenUsage } from '../types';
+import type { JudgeResult, OpenAIConfig, ScoringCategory, TokenUsage } from '../types';
 import { useOpenAI } from './useOpenAI';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
@@ -52,7 +52,9 @@ export function useComparisonGeneration() {
             candidateA: string,
             candidateB: string,
             judgeConfig: OpenAIConfig,
-            judgeSystemPrompt?: string
+            judgeSystemPrompt?: string,
+            judgeEvaluationPrompt?: string,
+            scoringCategories?: ScoringCategory[]
         ): Promise<JudgeCallResult> => {
             const response = await fetch(`${API_BASE_URL}/api/openai/judge`, {
                 method: 'POST',
@@ -67,6 +69,8 @@ export function useComparisonGeneration() {
                     apiKey: judgeConfig.apiKey,
                     model: judgeConfig.model,
                     judgeSystemPrompt: judgeSystemPrompt || undefined,
+                    judgeEvaluationPrompt: judgeEvaluationPrompt || undefined,
+                    scoringCategories: scoringCategories || undefined,
                 }),
             });
 
@@ -80,19 +84,11 @@ export function useComparisonGeneration() {
             return {
                 result: {
                     modelA: {
-                        clarity: data.modelA.clarity,
-                        completeness: data.modelA.completeness,
-                        accuracy: data.modelA.accuracy,
-                        conciseness: data.modelA.conciseness,
-                        plainLanguage: data.modelA.plainLanguage,
+                        scores: data.modelA.scores,
                         reasoning: data.modelA.reasoning,
                     },
                     modelB: {
-                        clarity: data.modelB.clarity,
-                        completeness: data.modelB.completeness,
-                        accuracy: data.modelB.accuracy,
-                        conciseness: data.modelB.conciseness,
-                        plainLanguage: data.modelB.plainLanguage,
+                        scores: data.modelB.scores,
                         reasoning: data.modelB.reasoning,
                     },
                     winner: data.winner as 'A' | 'B' | 'tie',

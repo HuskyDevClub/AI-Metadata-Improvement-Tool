@@ -1,4 +1,4 @@
-import type { JudgeResult } from '../../types';
+import type { JudgeResult, ScoringCategory } from '../../types';
 import { MetricBar } from './MetricBar';
 import './JudgeScoreCard.css';
 
@@ -8,6 +8,7 @@ interface JudgeScoreCardProps {
     compact?: boolean;
     onReJudge?: () => void;
     isReJudging?: boolean;
+    scoringCategories?: ScoringCategory[];
 }
 
 export function JudgeScoreCard({
@@ -15,7 +16,8 @@ export function JudgeScoreCard({
                                    isJudging,
                                    compact = false,
                                    onReJudge,
-                                   isReJudging = false
+                                   isReJudging = false,
+                                   scoringCategories = []
                                }: JudgeScoreCardProps) {
     if (isJudging || isReJudging) {
         return (
@@ -44,19 +46,9 @@ export function JudgeScoreCard({
 
     const winner = getWinnerDisplay();
 
-    const totalA =
-        result.modelA.clarity +
-        result.modelA.completeness +
-        result.modelA.accuracy +
-        result.modelA.conciseness +
-        result.modelA.plainLanguage;
-
-    const totalB =
-        result.modelB.clarity +
-        result.modelB.completeness +
-        result.modelB.accuracy +
-        result.modelB.conciseness +
-        result.modelB.plainLanguage;
+    const totalA = Object.values(result.modelA.scores).reduce((a, b) => a + b, 0);
+    const totalB = Object.values(result.modelB.scores).reduce((a, b) => a + b, 0);
+    const maxTotal = scoringCategories.reduce((sum, cat) => sum + cat.maxScore, 0);
 
     return (
         <div className={`judge-score-card ${compact ? 'compact' : ''}`}>
@@ -77,18 +69,20 @@ export function JudgeScoreCard({
             </div>
 
             <div className="judge-metrics">
-                <MetricBar label="Clarity" scoreA={result.modelA.clarity} scoreB={result.modelB.clarity}/>
-                <MetricBar label="Completeness" scoreA={result.modelA.completeness}
-                           scoreB={result.modelB.completeness}/>
-                <MetricBar label="Accuracy" scoreA={result.modelA.accuracy} scoreB={result.modelB.accuracy}/>
-                <MetricBar label="Conciseness" scoreA={result.modelA.conciseness} scoreB={result.modelB.conciseness}/>
-                <MetricBar label="Plain Language" scoreA={result.modelA.plainLanguage}
-                           scoreB={result.modelB.plainLanguage}/>
+                {scoringCategories.map(cat => (
+                    <MetricBar
+                        key={cat.key}
+                        label={cat.label}
+                        scoreA={result.modelA.scores[cat.key] ?? 0}
+                        scoreB={result.modelB.scores[cat.key] ?? 0}
+                        maxScore={cat.maxScore}
+                    />
+                ))}
             </div>
 
             <div className="judge-totals">
-                <span className="total model-a">A: {totalA}/50</span>
-                <span className="total model-b">B: {totalB}/50</span>
+                <span className="total model-a">A: {totalA}/{maxTotal}</span>
+                <span className="total model-b">B: {totalB}/{maxTotal}</span>
             </div>
 
             <div className="judge-reasoning">

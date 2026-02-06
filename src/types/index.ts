@@ -65,19 +65,25 @@ export type CsvRow = Record<string, string>;
 
 // Comparison Mode Types
 
+export interface ScoringCategory {
+    key: string;
+    label: string;
+    description: string;
+    minScore: number;
+    maxScore: number;
+}
+
 export interface ComparisonConfig {
     modelA: string;
     modelB: string;
     judgeModel: string;
     judgeSystemPrompt: string;
+    judgeEvaluationPrompt: string;
+    scoringCategories: ScoringCategory[];
 }
 
 export interface JudgeMetrics {
-    clarity: number;
-    completeness: number;
-    accuracy: number;
-    conciseness: number;
-    plainLanguage: number;
+    scores: Record<string, number>;
     reasoning: string;
 }
 

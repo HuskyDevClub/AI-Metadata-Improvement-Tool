@@ -41,6 +41,45 @@ class ChatRequest(BaseModel):
 # ============================================================================
 
 
+class ScoringCategory(BaseModel):
+    """A single scoring category for judge evaluation."""
+
+    key: str
+    label: str
+    description: str
+    minScore: int = 1
+    maxScore: int = 10
+
+
+DEFAULT_SCORING_CATEGORIES = [
+    ScoringCategory(
+        key="clarity",
+        label="Clarity",
+        description="How easy is it to understand? Uses plain language, avoids jargon.",
+    ),
+    ScoringCategory(
+        key="completeness",
+        label="Completeness",
+        description="Does it cover the content, purpose, and potential use cases?",
+    ),
+    ScoringCategory(
+        key="accuracy",
+        label="Accuracy",
+        description="Does it correctly describe what the data contains?",
+    ),
+    ScoringCategory(
+        key="conciseness",
+        label="Conciseness",
+        description="Is it brief while still being informative? No unnecessary padding.",
+    ),
+    ScoringCategory(
+        key="plainLanguage",
+        label="Plain Language",
+        description="Uses active voice, simple words, short sentences.",
+    ),
+]
+
+
 class JudgeRequest(BaseModel):
     """Request to evaluate two model outputs using a judge model."""
 
@@ -51,22 +90,23 @@ class JudgeRequest(BaseModel):
     baseURL: str | None = None  # Falls back to AZURE_ENDPOINT env var
     apiKey: str | None = None  # Falls back to AZURE_KEY env var
     judgeSystemPrompt: str | None = None  # Custom judge system prompt
+    judgeEvaluationPrompt: str  # Evaluation prompt template (required from frontend)
+    scoringCategories: list[ScoringCategory] | None = None
 
 
 class JudgeMetrics(BaseModel):
     """Evaluation metrics for a single candidate (scored 1-10)."""
 
-    clarity: int  # How easy to understand, uses plain language
-    completeness: int  # Covers content, purpose, and use cases
-    accuracy: int  # Correctly describes the data
-    conciseness: int  # Brief while still informative
-    plainLanguage: int  # Uses active voice, simple words
-    reasoning: str  # Brief explanation for the scores
+    scores: dict[str, int]
+    reasoning: str
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "JudgeMetrics":
+    def from_dict(
+        cls, data: dict[str, Any], category_keys: list[str]
+    ) -> "JudgeMetrics":
         """Create a JudgeMetrics instance from a dictionary."""
-        return cls(**data)
+        scores = {key: data[key] for key in category_keys}
+        return cls(scores=scores, reasoning=data["reasoning"])
 
 
 class JudgeResponse(BaseModel):

@@ -14,7 +14,7 @@ import { DatasetComparison } from './components/DatasetComparison/DatasetCompari
 import { ColumnComparison } from './components/ColumnComparison/ColumnComparison';
 import { useOpenAI } from './hooks/useOpenAI';
 import { useComparisonGeneration } from './hooks/useComparisonGeneration';
-import { useComparisonState } from './hooks/useComparisonState';
+import { generateJudgeSystemPrompt, useComparisonState } from './hooks/useComparisonState';
 import { parseFile, parseUrl } from './utils/csvParser';
 import { analyzeColumn, getColumnStatsText } from './utils/columnAnalyzer';
 import { getEstimatedCost } from './utils/pricing';
@@ -29,6 +29,7 @@ import type {
     NumericStats,
     OpenAIConfig as OpenAIConfigType,
     PromptTemplates,
+    ScoringCategory,
     Status,
     TokenUsage,
 } from './types';
@@ -312,7 +313,7 @@ function App() {
         outputB: string
     ): Promise<void> => {
         const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
-        const judgeResult = await callJudge(context, outputA, outputB, judgeConfig, comparisonConfig.judgeSystemPrompt);
+        const judgeResult = await callJudge(context, outputA, outputB, judgeConfig, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories);
 
         addComparisonTokenUsage('judge', judgeResult.usage);
 
@@ -321,7 +322,7 @@ function App() {
             judgeResult: judgeResult.result,
             isJudging: false,
         }));
-    }, [getComparisonModelConfig, comparisonConfig.judgeModel, comparisonConfig.judgeSystemPrompt, callJudge, addComparisonTokenUsage, setDatasetComparison]);
+    }, [getComparisonModelConfig, comparisonConfig.judgeModel, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories, callJudge, addComparisonTokenUsage, setDatasetComparison]);
 
     // Helper to judge column outputs and update the state
     const judgeColumnOutputs = useCallback(async (
@@ -331,7 +332,7 @@ function App() {
         outputB: string
     ): Promise<void> => {
         const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
-        const judgeResult = await callJudge(context, outputA, outputB, judgeConfig, comparisonConfig.judgeSystemPrompt);
+        const judgeResult = await callJudge(context, outputA, outputB, judgeConfig, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories);
 
         addComparisonTokenUsage('judge', judgeResult.usage);
 
@@ -343,7 +344,7 @@ function App() {
                 isJudging: false,
             },
         }));
-    }, [getComparisonModelConfig, comparisonConfig.judgeModel, comparisonConfig.judgeSystemPrompt, callJudge, addComparisonTokenUsage, setColumnComparisons]);
+    }, [getComparisonModelConfig, comparisonConfig.judgeModel, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories, callJudge, addComparisonTokenUsage, setColumnComparisons]);
 
     // Comparison mode generation
     const generateDatasetComparisonDescription = useCallback(
@@ -923,6 +924,15 @@ function App() {
         setModel(newConfig.model);
     }, []);
 
+    // Handler for scoring categories change — auto-regenerates judge system prompt
+    const handleScoringCategoriesChange = useCallback((categories: ScoringCategory[]) => {
+        setComparisonConfig((prev) => ({
+            ...prev,
+            scoringCategories: categories,
+            judgeSystemPrompt: generateJudgeSystemPrompt(categories),
+        }));
+    }, []);
+
     // Memoized callbacks for comparison dataset regeneration
     const handleRegenerateDatasetA = useCallback(
         (modifier: '' | 'concise' | 'detailed', customInstruction?: string) =>
@@ -1126,6 +1136,12 @@ function App() {
                     onJudgeSystemPromptChange={(prompt) =>
                         setComparisonConfig((prev) => ({...prev, judgeSystemPrompt: prompt}))
                     }
+                    judgeEvaluationPrompt={comparisonConfig.judgeEvaluationPrompt}
+                    onJudgeEvaluationPromptChange={(prompt) =>
+                        setComparisonConfig((prev) => ({...prev, judgeEvaluationPrompt: prompt}))
+                    }
+                    scoringCategories={comparisonConfig.scoringCategories}
+                    onScoringCategoriesChange={handleScoringCategoriesChange}
                 />
                 <CsvInput
                     onAnalyze={handleAnalyze}
@@ -1161,6 +1177,7 @@ function App() {
                                         isRegeneratingB={regeneratingDatasetB}
                                         onReJudge={handleReJudgeDataset}
                                         isReJudging={reJudgingDataset}
+                                        scoringCategories={comparisonConfig.scoringCategories}
                                     />
                                 )}
 
@@ -1192,6 +1209,7 @@ function App() {
                                                 isRegeneratingB={regeneratingColumnsB.has(name)}
                                                 onReJudge={() => handleReJudgeColumn(name)}
                                                 isReJudging={reJudgingColumns.has(name)}
+                                                scoringCategories={comparisonConfig.scoringCategories}
                                             />
                                         ))}
                                     </div>

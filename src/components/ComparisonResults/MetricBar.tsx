@@ -4,10 +4,10 @@ interface MetricBarProps {
     label: string;
     scoreA: number;
     scoreB: number;
+    maxScore?: number;
 }
 
-export function MetricBar({label, scoreA, scoreB}: MetricBarProps) {
-    const maxScore = 10;
+export function MetricBar({label, scoreA, scoreB, maxScore = 10}: MetricBarProps) {
     const percentA = (scoreA / maxScore) * 100;
     const percentB = (scoreB / maxScore) * 100;
 

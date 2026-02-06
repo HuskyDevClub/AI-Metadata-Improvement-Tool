@@ -1,4 +1,4 @@
-import type { ColumnComparisonResult, ColumnInfo } from '../../types';
+import type { ColumnComparisonResult, ColumnInfo, ScoringCategory } from '../../types';
 import type { RegenerationModifier } from '../ComparisonResults/RegenerationControls';
 import { SideBySideView } from '../ComparisonResults/SideBySideView';
 import { JudgeScoreCard } from '../ComparisonResults/JudgeScoreCard';
@@ -20,6 +20,7 @@ interface ColumnComparisonProps {
     // Re-judge props
     onReJudge?: () => void;
     isReJudging?: boolean;
+    scoringCategories?: ScoringCategory[];
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -43,6 +44,7 @@ export function ColumnComparison({
                                      isRegeneratingB = false,
                                      onReJudge,
                                      isReJudging = false,
+                                     scoringCategories,
                                  }: ColumnComparisonProps) {
     return (
         <div className="column-comparison-card">
@@ -77,6 +79,7 @@ export function ColumnComparison({
                 compact
                 onReJudge={onReJudge}
                 isReJudging={isReJudging}
+                scoringCategories={scoringCategories}
             />
         </div>
     );

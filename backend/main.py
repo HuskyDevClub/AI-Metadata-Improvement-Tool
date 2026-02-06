@@ -8,6 +8,7 @@ import os
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import httpx
 from dotenv import load_dotenv
@@ -16,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from models import (
+    DEFAULT_SCORING_CATEGORIES,
     ChatRequest,
     FetchCsvRequest,
     FetchCsvResponse,
@@ -23,6 +25,7 @@ from models import (
     JudgeMetrics,
     JudgeRequest,
     JudgeResponse,
+    ScoringCategory,
 )
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
@@ -36,10 +39,6 @@ AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "")
 AZURE_KEY = os.getenv("AZURE_KEY", "")
 AZURE_MODEL = os.getenv("AZURE_MODEL", "")
 CORS_ORIGIN = os.getenv("CORS_ORIGIN", "*")
-
-# Load JSON schemas
-SCHEMAS_DIR = Path(__file__).parent / "schemas"
-JUDGE_RESPONSE_SCHEMA = json.loads((SCHEMAS_DIR / "judge_response.json").read_text())
 
 # For Databricks Apps, the port is typically provided via environment variable
 PORT = int(os.getenv("PORT", "8000"))
@@ -196,6 +195,40 @@ async def openai_chat_stream(
     )
 
 
+def build_judge_schema(categories: list[ScoringCategory]) -> dict[str, Any]:
+    """Build a JSON schema for the judge response based on scoring categories."""
+    metric_props: dict[str, Any] = {}
+    metric_required: list[str] = []
+    for cat in categories:
+        metric_props[cat.key] = {"type": "integer"}
+        metric_required.append(cat.key)
+    metric_props["reasoning"] = {"type": "string"}
+    metric_required.append("reasoning")
+
+    model_schema: dict[str, Any] = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": metric_props,
+        "required": metric_required,
+    }
+
+    return {
+        "name": "judge_response",
+        "schema": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "modelA": model_schema,
+                "modelB": model_schema,
+                "winner": {"type": "string", "enum": ["A", "B", "tie"]},
+                "winnerReasoning": {"type": "string"},
+            },
+            "required": ["modelA", "modelB", "winner", "winnerReasoning"],
+        },
+        "strict": True,
+    }
+
+
 @app.post("/api/openai/judge", response_model=JudgeResponse)
 async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
     """Evaluate two model outputs and return structured metrics."""
@@ -220,18 +253,21 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
             "Please set these in the environment or enter them in the UI.",
         )
 
-    user_prompt = f"""
-    CONTEXT:
-    {request.context}
-    
-    CANDIDATE A:
-    {request.candidateA}
-    
-    CANDIDATE B:
-    {request.candidateB}
-    
-    Evaluate both candidates and respond with the JSON structure as specified.
-    """
+    if not request.judgeEvaluationPrompt or not request.judgeEvaluationPrompt.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="judgeEvaluationPrompt is required and cannot be empty.",
+        )
+
+    # Resolve scoring categories
+    categories = request.scoringCategories or DEFAULT_SCORING_CATEGORIES
+    category_keys = [cat.key for cat in categories]
+
+    user_prompt = (
+        request.judgeEvaluationPrompt.replace("{context}", request.context)
+        .replace("{candidateA}", request.candidateA)
+        .replace("{candidateB}", request.candidateB)
+    )
 
     try:
         client = AsyncOpenAI(
@@ -245,12 +281,15 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
             messages.append({"role": "system", "content": request.judgeSystemPrompt})
         messages.append({"role": "user", "content": user_prompt})
 
+        # Build dynamic schema from categories
+        judge_schema = build_judge_schema(categories)
+
         response = await client.chat.completions.create(
             model=model,
             messages=messages,
             response_format={
                 "type": "json_schema",
-                "json_schema": JUDGE_RESPONSE_SCHEMA,
+                "json_schema": judge_schema,
             },
         )
 
@@ -271,8 +310,8 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
         }
 
         return JudgeResponse(
-            modelA=JudgeMetrics.from_dict(result["modelA"]),
-            modelB=JudgeMetrics.from_dict(result["modelB"]),
+            modelA=JudgeMetrics.from_dict(result["modelA"], category_keys),
+            modelB=JudgeMetrics.from_dict(result["modelB"], category_keys),
             winner=result["winner"],
             winnerReasoning=result["winnerReasoning"],
             usage=usage,

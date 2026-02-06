@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { PromptTemplates } from '../../types';
+import type { PromptTemplates, ScoringCategory } from '../../types';
+import { ScoringCategoryEditor } from './ScoringCategoryEditor';
 import './PromptEditor.css';
 
 interface PromptEditorProps {
@@ -8,6 +9,10 @@ interface PromptEditorProps {
     comparisonEnabled?: boolean;
     judgeSystemPrompt?: string;
     onJudgeSystemPromptChange?: (prompt: string) => void;
+    judgeEvaluationPrompt?: string;
+    onJudgeEvaluationPromptChange?: (prompt: string) => void;
+    scoringCategories?: ScoringCategory[];
+    onScoringCategoriesChange?: (categories: ScoringCategory[]) => void;
 }
 
 export function PromptEditor({
@@ -15,7 +20,11 @@ export function PromptEditor({
                                  onChange,
                                  comparisonEnabled,
                                  judgeSystemPrompt,
-                                 onJudgeSystemPromptChange
+                                 onJudgeSystemPromptChange,
+                                 judgeEvaluationPrompt,
+                                 onJudgeEvaluationPromptChange,
+                                 scoringCategories,
+                                 onScoringCategoriesChange
                              }: PromptEditorProps) {
     const [isCollapsed, setIsCollapsed] = useState(true);
 
@@ -42,6 +51,13 @@ export function PromptEditor({
                     </p>
                 </div>
 
+                {comparisonEnabled && scoringCategories && onScoringCategoriesChange && (
+                    <ScoringCategoryEditor
+                        categories={scoringCategories}
+                        onChange={onScoringCategoriesChange}
+                    />
+                )}
+
                 {comparisonEnabled && onJudgeSystemPromptChange && (
                     <div className="prompt-editor-box judge-prompt-box">
                         <h4>Judge System Prompt</h4>
@@ -54,6 +70,22 @@ export function PromptEditor({
                         <p className="prompt-editor-field-help">
                             Define how the judge model evaluates outputs. Include the scoring criteria and JSON response
                             format.
+                        </p>
+                    </div>
+                )}
+
+                {comparisonEnabled && onJudgeEvaluationPromptChange && (
+                    <div className="prompt-editor-box judge-prompt-box">
+                        <h4>Judge Evaluation Prompt</h4>
+                        <textarea
+                            value={judgeEvaluationPrompt}
+                            onChange={(e) => onJudgeEvaluationPromptChange(e.target.value)}
+                            placeholder="Enter the evaluation prompt template for the judge model..."
+                            rows={8}
+                        />
+                        <p className="prompt-editor-field-help">
+                            Template for the user message sent to the judge. Use placeholders: {'{context}'},{' '}
+                            {'{candidateA}'}, {'{candidateB}'}.
                         </p>
                     </div>
                 )}

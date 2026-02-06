@@ -4,6 +4,7 @@ import type {
     ComparisonConfig,
     ComparisonTokenUsage,
     DatasetComparisonResult,
+    ScoringCategory,
     TokenUsage,
 } from '../types';
 
@@ -23,36 +24,83 @@ const INITIAL_TOKEN_USAGE: ComparisonTokenUsage = {
     total: {...EMPTY_TOKEN_USAGE},
 };
 
-const DEFAULT_JUDGE_SYSTEM_PROMPT = `You are an expert evaluator assessing metadata descriptions for government open data.
-You will compare two candidate descriptions and score each on the following metrics (1-10 scale):
+export const DEFAULT_SCORING_CATEGORIES: ScoringCategory[] = [
+    {
+        key: 'clarity',
+        label: 'Clarity',
+        description: 'How easy is it to understand? Uses plain language, avoids jargon.',
+        minScore: 1,
+        maxScore: 10
+    },
+    {
+        key: 'completeness',
+        label: 'Completeness',
+        description: 'Does it cover the content, purpose, and potential use cases?',
+        minScore: 1,
+        maxScore: 10
+    },
+    {
+        key: 'accuracy',
+        label: 'Accuracy',
+        description: 'Does it correctly describe what the data contains?',
+        minScore: 1,
+        maxScore: 10
+    },
+    {
+        key: 'conciseness',
+        label: 'Conciseness',
+        description: 'Is it brief while still being informative? No unnecessary padding.',
+        minScore: 1,
+        maxScore: 10
+    },
+    {
+        key: 'plainLanguage',
+        label: 'Plain Language',
+        description: 'Uses active voice, simple words, short sentences.',
+        minScore: 1,
+        maxScore: 10
+    },
+];
 
-1. CLARITY - How easy is it to understand? Uses plain language, avoids jargon.
-2. COMPLETENESS - Does it cover the content, purpose, and potential use cases?
-3. ACCURACY - Does it correctly describe what the data contains?
-4. CONCISENESS - Is it brief while still being informative? No unnecessary padding.
-5. PLAIN LANGUAGE - Uses active voice, simple words, short sentences.
+export function generateJudgeSystemPrompt(categories: ScoringCategory[]): string {
+    const categoryLines = categories
+        .map((cat, i) => `${i + 1}. ${cat.label.toUpperCase()} (${cat.minScore}-${cat.maxScore}) - ${cat.description}`)
+        .join('\n');
+
+    const scoreFields = categories
+        .map(cat => `        "${cat.key}": <${cat.minScore}-${cat.maxScore}>`)
+        .join(',\n');
+
+    return `You are an expert evaluator assessing metadata descriptions for government open data.
+You will compare two candidate descriptions and score each on the following metrics:
+
+${categoryLines}
 
 You must respond with valid JSON in exactly this format:
 {
     "modelA": {
-        "clarity": <1-10>,
-        "completeness": <1-10>,
-        "accuracy": <1-10>,
-        "conciseness": <1-10>,
-        "plainLanguage": <1-10>,
+${scoreFields},
         "reasoning": "<brief explanation for Model A scores>"
     },
     "modelB": {
-        "clarity": <1-10>,
-        "completeness": <1-10>,
-        "accuracy": <1-10>,
-        "conciseness": <1-10>,
-        "plainLanguage": <1-10>,
+${scoreFields},
         "reasoning": "<brief explanation for Model B scores>"
     },
     "winner": "<A, B, or tie>",
     "winnerReasoning": "<1-2 sentence explanation of why this candidate is better or why it's a tie>"
 }`;
+}
+
+const DEFAULT_JUDGE_EVALUATION_PROMPT = `CONTEXT:
+{context}
+
+CANDIDATE A:
+{candidateA}
+
+CANDIDATE B:
+{candidateB}
+
+Evaluate both candidates and respond with the JSON structure as specified.`;
 
 export function useComparisonState() {
     // Comparison Mode State
@@ -61,7 +109,9 @@ export function useComparisonState() {
         modelA: import.meta.env.VITE_COMPARISON_MODEL_A || '',
         modelB: import.meta.env.VITE_COMPARISON_MODEL_B || '',
         judgeModel: import.meta.env.VITE_COMPARISON_JUDGE_MODEL || '',
-        judgeSystemPrompt: import.meta.env.VITE_COMPARISON_JUDGE_SYSTEM_PROMPT || DEFAULT_JUDGE_SYSTEM_PROMPT,
+        judgeSystemPrompt: import.meta.env.VITE_COMPARISON_JUDGE_SYSTEM_PROMPT || generateJudgeSystemPrompt(DEFAULT_SCORING_CATEGORIES),
+        judgeEvaluationPrompt: import.meta.env.VITE_COMPARISON_JUDGE_EVALUATION_PROMPT || DEFAULT_JUDGE_EVALUATION_PROMPT,
+        scoringCategories: DEFAULT_SCORING_CATEGORIES,
     });
     const [datasetComparison, setDatasetComparison] = useState<DatasetComparisonResult>(INITIAL_DATASET_COMPARISON);
     const [columnComparisons, setColumnComparisons] = useState<Record<string, ColumnComparisonResult>>({});

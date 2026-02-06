@@ -1,4 +1,4 @@
-import type { DatasetComparisonResult } from '../../types';
+import type { DatasetComparisonResult, ScoringCategory } from '../../types';
 import type { RegenerationModifier } from '../ComparisonResults/RegenerationControls';
 import { SideBySideView } from '../ComparisonResults/SideBySideView';
 import { JudgeScoreCard } from '../ComparisonResults/JudgeScoreCard';
@@ -21,6 +21,7 @@ interface DatasetComparisonProps {
     // Re-judge props
     onReJudge?: () => void;
     isReJudging?: boolean;
+    scoringCategories?: ScoringCategory[];
 }
 
 export function DatasetComparison({
@@ -38,6 +39,7 @@ export function DatasetComparison({
                                       isRegeneratingB = false,
                                       onReJudge,
                                       isReJudging = false,
+                                      scoringCategories,
                                   }: DatasetComparisonProps) {
     return (
         <div className="dataset-comparison-section">
@@ -69,6 +71,7 @@ export function DatasetComparison({
                 isJudging={result.isJudging}
                 onReJudge={onReJudge}
                 isReJudging={isReJudging}
+                scoringCategories={scoringCategories}
             />
         </div>
     );
