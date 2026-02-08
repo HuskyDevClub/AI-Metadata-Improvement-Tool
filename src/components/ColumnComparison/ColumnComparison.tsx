@@ -1,6 +1,6 @@
 import type { ColumnComparisonResult, ColumnInfo, ScoringCategory } from '../../types';
 import type { RegenerationModifier } from '../ComparisonResults/RegenerationControls';
-import { SideBySideView } from '../ComparisonResults/SideBySideView';
+import { type ModelPanelData, SideBySideView } from '../ComparisonResults/SideBySideView';
 import { JudgeScoreCard } from '../ComparisonResults/JudgeScoreCard';
 import './ColumnComparison.css';
 
@@ -8,16 +8,10 @@ interface ColumnComparisonProps {
     columnName: string;
     columnInfo: ColumnInfo;
     result: ColumnComparisonResult;
-    modelAName?: string;
-    modelBName?: string;
-    isGeneratingA: boolean;
-    isGeneratingB: boolean;
-    // Regeneration props
-    onRegenerateA?: (modifier: RegenerationModifier, customInstruction?: string) => void;
-    onRegenerateB?: (modifier: RegenerationModifier, customInstruction?: string) => void;
-    isRegeneratingA?: boolean;
-    isRegeneratingB?: boolean;
-    // Re-judge props
+    modelNames: string[];
+    generatingModels: Set<number>;
+    regeneratingModels: Set<number>;
+    onRegenerate?: (modelIndex: number, modifier: RegenerationModifier, customInstruction?: string) => void;
     onReJudge?: () => void;
     isReJudging?: boolean;
     scoringCategories?: ScoringCategory[];
@@ -34,18 +28,26 @@ export function ColumnComparison({
                                      columnName,
                                      columnInfo,
                                      result,
-                                     modelAName = 'Model A',
-                                     modelBName = 'Model B',
-                                     isGeneratingA,
-                                     isGeneratingB,
-                                     onRegenerateA,
-                                     onRegenerateB,
-                                     isRegeneratingA = false,
-                                     isRegeneratingB = false,
+                                     modelNames,
+                                     generatingModels,
+                                     regeneratingModels,
+                                     onRegenerate,
                                      onReJudge,
                                      isReJudging = false,
                                      scoringCategories,
                                  }: ColumnComparisonProps) {
+    const panels: ModelPanelData[] = modelNames.map((name, i) => ({
+        modelIndex: i,
+        modelName: name,
+        output: result.outputs[i] || '',
+        isGenerating: generatingModels.has(i),
+        isRegenerating: regeneratingModels.has(i),
+        onRegenerate: onRegenerate
+            ? (modifier: RegenerationModifier, customInstruction?: string) =>
+                onRegenerate(i, modifier, customInstruction)
+            : undefined,
+    }));
+
     return (
         <div className="column-comparison-card">
             <div className="column-comparison-header">
@@ -59,17 +61,8 @@ export function ColumnComparison({
             </div>
 
             <SideBySideView
-                modelAOutput={result.modelAOutput}
-                modelBOutput={result.modelBOutput}
-                modelAName={modelAName}
-                modelBName={modelBName}
-                isGeneratingA={isGeneratingA}
-                isGeneratingB={isGeneratingB}
-                winner={result.judgeResult?.winner}
-                onRegenerateA={onRegenerateA}
-                onRegenerateB={onRegenerateB}
-                isRegeneratingA={isRegeneratingA}
-                isRegeneratingB={isRegeneratingB}
+                panels={panels}
+                winnerIndex={result.judgeResult?.winnerIndex}
                 isJudging={result.isJudging}
             />
 
@@ -80,6 +73,7 @@ export function ColumnComparison({
                 onReJudge={onReJudge}
                 isReJudging={isReJudging}
                 scoringCategories={scoringCategories}
+                modelNames={modelNames}
             />
         </div>
     );

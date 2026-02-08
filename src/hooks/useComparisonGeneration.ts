@@ -5,10 +5,7 @@ import { useOpenAI } from './useOpenAI';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 interface ParallelGenerationResult {
-    modelAOutput: string;
-    modelBOutput: string;
-    modelAUsage: TokenUsage;
-    modelBUsage: TokenUsage;
+    usages: TokenUsage[];
     aborted: boolean;
 }
 
@@ -22,25 +19,21 @@ export function useComparisonGeneration() {
 
     const generateParallel = useCallback(
         async (
-            prompt: string,
-            configA: OpenAIConfig,
-            configB: OpenAIConfig,
+            prompts: string[],
+            configs: OpenAIConfig[],
             systemPrompt: string,
-            onChunkA: (chunk: string) => void,
-            onChunkB: (chunk: string) => void,
+            onChunks: ((chunk: string) => void)[],
             abortSignal?: AbortSignal
         ): Promise<ParallelGenerationResult> => {
-            const resultA = callOpenAIStream(prompt, configA, systemPrompt, onChunkA, abortSignal);
-            const resultB = callOpenAIStream(prompt, configB, systemPrompt, onChunkB, abortSignal);
+            const promises = configs.map((config, i) =>
+                callOpenAIStream(prompts[i], config, systemPrompt, onChunks[i], abortSignal)
+            );
 
-            const [resA, resB] = await Promise.all([resultA, resultB]);
+            const results = await Promise.all(promises);
 
             return {
-                modelAOutput: '', // Caller tracks output via onChunk callbacks
-                modelBOutput: '',
-                modelAUsage: resA.usage,
-                modelBUsage: resB.usage,
-                aborted: resA.aborted || resB.aborted,
+                usages: results.map(r => r.usage),
+                aborted: results.some(r => r.aborted),
             };
         },
         [callOpenAIStream]
@@ -49,8 +42,7 @@ export function useComparisonGeneration() {
     const callJudge = useCallback(
         async (
             context: string,
-            candidateA: string,
-            candidateB: string,
+            candidates: string[],
             judgeConfig: OpenAIConfig,
             judgeSystemPrompt?: string,
             judgeEvaluationPrompt?: string,
@@ -63,8 +55,7 @@ export function useComparisonGeneration() {
                 },
                 body: JSON.stringify({
                     context,
-                    candidateA,
-                    candidateB,
+                    candidates,
                     baseURL: judgeConfig.baseURL,
                     apiKey: judgeConfig.apiKey,
                     model: judgeConfig.model,
@@ -83,15 +74,11 @@ export function useComparisonGeneration() {
 
             return {
                 result: {
-                    modelA: {
-                        scores: data.modelA.scores,
-                        reasoning: data.modelA.reasoning,
-                    },
-                    modelB: {
-                        scores: data.modelB.scores,
-                        reasoning: data.modelB.reasoning,
-                    },
-                    winner: data.winner as 'A' | 'B' | 'tie',
+                    models: data.models.map((m: { scores: Record<string, number>; reasoning: string }) => ({
+                        scores: m.scores,
+                        reasoning: m.reasoning,
+                    })),
+                    winnerIndex: data.winnerIndex,
                     winnerReasoning: data.winnerReasoning,
                 },
                 usage: {

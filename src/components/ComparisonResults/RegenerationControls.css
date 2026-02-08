@@ -4,16 +4,6 @@
     background: #f9fafb;
 }
 
-.regeneration-controls.model-a {
-    background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
-    border-top-color: #93c5fd;
-}
-
-.regeneration-controls.model-b {
-    background: linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%);
-    border-top-color: #86efac;
-}
-
 .preset-buttons {
     display: flex;
     gap: 8px;

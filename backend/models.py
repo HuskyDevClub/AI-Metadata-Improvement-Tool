@@ -81,11 +81,10 @@ DEFAULT_SCORING_CATEGORIES = [
 
 
 class JudgeRequest(BaseModel):
-    """Request to evaluate two model outputs using a judge model."""
+    """Request to evaluate N model outputs using a judge model."""
 
     context: str  # Dataset context (fileName, rowCount, columns)
-    candidateA: str  # Model A output
-    candidateB: str  # Model B output
+    candidates: list[str]  # List of model outputs to evaluate
     model: str | None = None  # Falls back to AZURE_MODEL env var
     baseURL: str | None = None  # Falls back to AZURE_ENDPOINT env var
     apiKey: str | None = None  # Falls back to AZURE_KEY env var
@@ -110,11 +109,10 @@ class JudgeMetrics(BaseModel):
 
 
 class JudgeResponse(BaseModel):
-    """Response containing evaluation results for both candidates."""
+    """Response containing evaluation results for N candidates."""
 
-    modelA: JudgeMetrics
-    modelB: JudgeMetrics
-    winner: str  # 'A', 'B', or 'tie'
+    models: list[JudgeMetrics]
+    winnerIndex: int | None  # 0-based index of winner, None = tie
     winnerReasoning: str
     usage: dict[str, int]  # Token usage stats
 

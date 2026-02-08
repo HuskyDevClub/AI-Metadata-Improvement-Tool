@@ -1,4 +1,5 @@
 import type { JudgeResult, ScoringCategory } from '../../types';
+import { getModelColor } from '../../utils/modelColors';
 import { MetricBar } from './MetricBar';
 import './JudgeScoreCard.css';
 
@@ -9,6 +10,7 @@ interface JudgeScoreCardProps {
     onReJudge?: () => void;
     isReJudging?: boolean;
     scoringCategories?: ScoringCategory[];
+    modelNames?: string[];
 }
 
 export function JudgeScoreCard({
@@ -17,7 +19,8 @@ export function JudgeScoreCard({
                                    compact = false,
                                    onReJudge,
                                    isReJudging = false,
-                                   scoringCategories = []
+                                   scoringCategories = [],
+                                   modelNames = [],
                                }: JudgeScoreCardProps) {
     if (isJudging || isReJudging) {
         return (
@@ -35,27 +38,39 @@ export function JudgeScoreCard({
     }
 
     const getWinnerDisplay = () => {
-        if (result.winner === 'tie') {
+        if (result.winnerIndex === null) {
             return {text: 'Tie', className: 'tie'};
         }
+        const winnerNum = result.winnerIndex + 1;
+        const name = modelNames[result.winnerIndex] || `Model ${winnerNum}`;
         return {
-            text: `Model ${result.winner} Wins`,
-            className: result.winner === 'A' ? 'model-a' : 'model-b',
+            text: `${name} Wins`,
+            className: 'has-winner',
         };
     };
 
     const winner = getWinnerDisplay();
+    const winnerColor = result.winnerIndex !== null ? getModelColor(result.winnerIndex) : null;
 
-    const totalA = Object.values(result.modelA.scores).reduce((a, b) => a + b, 0);
-    const totalB = Object.values(result.modelB.scores).reduce((a, b) => a + b, 0);
     const maxTotal = scoringCategories.reduce((sum, cat) => sum + cat.maxScore, 0);
+    const modelTotals = result.models.map((m) =>
+        Object.values(m.scores).reduce((a, b) => a + b, 0)
+    );
 
     return (
         <div className={`judge-score-card ${compact ? 'compact' : ''}`}>
             <div className="judge-header">
                 <span className="judge-title">Judge Evaluation</span>
                 <div className="judge-header-actions">
-                    <span className={`judge-winner ${winner.className}`}>{winner.text}</span>
+                    <span
+                        className={`judge-winner ${winner.className}`}
+                        style={winnerColor ? {
+                            background: winnerColor.light,
+                            color: winnerColor.text,
+                        } : undefined}
+                    >
+                        {winner.text}
+                    </span>
                     {onReJudge && (
                         <button
                             className="rejudge-btn"
@@ -73,16 +88,25 @@ export function JudgeScoreCard({
                     <MetricBar
                         key={cat.key}
                         label={cat.label}
-                        scoreA={result.modelA.scores[cat.key] ?? 0}
-                        scoreB={result.modelB.scores[cat.key] ?? 0}
+                        scores={result.models.map((m, i) => ({
+                            modelIndex: i,
+                            score: m.scores[cat.key] ?? 0,
+                            modelName: modelNames[i] || `M${i + 1}`,
+                        }))}
                         maxScore={cat.maxScore}
                     />
                 ))}
             </div>
 
             <div className="judge-totals">
-                <span className="total model-a">A: {totalA}/{maxTotal}</span>
-                <span className="total model-b">B: {totalB}/{maxTotal}</span>
+                {modelTotals.map((total, i) => {
+                    const color = getModelColor(i);
+                    return (
+                        <span key={i} className="total" style={{color: color.primary}}>
+                            {modelNames[i] || `M${i + 1}`}: {total}/{maxTotal}
+                        </span>
+                    );
+                })}
             </div>
 
             <div className="judge-reasoning">
@@ -90,13 +114,22 @@ export function JudgeScoreCard({
             </div>
 
             {!compact && (
-                <div className="judge-individual-reasoning">
-                    <div className="reasoning-section model-a">
-                        <strong>Model A:</strong> {result.modelA.reasoning}
-                    </div>
-                    <div className="reasoning-section model-b">
-                        <strong>Model B:</strong> {result.modelB.reasoning}
-                    </div>
+                <div
+                    className="judge-individual-reasoning"
+                    style={{gridTemplateColumns: `repeat(${result.models.length}, 1fr)`}}
+                >
+                    {result.models.map((m, i) => {
+                        const color = getModelColor(i);
+                        return (
+                            <div
+                                key={i}
+                                className="reasoning-section"
+                                style={{borderLeftColor: color.primary}}
+                            >
+                                <strong>{modelNames[i] || `Model ${i + 1}`}:</strong> {m.reasoning}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

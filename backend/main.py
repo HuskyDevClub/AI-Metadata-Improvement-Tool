@@ -29,6 +29,7 @@ from models import (
 )
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
+from openai.types.shared_params.response_format_json_schema import JSONSchema
 
 # Load environment variables from .env file
 load_dotenv()
@@ -195,8 +196,10 @@ async def openai_chat_stream(
     )
 
 
-def build_judge_schema(categories: list[ScoringCategory]) -> dict[str, Any]:
-    """Build a JSON schema for the judge response based on scoring categories."""
+def build_judge_schema(
+    categories: list[ScoringCategory], model_count: int
+) -> JSONSchema:
+    """Build a JSON schema for the judge response based on scoring categories and N models."""
     metric_props: dict[str, Any] = {}
     metric_required: list[str] = []
     for cat in categories:
@@ -212,18 +215,28 @@ def build_judge_schema(categories: list[ScoringCategory]) -> dict[str, Any]:
         "required": metric_required,
     }
 
+    # Build model properties: model1, model2, ..., modelN
+    properties: dict[str, dict[str, Any]] = {}
+    required: list[str] = []
+    for i in range(model_count):
+        key = f"model{i + 1}"
+        properties[key] = model_schema
+        required.append(key)
+
+    # Winner enum: "1", "2", ..., "N", "tie"
+    winner_enum = [str(i + 1) for i in range(model_count)] + ["tie"]
+    properties["winner"] = {"type": "string", "enum": winner_enum}
+    required.append("winner")
+    properties["winnerReasoning"] = {"type": "string"}
+    required.append("winnerReasoning")
+
     return {
         "name": "judge_response",
         "schema": {
             "type": "object",
             "additionalProperties": False,
-            "properties": {
-                "modelA": model_schema,
-                "modelB": model_schema,
-                "winner": {"type": "string", "enum": ["A", "B", "tie"]},
-                "winnerReasoning": {"type": "string"},
-            },
-            "required": ["modelA", "modelB", "winner", "winnerReasoning"],
+            "properties": properties,
+            "required": required,
         },
         "strict": True,
     }
@@ -231,7 +244,7 @@ def build_judge_schema(categories: list[ScoringCategory]) -> dict[str, Any]:
 
 @app.post("/api/openai/judge", response_model=JudgeResponse)
 async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
-    """Evaluate two model outputs and return structured metrics."""
+    """Evaluate N model outputs and return structured metrics."""
     # Get configuration from the request or environment
     base_url = request.baseURL or AZURE_ENDPOINT
     api_key = request.apiKey or AZURE_KEY
@@ -259,15 +272,22 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
             detail="judgeEvaluationPrompt is required and cannot be empty.",
         )
 
+    model_count = len(request.candidates)
+
+    if model_count < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="At least 2 candidates are required for judging.",
+        )
+
     # Resolve scoring categories
     categories = request.scoringCategories or DEFAULT_SCORING_CATEGORIES
     category_keys = [cat.key for cat in categories]
 
-    user_prompt = (
-        request.judgeEvaluationPrompt.replace("{context}", request.context)
-        .replace("{candidateA}", request.candidateA)
-        .replace("{candidateB}", request.candidateB)
-    )
+    # Substitute candidate placeholders: {candidate0}, {candidate1}, ...
+    user_prompt = request.judgeEvaluationPrompt.replace("{context}", request.context)
+    for i, candidate in enumerate(request.candidates):
+        user_prompt = user_prompt.replace(f"{{candidate{i}}}", candidate)
 
     try:
         client = AsyncOpenAI(
@@ -281,8 +301,8 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
             messages.append({"role": "system", "content": request.judgeSystemPrompt})
         messages.append({"role": "user", "content": user_prompt})
 
-        # Build dynamic schema from categories
-        judge_schema = build_judge_schema(categories)
+        # Build dynamic schema from categories and model count
+        judge_schema = build_judge_schema(categories, model_count)
 
         response = await client.chat.completions.create(
             model=model,
@@ -309,10 +329,19 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
             "totalTokens": response.usage.total_tokens if response.usage else 0,
         }
 
+        # Parse N model results
+        models_metrics: list[JudgeMetrics] = [
+            JudgeMetrics.from_dict(result[f"model{i + 1}"], category_keys)
+            for i in range(model_count)
+        ]
+
+        # Parse winner: "1", "2", ..., "N" -> 0-based index, "tie" -> None
+        winner_str = result["winner"]
+        winner_index = None if winner_str == "tie" else int(winner_str) - 1
+
         return JudgeResponse(
-            modelA=JudgeMetrics.from_dict(result["modelA"], category_keys),
-            modelB=JudgeMetrics.from_dict(result["modelB"], category_keys),
-            winner=result["winner"],
+            models=models_metrics,
+            winnerIndex=winner_index,
             winnerReasoning=result["winnerReasoning"],
             usage=usage,
         )

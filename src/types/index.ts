@@ -74,8 +74,7 @@ export interface ScoringCategory {
 }
 
 export interface ComparisonConfig {
-    modelA: string;
-    modelB: string;
+    models: string[];
     judgeModel: string;
     judgeSystemPrompt: string;
     judgeEvaluationPrompt: string;
@@ -88,29 +87,25 @@ export interface JudgeMetrics {
 }
 
 export interface JudgeResult {
-    modelA: JudgeMetrics;
-    modelB: JudgeMetrics;
-    winner: 'A' | 'B' | 'tie';
+    models: JudgeMetrics[];
+    winnerIndex: number | null; // null = tie
     winnerReasoning: string;
 }
 
 export interface DatasetComparisonResult {
-    modelAOutput: string;
-    modelBOutput: string;
+    outputs: string[];
     judgeResult: JudgeResult | null;
     isJudging: boolean;
 }
 
 export interface ColumnComparisonResult {
-    modelAOutput: string;
-    modelBOutput: string;
+    outputs: string[];
     judgeResult: JudgeResult | null;
     isJudging: boolean;
 }
 
 export interface ComparisonTokenUsage {
-    modelA: TokenUsage;
-    modelB: TokenUsage;
+    models: TokenUsage[];
     judge: TokenUsage;
     total: TokenUsage;
 }

@@ -3,6 +3,8 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
     'gpt-5-nano': {input: 0.05, output: 0.40},
     'gpt-5-mini': {input: 0.25, output: 2.00},
     'gpt-4o-mini': {input: 0.15, output: 0.60},
+    'gpt-5.2-chat': {input: 1.75, output: 14.00},
+    'grok-4-fast-non-reasoning': {input: 0.20, output: 0.50},
 };
 
 export function getEstimatedCost(

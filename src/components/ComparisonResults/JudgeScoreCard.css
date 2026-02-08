@@ -93,16 +93,6 @@
     border-color: #9ca3af;
 }
 
-.judge-winner.model-a {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.judge-winner.model-b {
-    background: #dcfce7;
-    color: #15803d;
-}
-
 .judge-winner.tie {
     background: #f3f4f6;
     color: #6b7280;
@@ -115,6 +105,8 @@
 .judge-totals {
     display: flex;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
     padding: 10px;
     background: #fff;
     border-radius: 6px;
@@ -124,14 +116,6 @@
 .total {
     font-size: 14px;
     font-weight: 600;
-}
-
-.total.model-a {
-    color: #3b82f6;
-}
-
-.total.model-b {
-    color: #22c55e;
 }
 
 .judge-reasoning {
@@ -151,7 +135,6 @@
 .judge-individual-reasoning {
     margin-top: 12px;
     display: grid;
-    grid-template-columns: 1fr 1fr;
     gap: 12px;
 }
 
@@ -162,14 +145,7 @@
     padding: 10px;
     background: #fff;
     border-radius: 6px;
-}
-
-.reasoning-section.model-a {
-    border-left: 3px solid #3b82f6;
-}
-
-.reasoning-section.model-b {
-    border-left: 3px solid #22c55e;
+    border-left: 3px solid #e5e7eb;
 }
 
 .reasoning-section strong {
@@ -192,6 +168,6 @@
 
 @media (max-width: 768px) {
     .judge-individual-reasoning {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
     }
 }
