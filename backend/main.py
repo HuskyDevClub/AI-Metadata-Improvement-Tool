@@ -16,6 +16,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from lm_studio import resolve_client_params
 from models import (
     DEFAULT_SCORING_CATEGORIES,
     ChatRequest,
@@ -120,6 +121,9 @@ async def openai_chat_stream(
     base_url = request.baseURL or AZURE_ENDPOINT
     api_key = request.apiKey or AZURE_KEY
     model = request.model or AZURE_MODEL
+
+    # Check if model is available in LM Studio before validating cloud config
+    base_url, api_key = await resolve_client_params(model, base_url, api_key)
 
     # Validate configuration
     missing_config = []
@@ -249,6 +253,9 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
     base_url = request.baseURL or AZURE_ENDPOINT
     api_key = request.apiKey or AZURE_KEY
     model = request.model or AZURE_MODEL
+
+    # Check if model is available in LM Studio before validating cloud config
+    base_url, api_key = await resolve_client_params(model, base_url, api_key)
 
     # Validate configuration
     missing_config = []
