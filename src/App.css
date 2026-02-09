@@ -113,15 +113,6 @@
     font-weight: 700;
 }
 
-.tokenCost.modelA {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.tokenCost.modelB {
-    background: #dcfce7;
-    color: #15803d;
-}
 
 .tokenCost.judge {
     background: #f3e8ff;

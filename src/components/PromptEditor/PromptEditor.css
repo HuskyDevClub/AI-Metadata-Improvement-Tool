@@ -5,10 +5,10 @@
 .prompt-editor-section-title {
     font-size: 20px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-dark);
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #667eea;
+    border-bottom: 2px solid var(--primary-start);
 }
 
 .prompt-editor-toggle {
@@ -42,13 +42,13 @@
 .prompt-editor-box {
     margin-top: 15px;
     padding: 15px;
-    background: #f9f9f9;
-    border: 2px solid #e0e0e0;
+    background: var(--bg-light);
+    border: 2px solid var(--border-color);
     border-radius: 8px;
 }
 
 .prompt-editor-box h4 {
-    color: #333;
+    color: var(--text-dark);
     margin-bottom: 10px;
     font-size: 14px;
     font-weight: 600;
@@ -58,7 +58,7 @@
     width: 100%;
     min-height: 120px;
     padding: 10px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     font-family: 'Courier New', monospace;
     font-size: 13px;
@@ -67,12 +67,12 @@
 
 .prompt-editor-box textarea:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--primary-start);
 }
 
 .prompt-editor-help-text {
     font-size: 13px;
-    color: #777;
+    color: var(--text-light);
     margin-top: 10px;
     font-style: italic;
 }

@@ -5,10 +5,10 @@
 .csv-input-section-title {
     font-size: 20px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-dark);
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #667eea;
+    border-bottom: 2px solid var(--primary-start);
 }
 
 .csv-input-group {
@@ -19,14 +19,14 @@
 .csv-input-group label {
     font-size: 14px;
     font-weight: 500;
-    color: #555;
+    color: var(--text-medium);
     margin-bottom: 5px;
 }
 
 .csv-input-group input,
 .csv-input-group select {
     padding: 10px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     font-size: 14px;
     transition: border-color 0.3s;
@@ -35,7 +35,7 @@
 .csv-input-group input:focus,
 .csv-input-group select:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--primary-start);
 }
 
 .csv-input-url-input {
@@ -54,7 +54,7 @@
 
 .csv-input-help-text {
     font-size: 13px;
-    color: #777;
+    color: var(--text-light);
     margin-top: 5px;
     font-style: italic;
 }
@@ -66,10 +66,10 @@
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: transform 0.3s, box-shadow 0.3s;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--primary-gradient);
     color: white;
 }
 

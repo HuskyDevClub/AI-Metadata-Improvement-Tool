@@ -5,10 +5,10 @@
 .openai-config-section-title {
     font-size: 20px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-dark);
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #667eea;
+    border-bottom: 2px solid var(--primary-start);
 }
 
 .openai-config-grid {
@@ -26,13 +26,13 @@
 .openai-config-input-group label {
     font-size: 14px;
     font-weight: 500;
-    color: #555;
+    color: var(--text-medium);
     margin-bottom: 5px;
 }
 
 .openai-config-input-group input {
     padding: 10px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     font-size: 14px;
     transition: border-color 0.3s;
@@ -40,12 +40,12 @@
 
 .openai-config-input-group input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--primary-start);
 }
 
 .openai-config-help-text {
     font-size: 13px;
-    color: #777;
+    color: var(--text-light);
     margin-top: 5px;
     font-style: italic;
 }

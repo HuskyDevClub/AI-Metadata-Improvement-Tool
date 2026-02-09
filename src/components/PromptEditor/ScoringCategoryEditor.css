@@ -36,7 +36,7 @@
     width: 150px;
     min-width: 120px;
     padding: 6px 10px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     font-size: 13px;
     font-weight: 500;
@@ -50,7 +50,7 @@
 .scoring-category-description {
     flex: 1;
     padding: 6px 10px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     font-size: 13px;
 }
@@ -70,7 +70,7 @@
 .scoring-category-range-input {
     width: 50px;
     padding: 6px 6px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     font-size: 13px;
     text-align: center;
@@ -108,7 +108,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: background 0.2s;
+    transition: background-color 0.2s;
 }
 
 .scoring-category-remove:hover {
@@ -125,7 +125,7 @@
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
-    transition: background 0.2s, border-color 0.2s;
+    transition: background-color 0.2s, border-color 0.2s;
 }
 
 .scoring-category-add:hover {

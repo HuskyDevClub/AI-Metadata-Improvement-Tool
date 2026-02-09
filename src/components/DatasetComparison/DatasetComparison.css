@@ -36,31 +36,3 @@
     padding-top: 16px;
     border-top: 1px solid #e5e7eb;
 }
-
-.regen-btn {
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.regen-btn.model-a {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.regen-btn.model-a:hover {
-    background: #bfdbfe;
-}
-
-.regen-btn.model-b {
-    background: #dcfce7;
-    color: #15803d;
-}
-
-.regen-btn.model-b:hover {
-    background: #bbf7d0;
-}

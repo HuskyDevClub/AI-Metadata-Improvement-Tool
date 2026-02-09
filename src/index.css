@@ -25,6 +25,7 @@
     --warning-color: #f57c00;
     --warning-bg: #fff3e0;
     --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.3);
+    --radius-sm: 8px;
     --radius-md: 12px;
 }
 
@@ -36,10 +37,16 @@ body {
 }
 
 @keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
+    to {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes blink {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0;
     }
 }

@@ -7,7 +7,7 @@
 }
 
 .export-section h4 {
-    color: #333;
+    color: var(--text-dark);
     margin-bottom: 10px;
     font-size: 16px;
 }
@@ -21,7 +21,7 @@
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
