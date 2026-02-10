@@ -1,8 +1,3 @@
-"""
-FastAPI backend for AI Metadata Improvement Tool
-Designed for Databricks Apps deployment
-"""
-
 import json
 import os
 from collections.abc import AsyncGenerator
@@ -17,7 +12,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from lm_studio import resolve_client_params
+from local_providers import OLLAMA_HOST, is_ollama_available, resolve_client_params
 from models import (
     DEFAULT_SCORING_CATEGORIES,
     ChatRequest,
@@ -29,7 +24,6 @@ from models import (
     JudgeResponse,
     ScoringCategory,
 )
-from ollama_provider import OLLAMA_HOST, is_ollama_available
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from openai.types.shared_params.response_format_json_schema import JSONSchema
