@@ -7,6 +7,7 @@ import json
 import os
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,7 @@ from models import (
     JudgeResponse,
     ScoringCategory,
 )
+from ollama_provider import OLLAMA_HOST, is_ollama_available
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from openai.types.shared_params.response_format_json_schema import JSONSchema
@@ -112,6 +114,39 @@ async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
         raise HTTPException(status_code=500, detail=f"Failed to fetch CSV: {str(e)}")
 
 
+class Provider(Enum):
+    OLLAMA = "ollama"
+    LM_STUDIO = "lm_studio"
+    OPENAI = "openai"
+
+
+async def resolve_provider(
+    model: str, base_url: str, api_key: str
+) -> tuple[Provider, str, str, str]:
+    """
+    Resolve which provider to use for a given model.
+
+    Fallback chain: Ollama -> LM Studio -> OpenAI/Azure (original params).
+
+    Returns: (provider, resolved_model, base_url, api_key)
+    """
+    if not model:
+        return Provider.OPENAI, model, base_url, api_key
+
+    # 1. Check Ollama first (use its OpenAI-compatible endpoint)
+    ollama_model = await is_ollama_available(model)
+    if ollama_model is not None:
+        return Provider.OLLAMA, ollama_model, f"{OLLAMA_HOST}/v1", "ollama"
+
+    # 2. Check LM Studio
+    resolved_url, resolved_key = await resolve_client_params(model, base_url, api_key)
+    if resolved_url != base_url or resolved_key != api_key:
+        return Provider.LM_STUDIO, model, resolved_url, resolved_key
+
+    # 3. Fall back to OpenAI/Azure
+    return Provider.OPENAI, model, base_url, api_key
+
+
 # OpenAI streaming chat endpoint
 @app.post("/api/openai/chat/stream")
 async def openai_chat_stream(
@@ -122,24 +157,27 @@ async def openai_chat_stream(
     api_key = request.apiKey or AZURE_KEY
     model = request.model or AZURE_MODEL
 
-    # Check if model is available in LM Studio before validating cloud config
-    base_url, api_key = await resolve_client_params(model, base_url, api_key)
+    # Resolve provider: Ollama -> LM Studio -> OpenAI/Azure
+    provider, resolved_model, base_url, api_key = await resolve_provider(
+        model, base_url, api_key
+    )
 
-    # Validate configuration
-    missing_config = []
-    if not base_url:
-        missing_config.append("Base URL (AZURE_ENDPOINT)")
-    if not api_key:
-        missing_config.append("API Key (AZURE_KEY)")
-    if not model:
-        missing_config.append("Model (AZURE_MODEL)")
+    # Validate configuration (not needed for Ollama — no API key required)
+    if provider != Provider.OLLAMA:
+        missing_config = []
+        if not base_url:
+            missing_config.append("Base URL (AZURE_ENDPOINT)")
+        if not api_key:
+            missing_config.append("API Key (AZURE_KEY)")
+        if not resolved_model:
+            missing_config.append("Model (AZURE_MODEL)")
 
-    if missing_config:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required configuration: {', '.join(missing_config)}. "
-            "Please set these in the environment or enter them in the UI.",
-        )
+        if missing_config:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required configuration: {', '.join(missing_config)}. "
+                "Please set these in the environment or enter them in the UI.",
+            )
 
     # Build messages array, only include system prompt if provided
     messages: list[ChatCompletionMessageParam] = []
@@ -147,6 +185,7 @@ async def openai_chat_stream(
         messages.append({"role": "system", "content": request.systemPrompt})
     messages.append({"role": "user", "content": request.prompt})
 
+    # Shared path for all providers (OpenAI / LM Studio / Ollama via AsyncOpenAI)
     async def generate() -> AsyncGenerator[str, None]:
         usage: dict[str, int] = {
             "promptTokens": 0,
@@ -161,7 +200,7 @@ async def openai_chat_stream(
             )
 
             stream = await client.chat.completions.create(
-                model=model,
+                model=resolved_model,
                 messages=messages,
                 stream=True,
                 stream_options={"include_usage": True},
@@ -254,24 +293,27 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
     api_key = request.apiKey or AZURE_KEY
     model = request.model or AZURE_MODEL
 
-    # Check if model is available in LM Studio before validating cloud config
-    base_url, api_key = await resolve_client_params(model, base_url, api_key)
+    # Resolve provider: Ollama -> LM Studio -> OpenAI/Azure
+    provider, resolved_model, base_url, api_key = await resolve_provider(
+        model, base_url, api_key
+    )
 
-    # Validate configuration
-    missing_config = []
-    if not base_url:
-        missing_config.append("Base URL (AZURE_ENDPOINT)")
-    if not api_key:
-        missing_config.append("API Key (AZURE_KEY)")
-    if not model:
-        missing_config.append("Model (AZURE_MODEL)")
+    # Validate configuration (not needed for Ollama)
+    if provider != Provider.OLLAMA:
+        missing_config = []
+        if not base_url:
+            missing_config.append("Base URL (AZURE_ENDPOINT)")
+        if not api_key:
+            missing_config.append("API Key (AZURE_KEY)")
+        if not resolved_model:
+            missing_config.append("Model (AZURE_MODEL)")
 
-    if missing_config:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required configuration: {', '.join(missing_config)}. "
-            "Please set these in the environment or enter them in the UI.",
-        )
+        if missing_config:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required configuration: {', '.join(missing_config)}. "
+                "Please set these in the environment or enter them in the UI.",
+            )
 
     if not request.judgeEvaluationPrompt or not request.judgeEvaluationPrompt.strip():
         raise HTTPException(
@@ -296,23 +338,24 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
     for i, candidate in enumerate(request.candidates):
         user_prompt = user_prompt.replace(f"{{candidate{i}}}", candidate)
 
+    # Build messages array, only include system prompt if provided
+    messages: list[ChatCompletionMessageParam] = []
+    if request.judgeSystemPrompt and request.judgeSystemPrompt.strip():
+        messages.append({"role": "system", "content": request.judgeSystemPrompt})
+    messages.append({"role": "user", "content": user_prompt})
+
+    # Build dynamic schema from categories and model count
+    judge_schema = build_judge_schema(categories, model_count)
+
     try:
+        # Shared path for all providers (OpenAI / LM Studio / Ollama via AsyncOpenAI)
         client = AsyncOpenAI(
             base_url=base_url,
             api_key=api_key,
         )
 
-        # Build messages array, only include system prompt if provided
-        messages: list[ChatCompletionMessageParam] = []
-        if request.judgeSystemPrompt and request.judgeSystemPrompt.strip():
-            messages.append({"role": "system", "content": request.judgeSystemPrompt})
-        messages.append({"role": "user", "content": user_prompt})
-
-        # Build dynamic schema from categories and model count
-        judge_schema = build_judge_schema(categories, model_count)
-
         response = await client.chat.completions.create(
-            model=model,
+            model=resolved_model,
             messages=messages,
             response_format={
                 "type": "json_schema",
@@ -336,7 +379,7 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
             "totalTokens": response.usage.total_tokens if response.usage else 0,
         }
 
-        # Parse N model results
+        # Parse N model results (shared for all providers)
         models_metrics: list[JudgeMetrics] = [
             JudgeMetrics.from_dict(result[f"model{i + 1}"], category_keys)
             for i in range(model_count)
