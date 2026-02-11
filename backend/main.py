@@ -12,7 +12,15 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from local_providers import OLLAMA_HOST, is_ollama_available, resolve_client_params
+from local_providers import (
+    HF_API_KEY,
+    HF_API_URL,
+    LM_STUDIO_URL,
+    OLLAMA_HOST,
+    is_huggingface_available,
+    is_lm_studio_available,
+    is_ollama_available,
+)
 from models import (
     DEFAULT_SCORING_CATEGORIES,
     ChatRequest,
@@ -111,7 +119,8 @@ async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
 class Provider(Enum):
     OLLAMA = "ollama"
     LM_STUDIO = "lm_studio"
-    OPENAI = "openai"
+    HUGGINGFACE = "huggingface"
+    AZURE = "azure"
 
 
 async def resolve_provider(
@@ -120,12 +129,12 @@ async def resolve_provider(
     """
     Resolve which provider to use for a given model.
 
-    Fallback chain: Ollama -> LM Studio -> OpenAI/Azure (original params).
+    Fallback chain: Ollama -> LM Studio -> HuggingFace -> Azure (original params).
 
     Returns: (provider, resolved_model, base_url, api_key)
     """
     if not model:
-        return Provider.OPENAI, model, base_url, api_key
+        return Provider.AZURE, model, base_url, api_key
 
     # 1. Check Ollama first (use its OpenAI-compatible endpoint)
     ollama_model = await is_ollama_available(model)
@@ -133,12 +142,15 @@ async def resolve_provider(
         return Provider.OLLAMA, ollama_model, f"{OLLAMA_HOST}/v1", "ollama"
 
     # 2. Check LM Studio
-    resolved_url, resolved_key = await resolve_client_params(model, base_url, api_key)
-    if resolved_url != base_url or resolved_key != api_key:
-        return Provider.LM_STUDIO, model, resolved_url, resolved_key
+    if await is_lm_studio_available(model):
+        return Provider.LM_STUDIO, model, LM_STUDIO_URL, "lm-studio"
 
-    # 3. Fall back to OpenAI/Azure
-    return Provider.OPENAI, model, base_url, api_key
+    # 3. Check HuggingFace Router
+    if await is_huggingface_available(model):
+        return Provider.HUGGINGFACE, model, HF_API_URL, HF_API_KEY
+
+    # 4. Fall back to Azure
+    return Provider.AZURE, model, base_url, api_key
 
 
 # OpenAI streaming chat endpoint
@@ -156,8 +168,8 @@ async def openai_chat_stream(
         model, base_url, api_key
     )
 
-    # Validate configuration (not needed for Ollama — no API key required)
-    if provider != Provider.OLLAMA:
+    # Validate configuration (only needed for Azure — local/HF providers are self-contained)
+    if provider == Provider.AZURE:
         missing_config = []
         if not base_url:
             missing_config.append("Base URL (AZURE_ENDPOINT)")
@@ -292,8 +304,8 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
         model, base_url, api_key
     )
 
-    # Validate configuration (not needed for Ollama)
-    if provider != Provider.OLLAMA:
+    # Validate configuration (only needed for Azure)
+    if provider == Provider.AZURE:
         missing_config = []
         if not base_url:
             missing_config.append("Base URL (AZURE_ENDPOINT)")

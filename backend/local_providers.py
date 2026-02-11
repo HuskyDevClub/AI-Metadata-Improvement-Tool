@@ -24,12 +24,28 @@ LM_STUDIO_CACHE_TTL: int = int(os.getenv("LM_STUDIO_CACHE_TTL", "30"))
 _lm_studio_cached_models: set[str] = set()
 _lm_studio_cache_ts: float = 0.0
 
+# ---------------------------------------------------------------------------
+# HuggingFace Router
+# ---------------------------------------------------------------------------
+HF_API_URL: str = os.getenv("HF_API_URL", "https://router.huggingface.co/v1")
+HF_API_KEY: str = os.getenv("HF_API_KEY", "")
+HF_CACHE_TTL: int = int(os.getenv("HF_CACHE_TTL", "60"))
+
+_hf_cached_models: set[str] = set()
+_hf_cache_ts: float = 0.0
+
 
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
 async def _fetch_models(
-    base_url: str, api_key: str, cache: set[str], cache_ts: float, ttl: int, label: str
+    base_url: str,
+    api_key: str,
+    cache: set[str],
+    cache_ts: float,
+    ttl: int,
+    label: str,
+    timeout: float = 2.0,
 ) -> tuple[set[str], float]:
     """Fetch model list via the OpenAI-compatible /v1/models endpoint.
 
@@ -40,7 +56,7 @@ async def _fetch_models(
         return cache, cache_ts
 
     try:
-        client = AsyncOpenAI(base_url=base_url, api_key=api_key, timeout=2.0)
+        client = AsyncOpenAI(base_url=base_url, api_key=api_key, timeout=timeout)
         response = await client.models.list()
         models = {m.id for m in response.data if m.id}
         logger.info("%s models refreshed: %s", label, models)
@@ -115,19 +131,38 @@ async def _fetch_lm_studio_models() -> set[str]:
     return _lm_studio_cached_models
 
 
-async def resolve_client_params(
-    model: str, base_url: str, api_key: str
-) -> tuple[str, str]:
-    """If the model is loaded in LM Studio, return its connection params.
-
-    Otherwise return the original base_url and api_key unchanged.
-    """
+async def is_lm_studio_available(model: str) -> bool:
+    """Return True if the model is loaded in LM Studio."""
     if not model:
-        return base_url, api_key
-
+        return False
     available = await _fetch_lm_studio_models()
-    if model in available:
-        logger.info("Routing model '%s' to LM Studio at %s", model, LM_STUDIO_URL)
-        return LM_STUDIO_URL, "lm-studio"
+    return model in available
 
-    return base_url, api_key
+
+# ---------------------------------------------------------------------------
+# HuggingFace Router public API
+# ---------------------------------------------------------------------------
+async def _fetch_hf_models() -> set[str]:
+    global _hf_cached_models, _hf_cache_ts
+    if not HF_API_KEY:
+        return set()
+    models, ts = await _fetch_models(
+        base_url=HF_API_URL,
+        api_key=HF_API_KEY,
+        cache=_hf_cached_models,
+        cache_ts=_hf_cache_ts,
+        ttl=HF_CACHE_TTL,
+        label="HuggingFace",
+        timeout=10.0,
+    )
+    _hf_cached_models = models
+    _hf_cache_ts = ts
+    return _hf_cached_models
+
+
+async def is_huggingface_available(model: str) -> bool:
+    """Return True if the model is available via HuggingFace Router."""
+    if not model or not HF_API_KEY:
+        return False
+    available = await _fetch_hf_models()
+    return model in available
