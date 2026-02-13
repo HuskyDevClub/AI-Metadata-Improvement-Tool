@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from local_providers import (
+from .local_providers import (
     HF_API_KEY,
     HF_API_URL,
     LM_STUDIO_URL,
@@ -21,7 +21,7 @@ from local_providers import (
     is_lm_studio_available,
     is_ollama_available,
 )
-from models import (
+from .models import (
     DEFAULT_SCORING_CATEGORIES,
     ChatRequest,
     FetchCsvRequest,
