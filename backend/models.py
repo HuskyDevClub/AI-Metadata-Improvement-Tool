@@ -12,6 +12,7 @@ class FetchCsvRequest(BaseModel):
     """Request to fetch a CSV file from a remote URL (e.g., Socrata open data)."""
 
     url: str
+    socrataToken: str | None = None
 
 
 class FetchCsvResponse(BaseModel):

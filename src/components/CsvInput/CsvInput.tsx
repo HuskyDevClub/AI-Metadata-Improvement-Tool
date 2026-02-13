@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './CsvInput.css';
 
 interface CsvInputProps {
-    onAnalyze: (method: 'file' | 'url', file?: File, url?: string) => void;
+    onAnalyze: (method: 'file' | 'url', file?: File, url?: string, socrataToken?: string) => void;
     isProcessing: boolean;
 }
 
@@ -10,12 +10,13 @@ export function CsvInput({onAnalyze, isProcessing}: CsvInputProps) {
     const [inputMethod, setInputMethod] = useState<'file' | 'url'>('url');
     const [file, setFile] = useState<File | null>(null);
     const [url, setUrl] = useState('https://data.wa.gov/api/v3/views/6fex-3r7d/query.csv');
+    const [socrataToken, setSocrataToken] = useState(import.meta.env.VITE_SOCRATA_APP_TOKEN || '');
 
     const handleAnalyze = () => {
         if (inputMethod === 'file' && file) {
             onAnalyze('file', file);
         } else if (inputMethod === 'url' && url) {
-            onAnalyze('url', undefined, url);
+            onAnalyze('url', undefined, url, socrataToken || undefined);
         }
     };
 
@@ -55,6 +56,18 @@ export function CsvInput({onAnalyze, isProcessing}: CsvInputProps) {
                             className="csv-input-url-input"
                         />
                         <span className="csv-input-help-text">Direct link to a CSV file</span>
+                    </div>
+                    <div className="csv-input-group" style={{marginTop: '15px'}}>
+                        <label htmlFor="socrataToken">Socrata API Token</label>
+                        <input
+                            id="socrataToken"
+                            type="password"
+                            placeholder="Enter your Socrata app token"
+                            value={socrataToken}
+                            onChange={(e) => setSocrataToken(e.target.value)}
+                            className="csv-input-url-input"
+                        />
+                        <span className="csv-input-help-text">Optional — required for Socrata open data portals</span>
                     </div>
                 </div>
             )}

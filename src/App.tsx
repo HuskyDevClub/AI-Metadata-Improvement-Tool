@@ -493,7 +493,7 @@ function App() {
     );
 
     const handleAnalyze = useCallback(
-        async (method: 'file' | 'url', file?: File, url?: string) => {
+        async (method: 'file' | 'url', file?: File, url?: string, socrataToken?: string) => {
 
             // Create a new abort controller
             abortControllerRef.current = new AbortController();
@@ -516,7 +516,7 @@ function App() {
                     type: 'info'
                 });
 
-                const result = method === 'file' && file ? await parseFile(file) : await parseUrl(url!);
+                const result = method === 'file' && file ? await parseFile(file) : await parseUrl(url!, socrataToken);
 
                 if (!result.data || result.data.length === 0) {
                     setStatus({message: 'No data found in CSV file', type: 'error'});

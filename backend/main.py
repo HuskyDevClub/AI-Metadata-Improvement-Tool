@@ -49,11 +49,6 @@ CORS_ORIGIN = os.getenv("CORS_ORIGIN", "*")
 # For Databricks Apps, the port is typically provided via environment variable
 PORT = int(os.getenv("PORT", "8000"))
 
-# Validate required configuration at startup
-if not SOCRATA_APP_TOKEN:
-    raise RuntimeError(
-        "SOCRATA_APP_TOKEN is required. Please set it in the environment variables."
-    )
 
 app = FastAPI(
     title="AI Metadata Improvement Tool API",
@@ -86,15 +81,17 @@ async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
     if not request.url:
         raise HTTPException(status_code=400, detail="URL is required")
 
-    if not SOCRATA_APP_TOKEN:
+    # check if a Socrata token is provided in the request, otherwise use the environment variable
+    token = request.socrataToken or SOCRATA_APP_TOKEN
+    if not token:
         raise HTTPException(
-            status_code=500,
-            detail="SOCRATA_APP_TOKEN not configured. Please set it in the environment.",
+            status_code=400,
+            detail="Socrata API token is required. Provide it in the UI or set SOCRATA_APP_TOKEN in the environment.",
         )
 
-    headers = {
+    headers: dict[str, str] = {
         "Accept": "text/csv",
-        "X-App-Token": SOCRATA_APP_TOKEN,
+        "X-App-Token": token,
     }
 
     try:
