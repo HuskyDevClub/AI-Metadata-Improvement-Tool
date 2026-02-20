@@ -66,7 +66,7 @@ npm install
 
 # Install backend dependencies
 cd backend
-python -m venv venv
+python3 -m venv venv  # On Windows: python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cd ..
@@ -85,10 +85,10 @@ cd ..
    # Backend API URL (defaults to http://localhost:8000)
    VITE_API_BASE_URL=http://localhost:8000
    
-   # Optional: Pre-fill OpenAI configuration in the UI
-   VITE_AZURE_ENDPOINT=https://your-resource.openai.azure.com/openai/deployments/your-deployment
+   # Optional: Pre-fill API configuration in the UI (works with any OpenAI-compatible endpoint)
+   VITE_AZURE_ENDPOINT=https://api.openai.com/v1
    VITE_AZURE_KEY=your-api-key
-   VITE_AZURE_MODEL=gpt-4
+   VITE_AZURE_MODEL=gpt5-mini
    
    # Optional: Pre-fill comparison mode models
    VITE_COMPARISON_MODEL_A=
@@ -103,10 +103,11 @@ cd ..
    ```env
    SOCRATA_APP_TOKEN=your-socrata-app-token
    
-   # Azure OpenAI (optional — can also be set via frontend UI)
-   AZURE_ENDPOINT=https://your-resource.openai.azure.com/openai/v1/
+   # Default LLM endpoint (optional — can also be set via frontend UI)
+   # Works with any OpenAI-compatible API (OpenAI, Azure, HuggingFace, etc.)
+   AZURE_ENDPOINT=https://api.openai.com/v1
    AZURE_KEY=your-api-key
-   AZURE_MODEL=gpt-4
+   AZURE_MODEL=gpt5-mini
    
    # Local providers (optional — auto-discovered if running)
    OLLAMA_HOST=http://localhost:11434
@@ -231,9 +232,9 @@ This project is designed for deployment to **Databricks Apps**.
 2. **Configure environment variables** in your Databricks workspace (optional):
 
    - `SOCRATA_APP_TOKEN`: Your Socrata API token
-   - `AZURE_ENDPOINT`: Azure OpenAI endpoint URL
-   - `AZURE_KEY`: Azure OpenAI API key
-   - `AZURE_MODEL`: Azure OpenAI model deployment name
+   - `AZURE_ENDPOINT`: LLM API endpoint URL (any OpenAI-compatible endpoint)
+   - `AZURE_KEY`: LLM API key
+   - `AZURE_MODEL`: Model name (e.g., `gpt5-mini`, `Qwen3-4B-Instruct-2507`, `mistralai/Ministral-3-8B-Instruct-2512`)
    - `HF_API_KEY`: HuggingFace API key
    - `HF_API_URL`: HuggingFace Router URL
 
@@ -255,6 +256,50 @@ This project is designed for deployment to **Databricks Apps**.
    - Navigate to **Compute** > **Apps**
    - Click **Create App**, configure the app name and settings
    - Upload the project files or connect to a Git repository
+
+## OpenAI-Compatible API Support
+
+This tool works with **any LLM provider that implements the OpenAI chat completion API**. The backend uses the
+[OpenAI Python SDK](https://github.com/openai/openai-python) with a configurable `base_url`, so any service exposing
+a compatible `/v1/chat/completions` endpoint will work out of the box.
+
+### Supported Providers
+
+| Provider | Type | Setup |
+|----------|------|-------|
+| [OpenAI](https://platform.openai.com/) | Cloud | Set base URL to `https://api.openai.com/v1` |
+| [Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service) | Cloud | Set base URL to your Azure endpoint |
+| [Ollama](https://ollama.com/) | Local | Auto-discovered at `localhost:11434` |
+| [LM Studio](https://lmstudio.ai/) | Local | Auto-discovered at `localhost:1234` |
+| [HuggingFace](https://huggingface.co/) | Cloud | Requires `HF_API_KEY` in backend `.env` |
+| [Groq](https://groq.com/) | Cloud | Set base URL to `https://api.groq.com/openai/v1` |
+| [Together AI](https://www.together.ai/) | Cloud | Set base URL to `https://api.together.xyz/v1` |
+| [Mistral](https://mistral.ai/) | Cloud | Set base URL to `https://api.mistral.ai/v1` |
+| [vLLM](https://github.com/vllm-project/vllm) | Local | Set base URL to your vLLM server (e.g., `http://localhost:8080/v1`) |
+| Any OpenAI-compatible server | Either | Set base URL to the server's `/v1` endpoint |
+
+### Provider Resolution Order
+
+When a model name is entered, the backend resolves which provider to use in this order:
+
+1. **Ollama** — if the model is available locally in Ollama
+2. **LM Studio** — if the model is loaded in LM Studio
+3. **HuggingFace** — if the model exists on HuggingFace (requires API key)
+4. **Fallback** — uses the base URL and API key from the UI or environment variables
+
+This means local models are preferred automatically. To use a specific cloud provider, either ensure the model isn't
+available locally, or enter the provider's base URL directly in the UI.
+
+### Recommended Starter Models
+
+| Model | Provider | Notes |
+|-------|----------|-------|
+| `gpt5-mini` | OpenAI / Azure | Fast and cost-effective |
+| `gpt5-nano` | OpenAI / Azure | Lightest OpenAI option |
+| `Qwen3-4B-Instruct-2507` | Ollama / HuggingFace | Small, runs well locally |
+| `Qwen/Qwen3-8B` | Ollama / HuggingFace | Strong open-weight model |
+| `mistralai/Ministral-3-8B-Instruct-2512` | Ollama / HuggingFace | Compact Mistral model |
+| `mistralai/Ministral-3-14B-Instruct-2512` | Ollama / HuggingFace | Higher capacity Mistral model |
 
 ## Integration with Tyler Technologies Data & Insights
 
