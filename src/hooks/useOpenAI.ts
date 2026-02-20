@@ -30,8 +30,8 @@ export function useOpenAI() {
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to call OpenAI API');
+                const errorBody = await response.json().catch(() => null);
+                throw new Error(errorBody?.detail || `API error (${response.status})`);
             }
 
             const reader = response.body?.getReader();

@@ -566,6 +566,7 @@ function App() {
                 resetComparisonState();
             }
 
+            let currentStep = 'loading CSV';
             try {
                 // Parse CSV
                 setStatus({
@@ -600,6 +601,7 @@ function App() {
 
                 if (comparisonEnabled) {
                     // Comparison mode workflow
+                    currentStep = 'generating dataset descriptions';
                     const slotLabel = comparisonConfig.subMode === 'prompts' ? 'prompt variants' : 'models';
                     setStatus({
                         message: `Generating dataset descriptions (${comparisonSlotCount} ${slotLabel} in parallel)...`,
@@ -638,6 +640,7 @@ function App() {
                     });
 
                     // Generate all column descriptions in parallel
+                    currentStep = 'generating column descriptions';
                     setStatus({
                         message: `Generating column descriptions for ${columns.length} columns...`,
                         type: 'info'
@@ -664,6 +667,7 @@ function App() {
 
                 } else {
                     // Single mode workflow (original)
+                    currentStep = 'generating dataset description';
                     setStatus({message: 'Generating dataset description...', type: 'info'});
                     const datasetResult = await generateDatasetDescription(result.data, result.fileName, stats, '', undefined, abortSignal);
 
@@ -678,6 +682,7 @@ function App() {
                     setGeneratedResults((prev) => ({...prev, datasetDescription: datasetDesc}));
 
                     // Generate all column descriptions in parallel
+                    currentStep = 'generating column descriptions';
                     setStatus({message: `Generating descriptions for ${columns.length} columns...`, type: 'info'});
                     setGeneratingColumns(new Set(columns));
 
@@ -708,8 +713,9 @@ function App() {
                 if (error instanceof Error && error.name === 'AbortError') {
                     setStatus({message: 'Generation stopped.', type: 'info'});
                 } else {
+                    const detail = error instanceof Error ? error.message : 'Unknown error';
                     setStatus({
-                        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                        message: `Error while ${currentStep}: ${detail}`,
                         type: 'error'
                     });
                 }

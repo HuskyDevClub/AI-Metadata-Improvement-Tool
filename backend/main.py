@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 import httpx
 from dotenv import load_dotenv
@@ -32,7 +35,7 @@ from .models import (
     JudgeResponse,
     ScoringCategory,
 )
-from openai import AsyncOpenAI
+from openai import APIStatusError, AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from openai.types.shared_params.response_format_json_schema import JSONSchema
 
@@ -110,6 +113,7 @@ async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
             return FetchCsvResponse(csvText=csv_text, fileName=file_name)
 
     except httpx.RequestError as e:
+        logger.exception("CSV fetch request error")
         raise HTTPException(status_code=500, detail=f"Failed to fetch CSV: {str(e)}")
 
 
@@ -228,7 +232,11 @@ async def openai_chat_stream(
             yield "data: [DONE]\n\n"
 
         except Exception as e:
-            error_message = str(e)
+            logger.exception("Streaming chat error")
+            if isinstance(e, APIStatusError):
+                error_message = f"API error ({e.status_code}): {e.message}"
+            else:
+                error_message = str(e)
             yield f"data: {json.dumps({'type': 'error', 'error': error_message})}\n\n"
 
     return StreamingResponse(
@@ -400,15 +408,18 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
         )
 
     except json.JSONDecodeError as e:
+        logger.exception("Failed to parse judge response")
         raise HTTPException(
             status_code=500, detail=f"Failed to parse judge response: {str(e)}"
         )
     except KeyError as e:
+        logger.exception("Invalid judge response structure")
         raise HTTPException(
             status_code=500,
             detail=f"Invalid judge response structure: missing {str(e)}",
         )
     except Exception as e:
+        logger.exception("Judge evaluation failed")
         raise HTTPException(
             status_code=500, detail=f"Judge evaluation failed: {str(e)}"
         )

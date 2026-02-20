@@ -39,8 +39,8 @@ export async function parseUrl(url: string, socrataToken?: string): Promise<Pars
     });
 
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch CSV');
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.detail || `Failed to fetch CSV (${response.status})`);
     }
 
     const result = await response.json();

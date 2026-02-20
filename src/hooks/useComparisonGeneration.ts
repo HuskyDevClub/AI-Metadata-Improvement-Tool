@@ -71,8 +71,8 @@ export function useComparisonGeneration() {
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Failed to call judge API');
+                const errorBody = await response.json().catch(() => null);
+                throw new Error(errorBody?.detail || `Judge API error (${response.status})`);
             }
 
             const data = await response.json();
