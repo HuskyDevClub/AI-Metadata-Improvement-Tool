@@ -1,6 +1,6 @@
 import type { DatasetComparisonResult, ScoringCategory } from '../../types';
 import type { RegenerationModifier } from '../ComparisonResults/RegenerationControls';
-import { type ModelPanelData, SideBySideView } from '../ComparisonResults/SideBySideView';
+import { SideBySideView } from '../ComparisonResults/SideBySideView';
 import { JudgeScoreCard } from '../ComparisonResults/JudgeScoreCard';
 import './DatasetComparison.css';
 
@@ -12,7 +12,7 @@ interface DatasetComparisonProps {
     modelNames: string[];
     generatingModels: Set<number>;
     regeneratingModels: Set<number>;
-    onRegenerate?: (modelIndex: number, modifier: RegenerationModifier, customInstruction?: string) => void;
+    onRegenerate?: (slotIndex: number, modifier: RegenerationModifier, customInstruction?: string) => void;
     onReJudge?: () => void;
     isReJudging?: boolean;
     scoringCategories?: ScoringCategory[];
@@ -31,18 +31,6 @@ export function DatasetComparison({
                                       isReJudging = false,
                                       scoringCategories,
                                   }: DatasetComparisonProps) {
-    const panels: ModelPanelData[] = modelNames.map((name, i) => ({
-        modelIndex: i,
-        modelName: name,
-        output: result.outputs[i] || '',
-        isGenerating: generatingModels.has(i),
-        isRegenerating: regeneratingModels.has(i),
-        onRegenerate: onRegenerate
-            ? (modifier: RegenerationModifier, customInstruction?: string) =>
-                onRegenerate(i, modifier, customInstruction)
-            : undefined,
-    }));
-
     return (
         <div className="dataset-comparison-section">
             <div className="dataset-comparison-header">
@@ -54,8 +42,12 @@ export function DatasetComparison({
             </div>
 
             <SideBySideView
-                panels={panels}
-                winnerIndex={result.judgeResult?.winnerIndex}
+                outputs={result.outputs}
+                modelNames={modelNames}
+                generatingModels={generatingModels}
+                regeneratingModels={regeneratingModels}
+                winnerIndex={result.judgeResult ? result.judgeResult.winnerIndex : undefined}
+                onRegenerate={onRegenerate}
                 isJudging={result.isJudging}
             />
 
@@ -64,8 +56,8 @@ export function DatasetComparison({
                 isJudging={result.isJudging}
                 onReJudge={onReJudge}
                 isReJudging={isReJudging}
-                scoringCategories={scoringCategories}
                 modelNames={modelNames}
+                scoringCategories={scoringCategories}
             />
         </div>
     );

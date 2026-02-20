@@ -88,6 +88,10 @@
     border-color: #9ca3af;
 }
 
+.judge-winner.has-winner {
+    font-weight: 700;
+}
+
 .judge-winner.tie {
     background: #f3f4f6;
     color: #6b7280;

@@ -1,70 +1,60 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type {
     ColumnComparisonResult,
     ComparisonConfig,
     ComparisonTokenUsage,
     DatasetComparisonResult,
+    PromptVariant,
     ScoringCategory,
     TokenUsage,
 } from '../types';
 
 const EMPTY_TOKEN_USAGE: TokenUsage = {promptTokens: 0, completionTokens: 0, totalTokens: 0};
 
-function createInitialDatasetComparison(modelCount: number): DatasetComparisonResult {
-    return {
-        outputs: Array(modelCount).fill(''),
-        judgeResult: null,
-        isJudging: false,
-    };
-}
-
-function createInitialTokenUsage(modelCount: number): ComparisonTokenUsage {
-    return {
-        models: Array.from({length: modelCount}, () => ({...EMPTY_TOKEN_USAGE})),
-        judge: {...EMPTY_TOKEN_USAGE},
-        total: {...EMPTY_TOKEN_USAGE},
-    };
-}
-
-export const DEFAULT_SCORING_CATEGORIES: ScoringCategory[] = [
+const DEFAULT_SCORING_CATEGORIES: ScoringCategory[] = [
     {
         key: 'clarity',
         label: 'Clarity',
-        description: 'How easy is it to understand? Uses plain language, avoids jargon.',
-        minScore: 1,
+        description: 'How clear and understandable the description is',
+        minScore: 0,
         maxScore: 10
     },
     {
         key: 'completeness',
         label: 'Completeness',
-        description: 'Does it cover the content, purpose, and potential use cases?',
-        minScore: 1,
+        description: 'How thoroughly the description covers the content',
+        minScore: 0,
         maxScore: 10
     },
     {
         key: 'accuracy',
         label: 'Accuracy',
-        description: 'Does it correctly describe what the data contains?',
-        minScore: 1,
+        description: 'How accurately the description reflects the data',
+        minScore: 0,
         maxScore: 10
     },
     {
         key: 'conciseness',
         label: 'Conciseness',
-        description: 'Is it brief while still being informative? No unnecessary padding.',
-        minScore: 1,
+        description: 'How concise the description is without losing meaning',
+        minScore: 0,
         maxScore: 10
     },
     {
         key: 'plainLanguage',
         label: 'Plain Language',
-        description: 'Uses active voice, simple words, short sentences.',
-        minScore: 1,
+        description: 'How well the description uses plain, accessible language',
+        minScore: 0,
         maxScore: 10
     },
 ];
 
-export function generateJudgeSystemPrompt(categories: ScoringCategory[], modelCount: number): string {
+export function generateJudgeSystemPrompt(
+    categories: ScoringCategory[],
+    slotCount: number,
+    labelPrefix: string = 'Model'
+): string {
+    const slotLabels = Array.from({length: slotCount}, (_, i) => `${labelPrefix} ${i + 1}`);
     const categoryLines = categories
         .map((cat, i) => `${i + 1}. ${cat.label.toUpperCase()} (${cat.minScore}-${cat.maxScore}) - ${cat.description}`)
         .join('\n');
@@ -73,17 +63,16 @@ export function generateJudgeSystemPrompt(categories: ScoringCategory[], modelCo
         .map(cat => `        "${cat.key}": <${cat.minScore}-${cat.maxScore}>`)
         .join(',\n');
 
-    // Build model JSON blocks
-    const modelBlocks = Array.from({length: modelCount}, (_, i) => {
+    // Build model JSON blocks matching the backend schema (model1, model2, ...)
+    const modelBlocks = Array.from({length: slotCount}, (_, i) => {
         const key = `model${i + 1}`;
-        return `    "${key}": {\n${scoreFields},\n        "reasoning": "<brief explanation for Model ${i + 1} scores>"\n    }`;
+        return `    "${key}": {\n${scoreFields},\n        "reasoning": "<brief explanation for ${slotLabels[i]} scores>"\n    }`;
     }).join(',\n');
 
-    // Build winner enum description
-    const winnerOptions = Array.from({length: modelCount}, (_, i) => String(i + 1)).join(', ');
+    const winnerOptions = Array.from({length: slotCount}, (_, i) => String(i + 1)).join(', ');
 
     return `You are an expert evaluator assessing metadata descriptions for government open data.
-You will compare ${modelCount} candidate descriptions and score each on the following metrics:
+You will compare ${slotCount} candidate descriptions (${slotLabels.join(', ')}) and score each on the following metrics:
 
 ${categoryLines}
 
@@ -95,10 +84,13 @@ ${modelBlocks},
 }`;
 }
 
-export function generateDefaultEvaluationPrompt(modelCount: number): string {
-    const candidateBlocks = Array.from({length: modelCount}, (_, i) => {
-        return `CANDIDATE ${i + 1}:\n{candidate${i}}`;
-    }).join('\n\n');
+export function generateDefaultEvaluationPrompt(
+    slotCount: number,
+    labelPrefix: string = 'Model'
+): string {
+    const candidateBlocks = Array.from({length: slotCount}, (_, i) =>
+        `${labelPrefix.toUpperCase()} ${i + 1}:\n{output_${i}}`
+    ).join('\n\n');
 
     return `CONTEXT:
 {context}
@@ -108,44 +100,87 @@ ${candidateBlocks}
 Evaluate all candidates and respond with the JSON structure as specified.`;
 }
 
-function getInitialModels(): string[] {
+function getInitialModels(defaultCount: number): string[] {
+    // 1. VITE_COMPARISON_MODELS (comma-separated)
     const envModels = import.meta.env.VITE_COMPARISON_MODELS;
     if (envModels) {
         const models = envModels.split(',').map((m: string) => m.trim()).filter(Boolean);
         if (models.length >= 2) return models;
     }
-    // Fallback to legacy env vars
+    // 2. Legacy VITE_COMPARISON_MODEL_A / _B
     const modelA = import.meta.env.VITE_COMPARISON_MODEL_A || '';
     const modelB = import.meta.env.VITE_COMPARISON_MODEL_B || '';
-    return [modelA, modelB];
+    if (modelA || modelB) return [modelA, modelB];
+    // 3. Fallback to empty strings
+    return Array(defaultCount).fill('');
 }
 
-const INITIAL_MODELS = getInitialModels();
-const INITIAL_MODEL_COUNT = INITIAL_MODELS.length;
+function createInitialConfig(slotCount: number): ComparisonConfig {
+    const categories = [...DEFAULT_SCORING_CATEGORIES];
+    const models = getInitialModels(slotCount);
+    return {
+        subMode: 'models',
+        models,
+        promptModel: '',
+        promptVariants: [],
+        judgeModel: import.meta.env.VITE_COMPARISON_JUDGE_MODEL || '',
+        judgeSystemPrompt: generateJudgeSystemPrompt(categories, models.length),
+        judgeEvaluationPrompt: generateDefaultEvaluationPrompt(models.length),
+        scoringCategories: categories,
+    };
+}
+
+function createInitialTokenUsage(slotCount: number): ComparisonTokenUsage {
+    return {
+        models: Array(slotCount).fill(null).map(() => ({...EMPTY_TOKEN_USAGE})),
+        judge: {...EMPTY_TOKEN_USAGE},
+        total: {...EMPTY_TOKEN_USAGE},
+    };
+}
+
+export function createDefaultPromptVariant(index: number, templates?: {
+    systemPrompt: string;
+    dataset: string;
+    column: string
+}): PromptVariant {
+    return {
+        label: `Prompt ${index + 1}`,
+        systemPrompt: templates?.systemPrompt || '',
+        datasetPrompt: templates?.dataset || '',
+        columnPrompt: templates?.column || '',
+    };
+}
+
+const INITIAL_SLOT_COUNT = 2;
 
 export function useComparisonState() {
     // Comparison Mode State
     const [comparisonEnabled, setComparisonEnabled] = useState(false);
-    const [comparisonConfig, setComparisonConfig] = useState<ComparisonConfig>({
-        models: INITIAL_MODELS,
-        judgeModel: import.meta.env.VITE_COMPARISON_JUDGE_MODEL || '',
-        judgeSystemPrompt: import.meta.env.VITE_COMPARISON_JUDGE_SYSTEM_PROMPT || generateJudgeSystemPrompt(DEFAULT_SCORING_CATEGORIES, INITIAL_MODEL_COUNT),
-        judgeEvaluationPrompt: import.meta.env.VITE_COMPARISON_JUDGE_EVALUATION_PROMPT || generateDefaultEvaluationPrompt(INITIAL_MODEL_COUNT),
-        scoringCategories: DEFAULT_SCORING_CATEGORIES,
-    });
-    const [datasetComparison, setDatasetComparison] = useState<DatasetComparisonResult>(
-        createInitialDatasetComparison(INITIAL_MODEL_COUNT)
-    );
-    const [columnComparisons, setColumnComparisons] = useState<Record<string, ColumnComparisonResult>>({});
-    const [comparisonTokenUsage, setComparisonTokenUsage] = useState<ComparisonTokenUsage>(
-        createInitialTokenUsage(INITIAL_MODEL_COUNT)
+    const [comparisonConfig, setComparisonConfig] = useState<ComparisonConfig>(
+        () => createInitialConfig(INITIAL_SLOT_COUNT)
     );
 
-    // Generation states - indexed by model
+    const comparisonSlotCount = useMemo(() => {
+        return comparisonConfig.subMode === 'models'
+            ? comparisonConfig.models.length
+            : comparisonConfig.promptVariants.length;
+    }, [comparisonConfig.subMode, comparisonConfig.models.length, comparisonConfig.promptVariants.length]);
+
+    const [datasetComparison, setDatasetComparison] = useState<DatasetComparisonResult>({
+        outputs: Array(INITIAL_SLOT_COUNT).fill(''),
+        judgeResult: null,
+        isJudging: false,
+    });
+    const [columnComparisons, setColumnComparisons] = useState<Record<string, ColumnComparisonResult>>({});
+    const [comparisonTokenUsage, setComparisonTokenUsage] = useState<ComparisonTokenUsage>(
+        () => createInitialTokenUsage(INITIAL_SLOT_COUNT)
+    );
+
+    // Generation states - indexed by model/slot
     const [generatingDataset, setGeneratingDataset] = useState<Set<number>>(new Set());
     const [generatingColumns, setGeneratingColumns] = useState<Map<number, Set<string>>>(new Map());
 
-    // Regeneration states - indexed by model
+    // Regeneration states - indexed by model/slot
     const [regeneratingDataset, setRegeneratingDataset] = useState<Set<number>>(new Set());
     const [regeneratingColumns, setRegeneratingColumns] = useState<Map<number, Set<string>>>(new Map());
 
@@ -153,42 +188,57 @@ export function useComparisonState() {
     const [reJudgingDataset, setReJudgingDataset] = useState(false);
     const [reJudgingColumns, setReJudgingColumns] = useState<Set<string>>(new Set());
 
-    const modelCount = comparisonConfig.models.length;
+    // Check if any model is generating
+    const isAnyModelGenerating = useMemo(() => {
+        return generatingDataset.size > 0 || generatingColumns.size > 0
+            || regeneratingDataset.size > 0 || regeneratingColumns.size > 0;
+    }, [generatingDataset, generatingColumns, regeneratingDataset, regeneratingColumns]);
 
     const resetComparisonState = useCallback(() => {
-        setDatasetComparison(createInitialDatasetComparison(modelCount));
+        const slotCount = comparisonSlotCount || INITIAL_SLOT_COUNT;
+        setDatasetComparison({
+            outputs: Array(slotCount).fill(''),
+            judgeResult: null,
+            isJudging: false,
+        });
         setColumnComparisons({});
-        setComparisonTokenUsage(createInitialTokenUsage(modelCount));
+        setComparisonTokenUsage(createInitialTokenUsage(slotCount));
         setGeneratingDataset(new Set());
         setGeneratingColumns(new Map());
         setRegeneratingDataset(new Set());
         setRegeneratingColumns(new Map());
-    }, [modelCount]);
+    }, [comparisonSlotCount]);
 
     const addComparisonTokenUsage = useCallback((
-        target: { type: 'model'; index: number } | { type: 'judge' },
+        slot: { type: 'model'; index: number } | { type: 'judge' },
         usage: TokenUsage
     ) => {
         setComparisonTokenUsage((prev) => {
-            const newUsage = {...prev, models: [...prev.models]};
-            if (target.type === 'model') {
-                const i = target.index;
-                newUsage.models[i] = {
-                    promptTokens: prev.models[i].promptTokens + usage.promptTokens,
-                    completionTokens: prev.models[i].completionTokens + usage.completionTokens,
-                    totalTokens: prev.models[i].totalTokens + usage.totalTokens,
-                };
+            const newUsage = {
+                models: prev.models.map(m => ({...m})),
+                judge: {...prev.judge},
+                total: {...prev.total},
+            };
+            if (slot.type === 'model') {
+                const i = slot.index;
+                if (newUsage.models[i]) {
+                    newUsage.models[i] = {
+                        promptTokens: newUsage.models[i].promptTokens + usage.promptTokens,
+                        completionTokens: newUsage.models[i].completionTokens + usage.completionTokens,
+                        totalTokens: newUsage.models[i].totalTokens + usage.totalTokens,
+                    };
+                }
             } else {
                 newUsage.judge = {
-                    promptTokens: prev.judge.promptTokens + usage.promptTokens,
-                    completionTokens: prev.judge.completionTokens + usage.completionTokens,
-                    totalTokens: prev.judge.totalTokens + usage.totalTokens,
+                    promptTokens: newUsage.judge.promptTokens + usage.promptTokens,
+                    completionTokens: newUsage.judge.completionTokens + usage.completionTokens,
+                    totalTokens: newUsage.judge.totalTokens + usage.totalTokens,
                 };
             }
             newUsage.total = {
-                promptTokens: prev.total.promptTokens + usage.promptTokens,
-                completionTokens: prev.total.completionTokens + usage.completionTokens,
-                totalTokens: prev.total.totalTokens + usage.totalTokens,
+                promptTokens: newUsage.total.promptTokens + usage.promptTokens,
+                completionTokens: newUsage.total.completionTokens + usage.completionTokens,
+                totalTokens: newUsage.total.totalTokens + usage.totalTokens,
             };
             return newUsage;
         });
@@ -198,11 +248,8 @@ export function useComparisonState() {
     const setGeneratingDatasetModel = useCallback((index: number, isGenerating: boolean) => {
         setGeneratingDataset((prev) => {
             const next = new Set(prev);
-            if (isGenerating) {
-                next.add(index);
-            } else {
-                next.delete(index);
-            }
+            if (isGenerating) next.add(index);
+            else next.delete(index);
             return next;
         });
     }, []);
@@ -211,13 +258,11 @@ export function useComparisonState() {
     const setGeneratingColumnModel = useCallback((index: number, columnName: string, isGenerating: boolean) => {
         setGeneratingColumns((prev) => {
             const next = new Map(prev);
-            const cols = new Set(prev.get(index) || []);
-            if (isGenerating) {
-                cols.add(columnName);
-            } else {
-                cols.delete(columnName);
-            }
-            next.set(index, cols);
+            const cols = new Set(next.get(index) || []);
+            if (isGenerating) cols.add(columnName);
+            else cols.delete(columnName);
+            if (cols.size > 0) next.set(index, cols);
+            else next.delete(index);
             return next;
         });
     }, []);
@@ -226,11 +271,8 @@ export function useComparisonState() {
     const setRegeneratingDatasetModel = useCallback((index: number, isRegenerating: boolean) => {
         setRegeneratingDataset((prev) => {
             const next = new Set(prev);
-            if (isRegenerating) {
-                next.add(index);
-            } else {
-                next.delete(index);
-            }
+            if (isRegenerating) next.add(index);
+            else next.delete(index);
             return next;
         });
     }, []);
@@ -239,13 +281,11 @@ export function useComparisonState() {
     const setRegeneratingColumnModel = useCallback((index: number, columnName: string, isRegenerating: boolean) => {
         setRegeneratingColumns((prev) => {
             const next = new Map(prev);
-            const cols = new Set(prev.get(index) || []);
-            if (isRegenerating) {
-                cols.add(columnName);
-            } else {
-                cols.delete(columnName);
-            }
-            next.set(index, cols);
+            const cols = new Set(next.get(index) || []);
+            if (isRegenerating) cols.add(columnName);
+            else cols.delete(columnName);
+            if (cols.size > 0) next.set(index, cols);
+            else next.delete(index);
             return next;
         });
     }, []);
@@ -254,20 +294,11 @@ export function useComparisonState() {
     const setReJudgingColumn = useCallback((columnName: string, isReJudging: boolean) => {
         setReJudgingColumns((prev) => {
             const next = new Set(prev);
-            if (isReJudging) {
-                next.add(columnName);
-            } else {
-                next.delete(columnName);
-            }
+            if (isReJudging) next.add(columnName);
+            else next.delete(columnName);
             return next;
         });
     }, []);
-
-    // Check if any model is generating
-    const isAnyModelGenerating = generatingDataset.size > 0 ||
-        Array.from(generatingColumns.values()).some(s => s.size > 0) ||
-        regeneratingDataset.size > 0 ||
-        Array.from(regeneratingColumns.values()).some(s => s.size > 0);
 
     return {
         // State
@@ -282,7 +313,7 @@ export function useComparisonState() {
         regeneratingColumns,
         reJudgingDataset,
         reJudgingColumns,
-        modelCount,
+        comparisonSlotCount,
         isAnyModelGenerating,
 
         // Setters
@@ -292,7 +323,6 @@ export function useComparisonState() {
         setColumnComparisons,
         setComparisonTokenUsage,
         setReJudgingDataset,
-        setReJudgingColumns,
 
         // Helpers
         resetComparisonState,

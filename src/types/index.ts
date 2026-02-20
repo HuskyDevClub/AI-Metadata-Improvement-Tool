@@ -65,6 +65,15 @@ export type CsvRow = Record<string, string>;
 
 // Comparison Mode Types
 
+export type ComparisonSubMode = 'models' | 'prompts';
+
+export interface PromptVariant {
+    label: string;
+    systemPrompt: string;
+    datasetPrompt: string;
+    columnPrompt: string;
+}
+
 export interface ScoringCategory {
     key: string;
     label: string;
@@ -74,7 +83,10 @@ export interface ScoringCategory {
 }
 
 export interface ComparisonConfig {
+    subMode: ComparisonSubMode;
     models: string[];
+    promptModel: string;
+    promptVariants: PromptVariant[];
     judgeModel: string;
     judgeSystemPrompt: string;
     judgeEvaluationPrompt: string;

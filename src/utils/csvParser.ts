@@ -30,17 +30,12 @@ export function parseFile(file: File): Promise<ParseResult> {
 
 export async function parseUrl(url: string, socrataToken?: string): Promise<ParseResult> {
     // Fetch raw CSV from the backend
-    const body: Record<string, string> = {url};
-    if (socrataToken) {
-        body.socrataToken = socrataToken;
-    }
-
     const response = await fetch(`${API_BASE_URL}/api/csv/fetch`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({url, socrataToken}),
     });
 
     if (!response.ok) {

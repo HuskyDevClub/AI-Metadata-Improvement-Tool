@@ -9,8 +9,8 @@ interface JudgeScoreCardProps {
     compact?: boolean;
     onReJudge?: () => void;
     isReJudging?: boolean;
-    scoringCategories?: ScoringCategory[];
     modelNames?: string[];
+    scoringCategories?: ScoringCategory[];
 }
 
 export function JudgeScoreCard({
@@ -19,8 +19,8 @@ export function JudgeScoreCard({
                                    compact = false,
                                    onReJudge,
                                    isReJudging = false,
-                                   scoringCategories = [],
-                                   modelNames = [],
+                                   modelNames,
+                                   scoringCategories,
                                }: JudgeScoreCardProps) {
     if (isJudging || isReJudging) {
         return (
@@ -38,72 +38,72 @@ export function JudgeScoreCard({
     }
 
     const getWinnerDisplay = () => {
-        if (result.winnerIndex === null) {
-            return {text: 'Tie', className: 'tie'};
+        if (result.winnerIndex === null || result.winnerIndex === undefined) {
+            return {text: 'Tie', className: 'tie', style: {}};
         }
-        const winnerNum = result.winnerIndex + 1;
-        const name = modelNames[result.winnerIndex] || `Model ${winnerNum}`;
+        const winnerName = modelNames?.[result.winnerIndex] || `Slot ${result.winnerIndex + 1}`;
+        const color = getModelColor(result.winnerIndex);
         return {
-            text: `${name} Wins`,
+            text: `${winnerName} Wins`,
             className: 'has-winner',
+            style: {background: color.light, color: color.text},
         };
     };
 
     const winner = getWinnerDisplay();
-    const winnerColor = result.winnerIndex !== null ? getModelColor(result.winnerIndex) : null;
 
-    const maxTotal = scoringCategories.reduce((sum, cat) => sum + cat.maxScore, 0);
-    const modelTotals = result.models.map((m) =>
-        Object.values(m.scores).reduce((a, b) => a + b, 0)
-    );
+    // Get scoring category keys from the categories prop or from the result data
+    const categoryKeys = scoringCategories
+        ? scoringCategories.map(c => ({key: c.key, label: c.label, maxScore: c.maxScore}))
+        : Object.keys(result.models[0]?.scores || {}).map(key => ({key, label: key, maxScore: 10}));
+
+    // Calculate total max score
+    const maxTotal = categoryKeys.reduce((sum, c) => sum + c.maxScore, 0);
 
     return (
         <div className={`judge-score-card ${compact ? 'compact' : ''}`}>
             <div className="judge-header">
                 <span className="judge-title">Judge Evaluation</span>
                 <div className="judge-header-actions">
-                    <span
-                        className={`judge-winner ${winner.className}`}
-                        style={winnerColor ? {
-                            background: winnerColor.light,
-                            color: winnerColor.text,
-                        } : undefined}
-                    >
-                        {winner.text}
-                    </span>
+                    <span className={`judge-winner ${winner.className}`} style={winner.style}>{winner.text}</span>
                     {onReJudge && (
                         <button
                             className="rejudge-btn"
                             onClick={onReJudge}
                             title="Re-run judge evaluation"
                         >
-                            ⟳
+                            &#x27F3;
                         </button>
                     )}
                 </div>
             </div>
 
             <div className="judge-metrics">
-                {scoringCategories.map(cat => (
-                    <MetricBar
-                        key={cat.key}
-                        label={cat.label}
-                        scores={result.models.map((m, i) => ({
-                            modelIndex: i,
-                            score: m.scores[cat.key] ?? 0,
-                            modelName: modelNames[i] || `M${i + 1}`,
-                        }))}
-                        maxScore={cat.maxScore}
-                    />
-                ))}
+                {categoryKeys.map(({key, label, maxScore}) => {
+                    const scores = result.models.map((m, i) => ({
+                        modelIndex: i,
+                        score: m.scores[key] || 0,
+                        modelName: modelNames?.[i],
+                    }));
+                    return (
+                        <MetricBar
+                            key={key}
+                            label={label}
+                            scores={scores}
+                            maxScore={maxScore}
+                        />
+                    );
+                })}
             </div>
 
             <div className="judge-totals">
-                {modelTotals.map((total, i) => {
+                {result.models.map((m, i) => {
+                    const total = categoryKeys.reduce((sum, c) => sum + (m.scores[c.key] || 0), 0);
                     const color = getModelColor(i);
+                    const name = modelNames?.[i] || `Slot ${i + 1}`;
                     return (
-                        <span key={i} className="total" style={{color: color.primary}}>
-                            {modelNames[i] || `M${i + 1}`}: {total}/{maxTotal}
+                        <span key={i} className="total" style={{color: color.text}}>
+                            {name}: {total}/{maxTotal}
                         </span>
                     );
                 })}
@@ -120,13 +120,10 @@ export function JudgeScoreCard({
                 >
                     {result.models.map((m, i) => {
                         const color = getModelColor(i);
+                        const name = modelNames?.[i] || `Slot ${i + 1}`;
                         return (
-                            <div
-                                key={i}
-                                className="reasoning-section"
-                                style={{borderLeftColor: color.primary}}
-                            >
-                                <strong>{modelNames[i] || `Model ${i + 1}`}:</strong> {m.reasoning}
+                            <div key={i} className="reasoning-section" style={{borderLeftColor: color.primary}}>
+                                <strong style={{color: color.text}}>{name}:</strong> {m.reasoning}
                             </div>
                         );
                     })}

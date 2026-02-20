@@ -2,80 +2,79 @@ import { getModelColor } from '../../utils/modelColors';
 import { RegenerationControls, type RegenerationModifier } from './RegenerationControls';
 import './SideBySideView.css';
 
-export interface ModelPanelData {
-    modelIndex: number;
-    modelName: string;
-    output: string;
-    isGenerating: boolean;
-    isRegenerating: boolean;
-    onRegenerate?: (modifier: RegenerationModifier, customInstruction?: string) => void;
-}
-
 interface SideBySideViewProps {
-    panels: ModelPanelData[];
+    outputs: string[];
+    modelNames: string[];
+    generatingModels: Set<number>;
+    regeneratingModels: Set<number>;
     winnerIndex?: number | null;
+    onRegenerate?: (slotIndex: number, modifier: RegenerationModifier, customInstruction?: string) => void;
     isJudging?: boolean;
 }
 
 export function SideBySideView({
-                                   panels,
+                                   outputs,
+                                   modelNames,
+                                   generatingModels,
+                                   regeneratingModels,
                                    winnerIndex,
+                                   onRegenerate,
                                    isJudging = false,
                                }: SideBySideViewProps) {
-    const getWinnerClass = (modelIndex: number) => {
-        if (winnerIndex === undefined || winnerIndex === null) {
-            if (winnerIndex === null) return 'tie';
-            return '';
-        }
-        return winnerIndex === modelIndex ? 'winner' : 'loser';
-    };
+    const anyGenerating = generatingModels.size > 0;
+    const anyRegenerating = regeneratingModels.size > 0;
+    const showRegenerationControls = !anyGenerating;
+    const slotCount = outputs.length;
 
-    const showRegenerationControls = !panels.some(p => p.isGenerating);
-    const anyRegenerating = panels.some(p => p.isRegenerating);
+    const getWinnerClass = (index: number) => {
+        if (winnerIndex === undefined) return '';
+        if (winnerIndex === null) return 'tie';
+        return winnerIndex === index ? 'winner' : 'loser';
+    };
 
     return (
         <div
             className="side-by-side-view"
-            style={{gridTemplateColumns: `repeat(${panels.length}, 1fr)`}}
+            style={{gridTemplateColumns: `repeat(${slotCount}, 1fr)`}}
         >
-            {panels.map((panel) => {
-                const color = getModelColor(panel.modelIndex);
-                const winClass = getWinnerClass(panel.modelIndex);
+            {outputs.map((output, i) => {
+                const color = getModelColor(i);
+                const isGenerating = generatingModels.has(i);
+                const isRegenerating = regeneratingModels.has(i);
+                const isWinner = winnerIndex === i;
 
                 return (
                     <div
-                        key={panel.modelIndex}
-                        className={`side-panel ${winClass}`}
+                        key={i}
+                        className={`side-panel ${getWinnerClass(i)}`}
                         style={{
-                            borderColor: winClass === 'winner' ? color.primary : winClass === 'tie' ? '#9ca3af' : color.border,
-                            ...(winClass === 'winner' ? {boxShadow: `0 0 0 3px ${color.focusShadow}`} : {}),
+                            borderColor: isWinner ? color.primary : color.border,
+                            boxShadow: isWinner ? `0 0 0 1px ${color.primary}` : undefined,
                         }}
                     >
                         <div
                             className="panel-header"
                             style={{
                                 background: `linear-gradient(135deg, ${color.lighter} 0%, ${color.light} 100%)`,
-                                borderBottomColor: color.border,
                             }}
                         >
                             <span className="panel-label" style={{color: color.text}}>
-                                {panel.modelName}
+                                {modelNames[i] || `Slot ${i + 1}`}
                             </span>
-                            {winnerIndex === panel.modelIndex && <span className="winner-badge">Winner</span>}
+                            {isWinner && <span className="winner-badge">Winner</span>}
                         </div>
                         <div className="panel-content">
-                            {panel.output || (panel.isGenerating ? '' :
-                                <span className="placeholder">Waiting...</span>)}
-                            {panel.isGenerating && <span className="streaming-cursor">|</span>}
+                            {output || (isGenerating ? '' : <span className="placeholder">Waiting...</span>)}
+                            {isGenerating && <span className="streaming-cursor">|</span>}
                         </div>
-                        {showRegenerationControls && panel.onRegenerate && (
+                        {showRegenerationControls && onRegenerate && (
                             <RegenerationControls
-                                modelIndex={panel.modelIndex}
-                                isRegenerating={panel.isRegenerating}
-                                isGenerating={panel.isGenerating}
+                                slotIndex={i}
+                                isRegenerating={isRegenerating}
+                                isGenerating={isGenerating}
                                 isJudging={isJudging}
-                                onRegenerate={panel.onRegenerate}
-                                disabled={anyRegenerating && !panel.isRegenerating}
+                                onRegenerate={(modifier, customInstruction) => onRegenerate(i, modifier, customInstruction)}
+                                disabled={anyRegenerating && !isRegenerating}
                             />
                         )}
                     </div>

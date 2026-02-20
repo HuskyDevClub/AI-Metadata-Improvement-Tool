@@ -324,22 +324,22 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
             detail="judgeEvaluationPrompt is required and cannot be empty.",
         )
 
-    model_count = len(request.candidates)
+    model_count = len(request.outputs)
 
     if model_count < 2:
         raise HTTPException(
             status_code=400,
-            detail="At least 2 candidates are required for judging.",
+            detail="At least 2 outputs are required for judging.",
         )
 
     # Resolve scoring categories
     categories = request.scoringCategories or DEFAULT_SCORING_CATEGORIES
     category_keys = [cat.key for cat in categories]
 
-    # Substitute candidate placeholders: {candidate0}, {candidate1}, ...
+    # Substitute output placeholders: {output_0}, {output_1}, ...
     user_prompt = request.judgeEvaluationPrompt.replace("{context}", request.context)
-    for i, candidate in enumerate(request.candidates):
-        user_prompt = user_prompt.replace(f"{{candidate{i}}}", candidate)
+    for i, output in enumerate(request.outputs):
+        user_prompt = user_prompt.replace(f"{{output_{i}}}", output)
 
     # Build messages array, only include system prompt if provided
     messages: list[ChatCompletionMessageParam] = []

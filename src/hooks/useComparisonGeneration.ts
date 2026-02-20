@@ -21,15 +21,20 @@ export function useComparisonGeneration() {
         async (
             prompts: string[],
             configs: OpenAIConfig[],
-            systemPrompt: string,
+            systemPrompts: string | string[],
             onChunks: ((chunk: string) => void)[],
             abortSignal?: AbortSignal
         ): Promise<ParallelGenerationResult> => {
-            const promises = configs.map((config, i) =>
-                callOpenAIStream(prompts[i], config, systemPrompt, onChunks[i], abortSignal)
-            );
+            const count = prompts.length;
+            const systemPromptArray = typeof systemPrompts === 'string'
+                ? Array(count).fill(systemPrompts)
+                : systemPrompts;
 
-            const results = await Promise.all(promises);
+            const results = await Promise.all(
+                Array.from({length: count}, (_, i) =>
+                    callOpenAIStream(prompts[i], configs[i], systemPromptArray[i], onChunks[i], abortSignal)
+                )
+            );
 
             return {
                 usages: results.map(r => r.usage),
@@ -42,11 +47,11 @@ export function useComparisonGeneration() {
     const callJudge = useCallback(
         async (
             context: string,
-            candidates: string[],
+            outputs: string[],
             judgeConfig: OpenAIConfig,
-            judgeSystemPrompt?: string,
-            judgeEvaluationPrompt?: string,
-            scoringCategories?: ScoringCategory[]
+            judgeSystemPrompt: string,
+            judgeEvaluationPrompt: string,
+            scoringCategories: ScoringCategory[]
         ): Promise<JudgeCallResult> => {
             const response = await fetch(`${API_BASE_URL}/api/openai/judge`, {
                 method: 'POST',
@@ -55,13 +60,13 @@ export function useComparisonGeneration() {
                 },
                 body: JSON.stringify({
                     context,
-                    candidates,
+                    outputs,
+                    judgeSystemPrompt,
+                    judgeEvaluationPrompt,
+                    scoringCategories,
                     baseURL: judgeConfig.baseURL,
                     apiKey: judgeConfig.apiKey,
                     model: judgeConfig.model,
-                    judgeSystemPrompt: judgeSystemPrompt || undefined,
-                    judgeEvaluationPrompt: judgeEvaluationPrompt || undefined,
-                    scoringCategories: scoringCategories || undefined,
                 }),
             });
 
@@ -74,10 +79,7 @@ export function useComparisonGeneration() {
 
             return {
                 result: {
-                    models: data.models.map((m: { scores: Record<string, number>; reasoning: string }) => ({
-                        scores: m.scores,
-                        reasoning: m.reasoning,
-                    })),
+                    models: data.models,
                     winnerIndex: data.winnerIndex,
                     winnerReasoning: data.winnerReasoning,
                 },

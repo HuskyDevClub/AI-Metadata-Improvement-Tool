@@ -5,7 +5,7 @@ import './RegenerationControls.css';
 export type RegenerationModifier = '' | 'concise' | 'detailed';
 
 interface RegenerationControlsProps {
-    modelIndex: number;
+    slotIndex: number;
     isRegenerating: boolean;
     isGenerating: boolean;
     isJudging?: boolean;
@@ -14,7 +14,7 @@ interface RegenerationControlsProps {
 }
 
 export function RegenerationControls({
-                                         modelIndex,
+                                         slotIndex,
                                          isRegenerating,
                                          isGenerating,
                                          isJudging = false,
@@ -25,7 +25,6 @@ export function RegenerationControls({
     const [showCustomInput, setShowCustomInput] = useState(false);
 
     const isDisabled = disabled || isRegenerating || isGenerating || isJudging;
-    const color = getModelColor(modelIndex);
 
     const handlePresetClick = (modifier: RegenerationModifier) => {
         if (isDisabled) return;
@@ -50,14 +49,10 @@ export function RegenerationControls({
         }
     };
 
+    const color = getModelColor(slotIndex);
+
     return (
-        <div
-            className="regeneration-controls"
-            style={{
-                background: `linear-gradient(135deg, #f8fafc 0%, ${color.lighter} 100%)`,
-                borderTopColor: color.border,
-            }}
-        >
+        <div className="regeneration-controls" style={{borderTopColor: color.border, background: color.lighter}}>
             {isRegenerating ? (
                 <div className="regenerating-indicator">
                     <span className="spinner"></span>

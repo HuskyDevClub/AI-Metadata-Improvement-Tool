@@ -90,3 +90,12 @@ export function getModelLabel(index: number, modelName?: string): string {
     }
     return `Model ${num}`;
 }
+
+export function getVariantLabel(index: number, label?: string): string {
+    const num = index + 1;
+    const defaultLabel = `Prompt ${num}`;
+    if (label && label !== defaultLabel) {
+        return `Prompt ${num} (${label})`;
+    }
+    return defaultLabel;
+}

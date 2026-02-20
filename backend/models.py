@@ -48,7 +48,7 @@ class ScoringCategory(BaseModel):
     key: str
     label: str
     description: str
-    minScore: int = 1
+    minScore: int = 0
     maxScore: int = 10
 
 
@@ -85,7 +85,7 @@ class JudgeRequest(BaseModel):
     """Request to evaluate N model outputs using a judge model."""
 
     context: str  # Dataset context (fileName, rowCount, columns)
-    candidates: list[str]  # List of model outputs to evaluate
+    outputs: list[str]  # List of model outputs to evaluate
     model: str | None = None  # Falls back to AZURE_MODEL env var
     baseURL: str | None = None  # Falls back to AZURE_ENDPOINT env var
     apiKey: str | None = None  # Falls back to AZURE_KEY env var
