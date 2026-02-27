@@ -1,12 +1,15 @@
-import type { CategoricalStats, ColumnInfo, NumericStats, TextStats } from '../types';
+import type { CategoricalStats, ColumnInfo, CsvRow, NumericStats, TextStats } from '../types';
 
 export function analyzeColumn(_columnName: string, values: (string | null | undefined)[]): ColumnInfo {
     const nonNullValues = values.filter(
         (v): v is string => v !== null && v !== undefined && v !== ''
     );
 
+    const nullCount = values.length - nonNullValues.length;
+    const totalCount = values.length;
+
     if (nonNullValues.length === 0) {
-        return {type: 'empty', stats: {}};
+        return {type: 'empty', stats: {}, nullCount, totalCount};
     }
 
     // Try to parse as numbers
@@ -26,7 +29,7 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
             median: numericValues[Math.floor(numericValues.length * 0.5)],
             q3: numericValues[Math.floor(numericValues.length * 0.75)],
         };
-        return {type: 'numeric', stats};
+        return {type: 'numeric', stats, nullCount, totalCount};
     }
 
     // Check if categorical
@@ -41,7 +44,7 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
             values: uniqueValues.slice(0, 20),
             hasMore: uniqueValues.length > 20,
         };
-        return {type: 'categorical', stats};
+        return {type: 'categorical', stats, nullCount, totalCount};
     }
 
     // Text column
@@ -50,7 +53,7 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
         uniqueCount: uniqueValues.length,
         samples: nonNullValues.slice(0, 5),
     };
-    return {type: 'text', stats};
+    return {type: 'text', stats, nullCount, totalCount};
 }
 
 export function formatColumnStats(info: ColumnInfo): string {
@@ -77,6 +80,43 @@ export function getColumnStatsText(info: ColumnInfo): string {
     } else if (info.type === 'text') {
         const stats = info.stats as TextStats;
         return `This is a text column with ${stats.uniqueCount} unique values. Sample values: ${stats.samples.slice(0, 3).join(', ')}.`;
+    }
+    return '';
+}
+
+export function buildSampleRows(data: CsvRow[], columns?: string[]): string {
+    if (data.length === 0) return '(no data)';
+
+    const cols = columns || Object.keys(data[0]);
+    const displayCols = cols.slice(0, 15);
+    const sampleData = data.slice(0, 5);
+
+    const truncate = (val: string, maxLen: number = 60): string =>
+        val.length > maxLen ? val.slice(0, maxLen - 3) + '...' : val;
+
+    const header = displayCols.map(c => truncate(c)).join(' | ');
+    const separator = displayCols.map(c => '-'.repeat(Math.min(c.length, 60))).join(' | ');
+    const rows = sampleData.map(row =>
+        displayCols.map(c => truncate(row[c] ?? '')).join(' | ')
+    );
+
+    return [header, separator, ...rows].join('\n');
+}
+
+export function getSampleCount(data: CsvRow[]): number {
+    return Math.min(5, data.length);
+}
+
+export function getSampleValues(info: ColumnInfo, values: (string | null | undefined)[]): string {
+    if (info.type === 'numeric') {
+        const nonNull = values.filter((v): v is string => v !== null && v !== undefined && v !== '');
+        return nonNull.slice(0, 5).join(', ');
+    } else if (info.type === 'categorical') {
+        const stats = info.stats as CategoricalStats;
+        return stats.values.slice(0, 10).join(', ') + (stats.hasMore ? ', ...' : '');
+    } else if (info.type === 'text') {
+        const stats = info.stats as TextStats;
+        return stats.samples.slice(0, 5).join('; ');
     }
     return '';
 }

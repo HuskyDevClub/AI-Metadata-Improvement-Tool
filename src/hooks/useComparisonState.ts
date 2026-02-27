@@ -15,35 +15,42 @@ const DEFAULT_SCORING_CATEGORIES: ScoringCategory[] = [
     {
         key: 'clarity',
         label: 'Clarity',
-        description: 'How clear and understandable the description is',
+        description: 'Plain language per WA EO 23-02: active voice, everyday words, sentences under 20 words, acronyms expanded',
         minScore: 0,
         maxScore: 10
     },
     {
         key: 'completeness',
         label: 'Completeness',
-        description: 'How thoroughly the description covers the content',
+        description: 'Covers all required WA elements: dataset (content, key fields, scope, users) or column (definition, units, values, empty cells, methods)',
         minScore: 0,
         maxScore: 10
     },
     {
         key: 'accuracy',
         label: 'Accuracy',
-        description: 'How accurately the description reflects the data',
+        description: 'Factually correct based on provided data — no fabricated values, meanings, or agency names',
         minScore: 0,
         maxScore: 10
     },
     {
         key: 'conciseness',
         label: 'Conciseness',
-        description: 'How concise the description is without losing meaning',
+        description: 'Meets WA length targets (~100 words for datasets, ~50 words for columns) without filler',
         minScore: 0,
         maxScore: 10
     },
     {
         key: 'plainLanguage',
         label: 'Plain Language',
-        description: 'How well the description uses plain, accessible language',
+        description: 'Uses active voice, simple words (use not utilize, before not prior to), avoids jargon and filler phrases',
+        minScore: 0,
+        maxScore: 10
+    },
+    {
+        key: 'guidelineCompliance',
+        label: 'Guideline Compliance',
+        description: 'Follows WA metadata format rules: single paragraph, no bullet points, varied opening, no raw statistics in output',
         minScore: 0,
         maxScore: 10
     },

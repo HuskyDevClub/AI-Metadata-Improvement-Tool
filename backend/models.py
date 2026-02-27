@@ -56,27 +56,32 @@ DEFAULT_SCORING_CATEGORIES = [
     ScoringCategory(
         key="clarity",
         label="Clarity",
-        description="How easy is it to understand? Uses plain language, avoids jargon.",
+        description="Plain language per WA EO 23-02: active voice, everyday words, sentences under 20 words, acronyms expanded",
     ),
     ScoringCategory(
         key="completeness",
         label="Completeness",
-        description="Does it cover the content, purpose, and potential use cases?",
+        description="Covers all required WA elements: dataset (content, key fields, scope, users) or column (definition, units, values, empty cells, methods)",
     ),
     ScoringCategory(
         key="accuracy",
         label="Accuracy",
-        description="Does it correctly describe what the data contains?",
+        description="Factually correct based on provided data — no fabricated values, meanings, or agency names",
     ),
     ScoringCategory(
         key="conciseness",
         label="Conciseness",
-        description="Is it brief while still being informative? No unnecessary padding.",
+        description="Meets WA length targets (~100 words for datasets, ~50 words for columns) without filler",
     ),
     ScoringCategory(
         key="plainLanguage",
         label="Plain Language",
-        description="Uses active voice, simple words, short sentences.",
+        description="Uses active voice, simple words (use not utilize, before not prior to), avoids jargon and filler phrases",
+    ),
+    ScoringCategory(
+        key="guidelineCompliance",
+        label="Guideline Compliance",
+        description="Follows WA metadata format rules: single paragraph, no bullet points, varied opening, no raw statistics in output",
     ),
 ]
 

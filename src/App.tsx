@@ -16,19 +16,29 @@ import { useOpenAI } from './hooks/useOpenAI';
 import { useComparisonGeneration } from './hooks/useComparisonGeneration';
 import { generateJudgeSystemPrompt, useComparisonState } from './hooks/useComparisonState';
 import { parseFile, parseUrl } from './utils/csvParser';
-import { analyzeColumn, getColumnStatsText } from './utils/columnAnalyzer';
+import {
+    analyzeColumn,
+    buildSampleRows,
+    getColumnStatsText,
+    getSampleCount,
+    getSampleValues
+} from './utils/columnAnalyzer';
 import { getEstimatedCost } from './utils/pricing';
 import { getModelLabel, getVariantLabel } from './utils/modelColors';
 import { handleJudgeError, handleRegenerationError } from './utils/stateHelpers';
+import {
+    appendPromptModifiers,
+    DEFAULT_COLUMN_PROMPT,
+    DEFAULT_DATASET_PROMPT,
+    DEFAULT_SYSTEM_PROMPT
+} from './utils/prompts';
 import type {
     APIConfig,
-    CategoricalStats,
     ColumnComparisonResult,
     ColumnInfo,
     ComparisonConfig,
     CsvRow,
     GeneratedResults,
-    NumericStats,
     OpenAIConfig as OpenAIConfigType,
     PromptTemplates,
     ScoringCategory,
@@ -37,55 +47,7 @@ import type {
 } from './types';
 import './App.css';
 
-const DEFAULT_SYSTEM_PROMPT = `You are an expert technical writer specializing in government open data documentation.
-
-Your task is to generate clear, accessible metadata descriptions that help the public understand and use government datasets.
-
-Guidelines:
-- Use plain language: avoid jargon, acronyms, and technical terms when possible
-- When acronyms are necessary, expand them on first use
-- Write in active voice with simple, direct sentences
-- Be concise but complete: cover what the data contains and how it can be used
-- Focus on practical value: who would use this data and why
-- Maintain a neutral, professional tone appropriate for government publications
-- Follow U.S. open data standards for consistency and accessibility`;
-
-const DEFAULT_DATASET_PROMPT = `Generate a concise 2-3 sentence description of this dataset:
-
-File Name: {fileName}
-Number of Rows: {rowCount}
-Columns:
-{columnInfo}
-
-Provide a brief overview of what this dataset contains and its potential use cases.`;
-
-const DEFAULT_COLUMN_PROMPT = `Given this dataset context:
-{datasetDescription}
-
-Generate a concise 1-2 sentence description for the column "{columnName}".
-
-Column statistics:
-{columnStats}
-
-Describe what this column represents and its role in the dataset.`;
-
 const EMPTY_TOKEN_USAGE: TokenUsage = {promptTokens: 0, completionTokens: 0, totalTokens: 0};
-
-function appendPromptModifiers(
-    prompt: string,
-    modifier: '' | 'concise' | 'detailed' = '',
-    customInstruction?: string
-): string {
-    if (modifier === 'concise') {
-        prompt += '\n\nIMPORTANT: Make this description MORE CONCISE. Use fewer words while keeping key information.';
-    } else if (modifier === 'detailed') {
-        prompt += '\n\nIMPORTANT: Make this description MORE DETAILED. Provide additional context and insights.';
-    }
-    if (customInstruction) {
-        prompt += `\n\nAdditional instruction: ${customInstruction}`;
-    }
-    return prompt;
-}
 
 function App() {
     // Shared API configuration for all modes
@@ -201,20 +163,7 @@ function App() {
 
     const buildColumnInfo = useCallback((stats: Record<string, ColumnInfo>): string => {
         return Object.entries(stats)
-            .map(([col, info]) => {
-                let desc = `- ${col} (${info.type})`;
-                if (info.type === 'numeric') {
-                    const s = info.stats as NumericStats;
-                    desc += `: range [${s.min.toFixed(2)} - ${s.max.toFixed(2)}], avg: ${s.mean.toFixed(2)}, median: ${s.median.toFixed(2)}`;
-                } else if (info.type === 'categorical') {
-                    const s = info.stats as CategoricalStats;
-                    desc += `: ${s.uniqueCount} unique values [${s.values.join(', ')}${s.hasMore ? ', ...' : ''}]`;
-                } else if (info.type === 'text') {
-                    const s = info.stats as { uniqueCount: number; samples: string[] };
-                    desc += `: ${s.uniqueCount} unique values, samples: ${s.samples.slice(0, 2).join(', ')}...`;
-                }
-                return desc;
-            })
+            .map(([col, info]) => `- ${col} — ${info.type}`)
             .join('\n');
     }, []);
 
@@ -227,10 +176,14 @@ function App() {
         customInstruction?: string
     ): string => {
         const columnInfo = buildColumnInfo(stats);
+        const sampleRows = buildSampleRows(data);
+        const sampleCount = String(getSampleCount(data));
         const prompt = template
             .replace('{fileName}', name)
             .replace('{rowCount}', String(data.length))
-            .replace('{columnInfo}', columnInfo);
+            .replace('{columnInfo}', columnInfo)
+            .replace('{sampleRows}', sampleRows)
+            .replace('{sampleCount}', sampleCount);
         return appendPromptModifiers(prompt, modifier, customInstruction);
     }, [buildColumnInfo]);
 
@@ -249,14 +202,26 @@ function App() {
         info: ColumnInfo,
         datasetDesc: string,
         template: string,
+        columnValues?: (string | null | undefined)[],
         modifier: '' | 'concise' | 'detailed' = '',
         customInstruction?: string
     ): string => {
         const statsText = getColumnStatsText(info);
+        const sampleValues = getSampleValues(info, columnValues || []);
+        const nonNullCount = info.totalCount - info.nullCount;
+        const completenessPercent = info.totalCount > 0
+            ? ((nonNullCount / info.totalCount) * 100).toFixed(1)
+            : '0.0';
         const prompt = template
+            .replace(/\{columnName\}/g, columnName)
             .replace('{datasetDescription}', datasetDesc)
-            .replace('{columnName}', columnName)
-            .replace('{columnStats}', statsText);
+            .replace('{columnStats}', statsText)
+            .replace('{dataType}', info.type)
+            .replace('{nonNullCount}', String(nonNullCount))
+            .replace('{rowCount}', String(info.totalCount))
+            .replace('{completenessPercent}', completenessPercent)
+            .replace('{sampleValues}', sampleValues)
+            .replace('{nullCount}', String(info.nullCount));
         return appendPromptModifiers(prompt, modifier, customInstruction);
     }, []);
 
@@ -264,10 +229,11 @@ function App() {
             columnName: string,
             info: ColumnInfo,
             datasetDesc: string,
+            columnValues?: (string | null | undefined)[],
             modifier: '' | 'concise' | 'detailed' = '',
             customInstruction?: string
         ): string =>
-            buildColumnPromptFromTemplate(columnName, info, datasetDesc, promptTemplates.column, modifier, customInstruction),
+            buildColumnPromptFromTemplate(columnName, info, datasetDesc, promptTemplates.column, columnValues, modifier, customInstruction),
         [promptTemplates.column, buildColumnPromptFromTemplate]);
 
     const generateDatasetDescription = useCallback(
@@ -300,11 +266,12 @@ function App() {
             columnName: string,
             info: ColumnInfo,
             datasetDesc: string,
+            columnValues?: (string | null | undefined)[],
             modifier: '' | 'concise' | 'detailed' = '',
             customInstruction?: string,
             abortSignal?: AbortSignal
         ): Promise<{ content: string; aborted: boolean }> => {
-            const prompt = buildColumnPrompt(columnName, info, datasetDesc, modifier, customInstruction);
+            const prompt = buildColumnPrompt(columnName, info, datasetDesc, columnValues, modifier, customInstruction);
 
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
@@ -465,6 +432,7 @@ function App() {
             columnName: string,
             info: ColumnInfo,
             datasetDescs: string[],
+            columnValues?: (string | null | undefined)[],
             abortSignal?: AbortSignal
         ): Promise<{ aborted: boolean }> => {
             const slotCount = comparisonSlotCount;
@@ -483,13 +451,13 @@ function App() {
             if (comparisonConfig.subMode === 'prompts') {
                 configs = Array(slotCount).fill(getComparisonModelConfig(comparisonConfig.promptModel));
                 prompts = comparisonConfig.promptVariants.map((v, i) =>
-                    buildColumnPromptFromTemplate(columnName, info, datasetDescs[i], v.columnPrompt)
+                    buildColumnPromptFromTemplate(columnName, info, datasetDescs[i], v.columnPrompt, columnValues)
                 );
                 systemPrompts = comparisonConfig.promptVariants.map(v => v.systemPrompt);
             } else {
                 configs = comparisonConfig.models.map(m => getComparisonModelConfig(m));
                 prompts = comparisonConfig.models.map((_, i) =>
-                    buildColumnPrompt(columnName, info, datasetDescs[i])
+                    buildColumnPrompt(columnName, info, datasetDescs[i], columnValues)
                 );
                 systemPrompts = promptTemplates.systemPrompt;
             }
@@ -648,7 +616,8 @@ function App() {
 
                     const columnPromises = columns.map(async (col) => {
                         const info = stats[col];
-                        return generateColumnComparisonDescription(col, info, datasetDescs, abortSignal);
+                        const colValues = result.data.map(row => row[col]);
+                        return generateColumnComparisonDescription(col, info, datasetDescs, colValues, abortSignal);
                     });
 
                     const columnResults = await Promise.all(columnPromises);
@@ -688,7 +657,8 @@ function App() {
 
                     const columnPromises = columns.map(async (col) => {
                         const info = stats[col];
-                        const colResult = await generateColumnDescription(col, info, datasetDesc, '', undefined, abortSignal);
+                        const colValues = result.data.map(row => row[col]);
+                        const colResult = await generateColumnDescription(col, info, datasetDesc, colValues, '', undefined, abortSignal);
                         return {col, result: colResult};
                     });
 
@@ -758,10 +728,12 @@ function App() {
             setRegeneratingColumns((prev) => new Set(prev).add(columnName));
             try {
                 const info = columnStats[columnName];
+                const colValues = csvData?.map(row => row[columnName]);
                 const result = await generateColumnDescription(
                     columnName,
                     info,
                     generatedResults.datasetDescription,
+                    colValues,
                     modifier,
                     customInstruction
                 );
@@ -780,7 +752,7 @@ function App() {
                 });
             }
         },
-        [columnStats, generatedResults.datasetDescription, generateColumnDescription]
+        [csvData, columnStats, generatedResults.datasetDescription, generateColumnDescription]
     );
 
     // Comparison mode regeneration handler (single slot - model or prompt variant)
@@ -874,6 +846,7 @@ function App() {
             try {
                 // Get the dataset description for context
                 const datasetDesc = datasetComparison.outputs[slotIndex] || '';
+                const colValues = csvData?.map(row => row[columnName]);
 
                 let prompt: string;
                 let config: OpenAIConfigType;
@@ -881,11 +854,11 @@ function App() {
 
                 if (comparisonConfig.subMode === 'prompts') {
                     const variant = comparisonConfig.promptVariants[slotIndex];
-                    prompt = buildColumnPromptFromTemplate(columnName, info, datasetDesc, variant.columnPrompt, modifier, customInstruction);
+                    prompt = buildColumnPromptFromTemplate(columnName, info, datasetDesc, variant.columnPrompt, colValues, modifier, customInstruction);
                     config = getComparisonModelConfig(comparisonConfig.promptModel);
                     systemPrompt = variant.systemPrompt;
                 } else {
-                    prompt = buildColumnPrompt(columnName, info, datasetDesc, modifier, customInstruction);
+                    prompt = buildColumnPrompt(columnName, info, datasetDesc, colValues, modifier, customInstruction);
                     config = getComparisonModelConfig(comparisonConfig.models[slotIndex]);
                     systemPrompt = promptTemplates.systemPrompt;
                 }
@@ -948,7 +921,7 @@ function App() {
                 setRegeneratingColumnModel(slotIndex, columnName, false);
             }
         },
-        [columnStats, comparisonSlotCount, setRegeneratingColumnModel, datasetComparison.outputs, buildColumnPrompt, buildColumnPromptFromTemplate, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, callOpenAIStream, promptTemplates.systemPrompt, addComparisonTokenUsage, setColumnComparisons, judgeColumnOutputs]
+        [csvData, columnStats, comparisonSlotCount, setRegeneratingColumnModel, datasetComparison.outputs, buildColumnPrompt, buildColumnPromptFromTemplate, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, callOpenAIStream, promptTemplates.systemPrompt, addComparisonTokenUsage, setColumnComparisons, judgeColumnOutputs]
     );
 
     // Re-judge handlers

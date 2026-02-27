@@ -101,9 +101,11 @@ export function PromptEditor({
                             />
                         </div>
                         <p className="prompt-editor-help-text">
-                            Use
-                            placeholders: {'{fileName}'}, {'{rowCount}'}, {'{columnInfo}'}, {'{datasetDescription}'},{' '}
-                            {'{columnName}'}, {'{columnStats}'}
+                            <strong>Dataset prompt placeholders: </strong>
+                            {'{fileName}'}, {'{rowCount}'}, {'{columnInfo}'}, {'{sampleRows}'}, {'{sampleCount}'}
+                            <br/>
+                            <strong>Column prompt placeholders: </strong>
+                            {'{columnName}'}, {'{datasetDescription}'}, {'{columnStats}'}, {'{dataType}'}, {'{nonNullCount}'}, {'{rowCount}'}, {'{completenessPercent}'}, {'{sampleValues}'}, {'{nullCount}'}
                         </p>
                     </>
                 )}
