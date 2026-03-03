@@ -9,6 +9,7 @@ import { StatusMessage } from './components/StatusMessage/StatusMessage';
 import { DatasetDescription } from './components/DatasetDescription/DatasetDescription';
 import { ColumnCard } from './components/ColumnCard/ColumnCard';
 import { ExportSection } from './components/ExportSection/ExportSection';
+import { ImportSection } from './components/ImportSection/ImportSection';
 import { ComparisonMode } from './components/ComparisonMode/ComparisonMode';
 import { DatasetComparison } from './components/DatasetComparison/DatasetComparison';
 import { ColumnComparison } from './components/ColumnComparison/ColumnComparison';
@@ -24,6 +25,7 @@ import {
     getSampleValues
 } from './utils/columnAnalyzer';
 import { getEstimatedCost } from './utils/pricing';
+import { validateAndParseImport } from './utils/importValidator';
 import { getModelLabel, getVariantLabel } from './utils/modelColors';
 import { handleJudgeError, handleRegenerationError } from './utils/stateHelpers';
 import {
@@ -82,6 +84,8 @@ function App() {
     const [status, setStatus] = useState<Status | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [showResults, setShowResults] = useState(false);
+    const [isImportedData, setIsImportedData] = useState(false);
+    const [importedRowCount, setImportedRowCount] = useState(0);
     const [generatingColumns, setGeneratingColumns] = useState<Set<string>>(new Set());
     const [regeneratingDataset, setRegeneratingDataset] = useState(false);
     const [regeneratingColumns, setRegeneratingColumns] = useState<Set<string>>(new Set());
@@ -526,6 +530,8 @@ function App() {
 
             setIsProcessing(true);
             setShowResults(false);
+            setIsImportedData(false);
+            setImportedRowCount(0);
             setGeneratedResults({datasetDescription: '', columnDescriptions: {}});
             setTokenUsage({promptTokens: 0, completionTokens: 0, totalTokens: 0});
 
@@ -983,6 +989,64 @@ function App() {
         }));
     }, []);
 
+    const handleImport = useCallback(async (file: File) => {
+        try {
+            const text = await file.text();
+            let json: unknown;
+            try {
+                json = JSON.parse(text);
+            } catch {
+                setStatus({message: 'Invalid JSON file.', type: 'error'});
+                return;
+            }
+
+            const result = validateAndParseImport(json);
+            if (!result.ok) {
+                setStatus({message: `Import failed: ${result.error}`, type: 'error'});
+                return;
+            }
+
+            const imported = result.data;
+
+            // Reset processing-related state
+            setCsvData(null);
+            setIsProcessing(false);
+            setTokenUsage({promptTokens: 0, completionTokens: 0, totalTokens: 0});
+
+            // Common state
+            setFileName(imported.fileName);
+            setColumnStats(imported.columnStats);
+            setIsImportedData(true);
+            setImportedRowCount(imported.rowCount);
+
+            if (imported.mode === 'standard') {
+                setComparisonEnabled(false);
+                setGeneratedResults(imported.generatedResults);
+                resetComparisonState();
+            } else {
+                setComparisonEnabled(true);
+                setGeneratedResults({datasetDescription: '', columnDescriptions: {}});
+
+                // Merge partial config into current comparison config
+                setComparisonConfig(prev => ({
+                    ...prev,
+                    ...imported.comparisonConfig,
+                }));
+                setDatasetComparison(imported.datasetComparison);
+                setColumnComparisons(imported.columnComparisons);
+                setComparisonTokenUsage(imported.comparisonTokenUsage);
+            }
+
+            setShowResults(true);
+            setStatus({message: `Successfully imported results from "${file.name}".`, type: 'success'});
+        } catch (error) {
+            setStatus({
+                message: `Import error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                type: 'error',
+            });
+        }
+    }, [resetComparisonState, setComparisonEnabled, setComparisonConfig, setDatasetComparison, setColumnComparisons, setComparisonTokenUsage]);
+
     // Memoized callback for OpenAIConfig onChange
     const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
         setApiConfig({baseURL: newConfig.baseURL, apiKey: newConfig.apiKey});
@@ -1249,6 +1313,10 @@ function App() {
                     onAnalyze={handleAnalyze}
                     isProcessing={isProcessing}
                 />
+                <ImportSection
+                    onImport={handleImport}
+                    disabled={isProcessing}
+                />
 
                 <StatusMessage
                     status={status}
@@ -1260,6 +1328,11 @@ function App() {
 
                 {showResults && (
                     <div className="results">
+                        {isImportedData && (
+                            <div className="import-warning-banner">
+                                Viewing imported results. Regeneration requires the original CSV data.
+                            </div>
+                        )}
                         {comparisonEnabled ? (
                             // Comparison mode results
                             <>
@@ -1267,7 +1340,7 @@ function App() {
                                     <DatasetComparison
                                         result={datasetComparison}
                                         fileName={fileName}
-                                        rowCount={csvData?.length || 0}
+                                        rowCount={csvData?.length || importedRowCount}
                                         columnCount={Object.keys(columnStats).length}
                                         modelNames={comparisonSlotNames}
                                         generatingModels={generatingDatasetModels}
@@ -1317,7 +1390,7 @@ function App() {
                                     <DatasetDescription
                                         description={generatedResults.datasetDescription}
                                         fileName={fileName}
-                                        rowCount={csvData?.length || 0}
+                                        rowCount={csvData?.length || importedRowCount}
                                         columnCount={Object.keys(columnStats).length}
                                         onEdit={handleEditDatasetDescription}
                                         onRegenerate={handleRegenerateDataset}
