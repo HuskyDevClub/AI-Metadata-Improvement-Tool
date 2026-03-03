@@ -30,6 +30,8 @@ import { getModelLabel, getVariantLabel } from './utils/modelColors';
 import { handleJudgeError, handleRegenerationError } from './utils/stateHelpers';
 import {
     appendPromptModifiers,
+    buildColumnImprovementPrompt,
+    buildDatasetImprovementPrompt,
     DEFAULT_COLUMN_PROMPT,
     DEFAULT_DATASET_PROMPT,
     DEFAULT_SYSTEM_PROMPT
@@ -89,6 +91,10 @@ function App() {
     const [generatingColumns, setGeneratingColumns] = useState<Set<string>>(new Set());
     const [regeneratingDataset, setRegeneratingDataset] = useState(false);
     const [regeneratingColumns, setRegeneratingColumns] = useState<Set<string>>(new Set());
+    const [suggestingDataset, setSuggestingDataset] = useState(false);
+    const [datasetSuggestions, setDatasetSuggestions] = useState('');
+    const [suggestingColumns, setSuggestingColumns] = useState<Set<string>>(new Set());
+    const [columnSuggestions, setColumnSuggestions] = useState<Record<string, string>>({});
     const [tokenUsage, setTokenUsage] = useState<TokenUsage>({
         promptTokens: 0,
         completionTokens: 0,
@@ -761,6 +767,69 @@ function App() {
         [csvData, columnStats, generatedResults.datasetDescription, generateColumnDescription]
     );
 
+    const handleSuggestDatasetImprovement = useCallback(async () => {
+        const currentDesc = generatedResults.datasetDescription;
+        if (!currentDesc) return;
+
+        setSuggestingDataset(true);
+        setDatasetSuggestions('');
+        try {
+            const prompt = buildDatasetImprovementPrompt(currentDesc);
+            let fullContent = '';
+            const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
+                fullContent += chunk;
+                setDatasetSuggestions(fullContent);
+            });
+            addTokenUsage(result.usage);
+            setStatus({message: 'Suggestions ready for dataset description.', type: 'success'});
+        } catch (error) {
+            setStatus({
+                message: `Error getting suggestions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                type: 'error'
+            });
+        } finally {
+            setSuggestingDataset(false);
+        }
+    }, [generatedResults.datasetDescription, openaiConfig, promptTemplates.systemPrompt, callOpenAIStream, addTokenUsage]);
+
+    const handleDismissDatasetSuggestions = useCallback(() => {
+        setDatasetSuggestions('');
+    }, []);
+
+    const handleSuggestColumnImprovement = useCallback(async (columnName: string) => {
+        const currentDesc = generatedResults.columnDescriptions[columnName];
+        if (!currentDesc) return;
+
+        setSuggestingColumns((prev) => new Set(prev).add(columnName));
+        setColumnSuggestions((prev) => ({...prev, [columnName]: ''}));
+        try {
+            const prompt = buildColumnImprovementPrompt(columnName, currentDesc);
+            let fullContent = '';
+            const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
+                fullContent += chunk;
+                setColumnSuggestions((prev) => ({...prev, [columnName]: fullContent}));
+            });
+            addTokenUsage(result.usage);
+            setStatus({message: `Suggestions ready for column "${columnName}".`, type: 'success'});
+        } catch (error) {
+            handleRegenerationError(error, setStatus);
+        } finally {
+            setSuggestingColumns((prev) => {
+                const next = new Set(prev);
+                next.delete(columnName);
+                return next;
+            });
+        }
+    }, [generatedResults.columnDescriptions, openaiConfig, promptTemplates.systemPrompt, callOpenAIStream, addTokenUsage]);
+
+    const handleDismissColumnSuggestions = useCallback((columnName: string) => {
+        setColumnSuggestions((prev) => {
+            const next = {...prev};
+            delete next[columnName];
+            return next;
+        });
+    }, []);
+
     // Comparison mode regeneration handler (single slot - model or prompt variant)
     const handleRegenerateComparisonDataset = useCallback(
         async (
@@ -1394,6 +1463,10 @@ function App() {
                                         columnCount={Object.keys(columnStats).length}
                                         onEdit={handleEditDatasetDescription}
                                         onRegenerate={handleRegenerateDataset}
+                                        onSuggestImprovement={handleSuggestDatasetImprovement}
+                                        onDismissSuggestions={handleDismissDatasetSuggestions}
+                                        suggestions={datasetSuggestions}
+                                        isSuggesting={suggestingDataset}
                                         isRegenerating={regeneratingDataset}
                                     />
                                 )}
@@ -1412,6 +1485,10 @@ function App() {
                                                     onRegenerate={(modifier, customInstruction) =>
                                                         handleRegenerateColumn(name, modifier, customInstruction)
                                                     }
+                                                    onSuggestImprovement={() => handleSuggestColumnImprovement(name)}
+                                                    onDismissSuggestions={() => handleDismissColumnSuggestions(name)}
+                                                    suggestions={columnSuggestions[name] || ''}
+                                                    isSuggesting={suggestingColumns.has(name)}
                                                     isRegenerating={regeneratingColumns.has(name)}
                                                     isGenerating={generatingColumns.has(name)}
                                                 />

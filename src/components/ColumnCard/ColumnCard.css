@@ -177,6 +177,66 @@
     background: #218838;
 }
 
+.column-card-btn-regenerate.suggest {
+    background: #e67e22;
+}
+
+.column-card-btn-regenerate.suggest:hover {
+    background: #cf6d17;
+}
+
+.column-card-suggestions {
+    margin-top: 10px;
+    border: 2px solid #e67e22;
+    border-radius: 6px;
+    background: #fef9f3;
+    overflow: hidden;
+}
+
+.column-card-suggestions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: #fdf0e0;
+    border-bottom: 1px solid #f0d4a8;
+}
+
+.column-card-suggestions-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #b35c00;
+}
+
+.column-card-suggestions-dismiss {
+    background: none;
+    border: none;
+    color: #b35c00;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.column-card-suggestions-dismiss:hover {
+    color: #7a3e00;
+}
+
+.column-card-suggestions-content {
+    padding: 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-medium);
+    white-space: pre-wrap;
+}
+
+.column-card-suggestions-cursor {
+    display: inline-block;
+    color: #e67e22;
+    font-weight: bold;
+    animation: blink 0.8s infinite;
+}
+
 .column-card-custom-instruction-wrapper {
     display: flex;
     gap: 4px;

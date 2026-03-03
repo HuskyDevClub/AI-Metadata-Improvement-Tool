@@ -8,6 +8,10 @@ interface DatasetDescriptionProps {
     columnCount: number;
     onEdit: (newDescription: string) => void;
     onRegenerate: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => void;
+    onSuggestImprovement: () => void;
+    onDismissSuggestions: () => void;
+    suggestions: string;
+    isSuggesting: boolean;
     isRegenerating: boolean;
 }
 
@@ -18,6 +22,10 @@ export function DatasetDescription({
                                        columnCount,
                                        onEdit,
                                        onRegenerate,
+                                       onSuggestImprovement,
+                                       onDismissSuggestions,
+                                       suggestions,
+                                       isSuggesting,
                                        isRegenerating,
                                    }: DatasetDescriptionProps) {
     const [isEditing, setIsEditing] = useState(false);
@@ -40,6 +48,8 @@ export function DatasetDescription({
             setCustomInstruction('');
         }
     };
+
+    const isBusy = isRegenerating || isSuggesting;
 
     return (
         <div className="dataset-desc-section">
@@ -79,6 +89,27 @@ export function DatasetDescription({
                     </div>
                 )}
 
+                {(suggestions || isSuggesting) && (
+                    <div className="dataset-desc-suggestions">
+                        <div className="dataset-desc-suggestions-header">
+                            <span className="dataset-desc-suggestions-title">Improvement Suggestions</span>
+                            {!isSuggesting && (
+                                <button
+                                    className="dataset-desc-suggestions-dismiss"
+                                    onClick={onDismissSuggestions}
+                                    title="Dismiss suggestions"
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+                        <div className="dataset-desc-suggestions-content">
+                            {suggestions || ''}
+                            {isSuggesting && <span className="dataset-desc-suggestions-cursor">|</span>}
+                        </div>
+                    </div>
+                )}
+
                 <p className="dataset-desc-meta">
                     <strong>File:</strong> {fileName} | <strong>Rows:</strong> {rowCount} |{' '}
                     <strong>Columns:</strong> {columnCount}
@@ -94,12 +125,14 @@ export function DatasetDescription({
                             <>
                                 <span className="dataset-desc-label">Regenerate:</span>
                                 <button className="dataset-desc-btn-regenerate" onClick={() => onRegenerate('')}
+                                        disabled={isBusy}
                                         title="Regenerate">
                                     Again
                                 </button>
                                 <button
                                     className="dataset-desc-btn-regenerate concise"
                                     onClick={() => onRegenerate('concise')}
+                                    disabled={isBusy}
                                     title="Make more concise"
                                 >
                                     More Concise
@@ -107,9 +140,24 @@ export function DatasetDescription({
                                 <button
                                     className="dataset-desc-btn-regenerate detailed"
                                     onClick={() => onRegenerate('detailed')}
+                                    disabled={isBusy}
                                     title="Make more detailed"
                                 >
                                     More Detailed
+                                </button>
+                                <button
+                                    className="dataset-desc-btn-regenerate suggest"
+                                    onClick={onSuggestImprovement}
+                                    disabled={isBusy}
+                                    title="Get AI suggestions to improve the current description"
+                                >
+                                    {isSuggesting ? (
+                                        <>
+                                            <span className="dataset-desc-spinner"></span> Analyzing...
+                                        </>
+                                    ) : (
+                                        'Suggest Improvement'
+                                    )}
                                 </button>
                                 <div className="dataset-desc-custom-instruction-wrapper">
                                     <input
@@ -120,6 +168,7 @@ export function DatasetDescription({
                                         placeholder="Custom instruction..."
                                     />
                                     <button className="dataset-desc-btn-regenerate" onClick={handleCustomApply}
+                                            disabled={isBusy}
                                             title="Apply custom instruction">
                                         Apply
                                     </button>

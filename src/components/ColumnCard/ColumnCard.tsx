@@ -9,6 +9,10 @@ interface ColumnCardProps {
     description: string;
     onEdit: (newDescription: string) => void;
     onRegenerate: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => void;
+    onSuggestImprovement: () => void;
+    onDismissSuggestions: () => void;
+    suggestions: string;
+    isSuggesting: boolean;
     isRegenerating: boolean;
     isGenerating: boolean;
 }
@@ -19,6 +23,10 @@ export function ColumnCard({
                                description,
                                onEdit,
                                onRegenerate,
+                               onSuggestImprovement,
+                               onDismissSuggestions,
+                               suggestions,
+                               isSuggesting,
                                isRegenerating,
                                isGenerating,
                            }: ColumnCardProps) {
@@ -53,6 +61,8 @@ export function ColumnCard({
                 return 'column-card-type-text';
         }
     };
+
+    const isBusy = isRegenerating || isSuggesting;
 
     return (
         <div className="column-card" id={`column-${sanitizeId(name)}`}>
@@ -97,6 +107,28 @@ export function ColumnCard({
                             </span>
                         )}
                     </div>
+
+                    {(suggestions || isSuggesting) && (
+                        <div className="column-card-suggestions">
+                            <div className="column-card-suggestions-header">
+                                <span className="column-card-suggestions-title">Suggestions</span>
+                                {!isSuggesting && (
+                                    <button
+                                        className="column-card-suggestions-dismiss"
+                                        onClick={onDismissSuggestions}
+                                        title="Dismiss suggestions"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+                            <div className="column-card-suggestions-content">
+                                {suggestions || ''}
+                                {isSuggesting && <span className="column-card-suggestions-cursor">|</span>}
+                            </div>
+                        </div>
+                    )}
+
                     {!isGenerating && (
                         <div className="column-card-regenerate-controls">
                             {isRegenerating ? (
@@ -105,19 +137,33 @@ export function ColumnCard({
                                 <>
                                     <span className="column-card-label">Regenerate:</span>
                                     <button className="column-card-btn-regenerate" onClick={() => onRegenerate('')}
+                                            disabled={isBusy}
                                             title="Regenerate">Again
                                     </button>
                                     <button
                                         className="column-card-btn-regenerate concise"
                                         onClick={() => onRegenerate('concise')}
+                                        disabled={isBusy}
                                         title="Make more concise"
                                     >Concise
                                     </button>
                                     <button
                                         className="column-card-btn-regenerate detailed"
                                         onClick={() => onRegenerate('detailed')}
+                                        disabled={isBusy}
                                         title="Make more detailed"
                                     >Detailed
+                                    </button>
+                                    <button
+                                        className="column-card-btn-regenerate suggest"
+                                        onClick={onSuggestImprovement}
+                                        disabled={isBusy}
+                                        title="Get AI suggestions to improve the current description"
+                                    >{isSuggesting ? (
+                                        <>
+                                            <span className="column-card-spinner"></span> Analyzing...
+                                        </>
+                                    ) : 'Suggest'}
                                     </button>
                                     <div className="column-card-custom-instruction-wrapper">
                                         <input
@@ -128,6 +174,7 @@ export function ColumnCard({
                                             placeholder="Custom..."
                                         />
                                         <button className="column-card-btn-regenerate" onClick={handleCustomApply}
+                                                disabled={isBusy}
                                                 title="Apply">Apply
                                         </button>
                                     </div>
