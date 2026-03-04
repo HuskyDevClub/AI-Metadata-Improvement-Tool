@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -15,6 +16,10 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from openai import APIStatusError, AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
+from openai.types.shared_params.response_format_json_schema import JSONSchema
+
 from .local_providers import (
     HF_API_KEY,
     HF_API_URL,
@@ -38,9 +43,6 @@ from .models import (
     SocrataImportRequest,
     SocrataImportResponse,
 )
-from openai import APIStatusError, AsyncOpenAI
-from openai.types.chat import ChatCompletionMessageParam
-from openai.types.shared_params.response_format_json_schema import JSONSchema
 
 # Load environment variables from .env file
 load_dotenv()
@@ -118,7 +120,7 @@ async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
             return FetchCsvResponse(csvText=csv_text, fileName=file_name)
 
     except httpx.RequestError as e:
-        logger.exception("CSV fetch request error")
+        logger.exception("CSV fetch request error: %s, reason: %s", request.url, str(e))
         raise HTTPException(status_code=500, detail=f"Failed to fetch CSV: {str(e)}")
 
 
@@ -149,10 +151,10 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             # Fetch metadata and CSV in parallel
-            metadata_task = client.get(metadata_url, headers=headers, auth=auth)
-            csv_task = client.get(csv_url, headers=headers, auth=auth)
-
-            metadata_resp, csv_resp = await metadata_task, await csv_task
+            metadata_resp, csv_resp = await asyncio.gather(
+                client.get(metadata_url, headers=headers, auth=auth),
+                client.get(csv_url, headers=headers, auth=auth),
+            )
 
             if metadata_resp.status_code != 200:
                 raise HTTPException(
@@ -168,19 +170,19 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
 
             metadata = metadata_resp.json()
 
-            # Extract dataset-level info
-            dataset_name = metadata.get("name", dataset_id)
-            dataset_description = metadata.get("description", "")
+            # Extract dataset-level info (use `or` to coalesce null values)
+            dataset_name = metadata.get("name") or dataset_id
+            dataset_description = metadata.get("description") or ""
 
             # Extract column metadata
             columns: list[SocrataColumnMetadata] = []
             for col in metadata.get("columns", []):
                 columns.append(
                     SocrataColumnMetadata(
-                        fieldName=col.get("fieldName", ""),
-                        name=col.get("name", ""),
-                        description=col.get("description", ""),
-                        dataTypeName=col.get("dataTypeName", ""),
+                        fieldName=col.get("fieldName") or "",
+                        name=col.get("name") or "",
+                        description=col.get("description") or "",
+                        dataTypeName=col.get("dataTypeName") or "",
                     )
                 )
 
@@ -192,8 +194,8 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
                 columns=columns,
             )
 
-    except httpx.RequestError as e:
-        logger.exception("Socrata import request error")
+    except Exception as e:
+        logger.exception("Socrata import error: %s", str(e))
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch from data.wa.gov: {str(e)}"
         )

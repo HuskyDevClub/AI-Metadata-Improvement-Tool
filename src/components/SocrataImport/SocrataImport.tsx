@@ -18,8 +18,8 @@ export function SocrataImport({onImport, disabled}: SocrataImportProps) {
         onImport(
             datasetId.trim(),
             appToken || undefined,
-            showApiKey && apiKeyId ? apiKeyId : undefined,
-            showApiKey && apiKeySecret ? apiKeySecret : undefined
+            apiKeyId || undefined,
+            apiKeySecret || undefined
         );
     };
 
