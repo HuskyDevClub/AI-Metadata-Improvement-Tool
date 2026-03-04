@@ -10,13 +10,14 @@ import { DatasetDescription } from './components/DatasetDescription/DatasetDescr
 import { ColumnCard } from './components/ColumnCard/ColumnCard';
 import { ExportSection } from './components/ExportSection/ExportSection';
 import { ImportSection } from './components/ImportSection/ImportSection';
+import { SocrataImport } from './components/SocrataImport/SocrataImport';
 import { ComparisonMode } from './components/ComparisonMode/ComparisonMode';
 import { DatasetComparison } from './components/DatasetComparison/DatasetComparison';
 import { ColumnComparison } from './components/ColumnComparison/ColumnComparison';
 import { useOpenAI } from './hooks/useOpenAI';
 import { useComparisonGeneration } from './hooks/useComparisonGeneration';
 import { generateJudgeSystemPrompt, useComparisonState } from './hooks/useComparisonState';
-import { parseFile, parseUrl } from './utils/csvParser';
+import { fetchSocrataImport, parseFile, parseUrl } from './utils/csvParser';
 import {
     analyzeColumn,
     buildSampleRows,
@@ -1116,6 +1117,73 @@ function App() {
         }
     }, [resetComparisonState, setComparisonEnabled, setComparisonConfig, setDatasetComparison, setColumnComparisons, setComparisonTokenUsage]);
 
+    const handleSocrataImport = useCallback(
+        async (datasetId: string, appToken?: string, apiKeyId?: string, apiKeySecret?: string) => {
+            setIsProcessing(true);
+            setShowResults(false);
+            setIsImportedData(false);
+            setImportedRowCount(0);
+            setGeneratedResults({datasetDescription: '', columnDescriptions: {}});
+            setTokenUsage({promptTokens: 0, completionTokens: 0, totalTokens: 0});
+
+            if (comparisonEnabled) {
+                resetComparisonState();
+            }
+
+            try {
+                setStatus({message: 'Importing dataset from data.wa.gov...', type: 'info'});
+
+                const result = await fetchSocrataImport(datasetId, appToken, apiKeyId, apiKeySecret);
+
+                if (!result.data || result.data.length === 0) {
+                    setStatus({message: 'No data found in dataset', type: 'error'});
+                    setIsProcessing(false);
+                    return;
+                }
+
+                // Set CSV data so all regeneration features work
+                setCsvData(result.data);
+                setFileName(result.fileName);
+
+                // Analyze columns (same as handleAnalyze)
+                setStatus({message: 'Analyzing columns...', type: 'info'});
+                const columns = Object.keys(result.data[0]);
+                const stats: Record<string, ColumnInfo> = {};
+                columns.forEach((col) => {
+                    const values = result.data.map((row) => row[col]);
+                    stats[col] = analyzeColumn(col, values);
+                });
+                setColumnStats(stats);
+
+                // Pre-populate descriptions from Socrata metadata
+                const columnDescriptions: Record<string, string> = {};
+                const socrataDescMap = new Map(
+                    result.columns.map((c) => [c.fieldName, c.description])
+                );
+                columns.forEach((col) => {
+                    columnDescriptions[col] = socrataDescMap.get(col) || '';
+                });
+
+                setGeneratedResults({
+                    datasetDescription: result.datasetDescription || '',
+                    columnDescriptions,
+                });
+
+                setShowResults(true);
+                setStatus({
+                    message: `Imported "${result.datasetName}" with ${columns.length} columns. Existing descriptions pre-populated — edit or improve with AI.`,
+                    type: 'success',
+                });
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : 'Unknown error';
+                setStatus({message: `Import error: ${detail}`, type: 'error'});
+            } finally {
+                setIsProcessing(false);
+            }
+        },
+        [comparisonEnabled, resetComparisonState]
+    );
+
     // Memoized callback for OpenAIConfig onChange
     const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
         setApiConfig({baseURL: newConfig.baseURL, apiKey: newConfig.apiKey});
@@ -1381,6 +1449,10 @@ function App() {
                 <CsvInput
                     onAnalyze={handleAnalyze}
                     isProcessing={isProcessing}
+                />
+                <SocrataImport
+                    onImport={handleSocrataImport}
+                    disabled={isProcessing}
                 />
                 <ImportSection
                     onImport={handleImport}

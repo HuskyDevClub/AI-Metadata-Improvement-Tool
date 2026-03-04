@@ -5,9 +5,24 @@ import type { CsvRow } from '../types';
 // For local development, default to localhost:3001 (Express) or localhost:8000 (Python)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
-interface ParseResult {
+export interface ParseResult {
     data: CsvRow[];
     fileName: string;
+}
+
+export interface SocrataColumnMeta {
+    fieldName: string;
+    name: string;
+    description: string;
+    dataTypeName: string;
+}
+
+export interface SocrataImportResult {
+    data: CsvRow[];
+    fileName: string;
+    datasetName: string;
+    datasetDescription: string;
+    columns: SocrataColumnMeta[];
 }
 
 export function parseFile(file: File): Promise<ParseResult> {
@@ -54,6 +69,46 @@ export async function parseUrl(url: string, socrataToken?: string): Promise<Pars
                 resolve({
                     data: parseResult.data,
                     fileName: result.fileName,
+                });
+            },
+            error: (error) => {
+                reject(new Error(`Error parsing CSV: ${error.message}`));
+            },
+        });
+    });
+}
+
+export async function fetchSocrataImport(
+    datasetId: string,
+    appToken?: string,
+    apiKeyId?: string,
+    apiKeySecret?: string
+): Promise<SocrataImportResult> {
+    const response = await fetch(`${API_BASE_URL}/api/socrata/import`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({datasetId, appToken, apiKeyId, apiKeySecret}),
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.detail || `Failed to import dataset (${response.status})`);
+    }
+
+    const result = await response.json();
+
+    // Parse CSV with PapaParse (same as parseUrl)
+    return new Promise((resolve, reject) => {
+        Papa.parse<CsvRow>(result.csvText, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (parseResult) => {
+                resolve({
+                    data: parseResult.data,
+                    fileName: result.fileName,
+                    datasetName: result.datasetName,
+                    datasetDescription: result.datasetDescription,
+                    columns: result.columns,
                 });
             },
             error: (error) => {
