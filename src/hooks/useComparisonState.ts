@@ -108,17 +108,13 @@ Evaluate all candidates and respond with the JSON structure as specified.`;
 }
 
 function getInitialModels(defaultCount: number): string[] {
-    // 1. VITE_COMPARISON_MODELS (comma-separated)
+    // First check for the new combined variable
     const envModels = import.meta.env.VITE_COMPARISON_MODELS;
     if (envModels) {
         const models = envModels.split(',').map((m: string) => m.trim()).filter(Boolean);
         if (models.length >= 2) return models;
     }
-    // 2. Legacy VITE_COMPARISON_MODEL_A / _B
-    const modelA = import.meta.env.VITE_COMPARISON_MODEL_A || '';
-    const modelB = import.meta.env.VITE_COMPARISON_MODEL_B || '';
-    if (modelA || modelB) return [modelA, modelB];
-    // 3. Fallback to empty strings
+    // Fallback to empty strings
     return Array(defaultCount).fill('');
 }
 

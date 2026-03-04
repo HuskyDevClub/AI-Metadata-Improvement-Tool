@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type { JudgeResult, OpenAIConfig, ScoringCategory, TokenUsage } from '../types';
 import { useOpenAI } from './useOpenAI';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
 interface ParallelGenerationResult {
     usages: TokenUsage[];
