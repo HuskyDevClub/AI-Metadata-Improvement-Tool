@@ -2,7 +2,6 @@ from typing import Any
 
 from pydantic import BaseModel
 
-
 # ============================================================================
 # CSV Fetch Models
 # ============================================================================
@@ -133,3 +132,36 @@ class HealthResponse(BaseModel):
 
     status: str
     timestamp: str
+
+
+# ============================================================================
+# Socrata Import Models
+# ============================================================================
+
+
+class SocrataImportRequest(BaseModel):
+    """Request to import a dataset from data.wa.gov by dataset ID."""
+
+    datasetId: str
+    appToken: str | None = None
+    apiKeyId: str | None = None
+    apiKeySecret: str | None = None
+
+
+class SocrataColumnMetadata(BaseModel):
+    """Metadata for a single column from Socrata."""
+
+    fieldName: str
+    name: str
+    description: str
+    dataTypeName: str
+
+
+class SocrataImportResponse(BaseModel):
+    """Response containing CSV data and Socrata metadata."""
+
+    csvText: str
+    fileName: str
+    datasetName: str
+    datasetDescription: str
+    columns: list[SocrataColumnMetadata]

@@ -34,6 +34,9 @@ from .models import (
     JudgeRequest,
     JudgeResponse,
     ScoringCategory,
+    SocrataColumnMetadata,
+    SocrataImportRequest,
+    SocrataImportResponse,
 )
 from openai import APIStatusError, AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
@@ -44,6 +47,8 @@ load_dotenv()
 
 # Configuration
 SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
+SOCRATA_API_KEY_ID = os.getenv("SOCRATA_API_KEY_ID", "")
+SOCRATA_API_KEY_SECRET = os.getenv("SOCRATA_API_KEY_SECRET", "")
 AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "")
 AZURE_KEY = os.getenv("AZURE_KEY", "")
 AZURE_MODEL = os.getenv("AZURE_MODEL", "")
@@ -115,6 +120,83 @@ async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
     except httpx.RequestError as e:
         logger.exception("CSV fetch request error")
         raise HTTPException(status_code=500, detail=f"Failed to fetch CSV: {str(e)}")
+
+
+# Socrata import endpoint — fetches metadata + CSV in one request
+@app.post("/api/socrata/import", response_model=SocrataImportResponse)
+async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse:
+    if not request.datasetId or not request.datasetId.strip():
+        raise HTTPException(status_code=400, detail="Dataset ID is required")
+
+    dataset_id = request.datasetId.strip()
+
+    # Build auth headers
+    headers: dict[str, str] = {}
+    token = request.appToken or SOCRATA_APP_TOKEN
+    if token:
+        headers["X-App-Token"] = token
+
+    # HTTP Basic Auth for private datasets (request overrides env vars)
+    auth = None
+    key_id = request.apiKeyId or SOCRATA_API_KEY_ID
+    key_secret = request.apiKeySecret or SOCRATA_API_KEY_SECRET
+    if key_id and key_secret:
+        auth = (key_id, key_secret)
+
+    metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
+    csv_url = f"https://data.wa.gov/api/views/{dataset_id}/rows.csv?accessType=DOWNLOAD"
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            # Fetch metadata and CSV in parallel
+            metadata_task = client.get(metadata_url, headers=headers, auth=auth)
+            csv_task = client.get(csv_url, headers=headers, auth=auth)
+
+            metadata_resp, csv_resp = await metadata_task, await csv_task
+
+            if metadata_resp.status_code != 200:
+                raise HTTPException(
+                    status_code=metadata_resp.status_code,
+                    detail=f"Failed to fetch dataset metadata: {metadata_resp.reason_phrase}",
+                )
+
+            if csv_resp.status_code != 200:
+                raise HTTPException(
+                    status_code=csv_resp.status_code,
+                    detail=f"Failed to fetch CSV data: {csv_resp.reason_phrase}",
+                )
+
+            metadata = metadata_resp.json()
+
+            # Extract dataset-level info
+            dataset_name = metadata.get("name", dataset_id)
+            dataset_description = metadata.get("description", "")
+
+            # Extract column metadata
+            columns: list[SocrataColumnMetadata] = []
+            for col in metadata.get("columns", []):
+                columns.append(
+                    SocrataColumnMetadata(
+                        fieldName=col.get("fieldName", ""),
+                        name=col.get("name", ""),
+                        description=col.get("description", ""),
+                        dataTypeName=col.get("dataTypeName", ""),
+                    )
+                )
+
+            return SocrataImportResponse(
+                csvText=csv_resp.text,
+                fileName=f"{dataset_name}.csv",
+                datasetName=dataset_name,
+                datasetDescription=dataset_description,
+                columns=columns,
+            )
+
+    except httpx.RequestError as e:
+        logger.exception("Socrata import request error")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch from data.wa.gov: {str(e)}"
+        )
 
 
 class Provider(Enum):
