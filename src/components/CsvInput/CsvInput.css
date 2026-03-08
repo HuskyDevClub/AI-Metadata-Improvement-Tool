@@ -59,6 +59,19 @@
     font-style: italic;
 }
 
+.csv-input-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-medium);
+    cursor: pointer;
+}
+
+.csv-input-toggle input[type="checkbox"] {
+    cursor: pointer;
+}
+
 .csv-input-btn-primary {
     padding: 12px 24px;
     border: none;

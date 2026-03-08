@@ -10,7 +10,6 @@ import { DatasetDescription } from './components/DatasetDescription/DatasetDescr
 import { ColumnCard } from './components/ColumnCard/ColumnCard';
 import { ExportSection } from './components/ExportSection/ExportSection';
 import { ImportSection } from './components/ImportSection/ImportSection';
-import { SocrataImport } from './components/SocrataImport/SocrataImport';
 import { ComparisonMode } from './components/ComparisonMode/ComparisonMode';
 import { DatasetComparison } from './components/DatasetComparison/DatasetComparison';
 import { ColumnComparison } from './components/ColumnComparison/ColumnComparison';
@@ -1157,11 +1156,14 @@ function App() {
 
                 // Pre-populate descriptions from Socrata metadata
                 const columnDescriptions: Record<string, string> = {};
-                const socrataDescMap = new Map(
+                const fieldNameDescMap = new Map(
                     result.columns.map((c) => [c.fieldName, c.description])
                 );
+                const displayNameDescMap = new Map(
+                    result.columns.map((c) => [c.name, c.description])
+                );
                 columns.forEach((col) => {
-                    columnDescriptions[col] = socrataDescMap.get(col) || '';
+                    columnDescriptions[col] = fieldNameDescMap.get(col) || displayNameDescMap.get(col) || '';
                 });
 
                 setGeneratedResults({
@@ -1448,11 +1450,8 @@ function App() {
                 />
                 <CsvInput
                     onAnalyze={handleAnalyze}
+                    onSocrataImport={handleSocrataImport}
                     isProcessing={isProcessing}
-                />
-                <SocrataImport
-                    onImport={handleSocrataImport}
-                    disabled={isProcessing}
                 />
                 <ImportSection
                     onImport={handleImport}
