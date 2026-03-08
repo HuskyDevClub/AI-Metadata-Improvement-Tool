@@ -165,3 +165,34 @@ class SocrataImportResponse(BaseModel):
     datasetName: str
     datasetDescription: str
     columns: list[SocrataColumnMetadata]
+
+
+# ============================================================================
+# Socrata Export Models
+# ============================================================================
+
+
+class SocrataColumnUpdate(BaseModel):
+    """Updated description for a single column to push back to Socrata."""
+
+    fieldName: str
+    description: str
+
+
+class SocrataExportRequest(BaseModel):
+    """Request to push updated metadata back to data.wa.gov."""
+
+    datasetId: str
+    appToken: str | None = None
+    apiKeyId: str | None = None
+    apiKeySecret: str | None = None
+    datasetDescription: str | None = None
+    columns: list[SocrataColumnUpdate] = []
+
+
+class SocrataExportResponse(BaseModel):
+    """Response from pushing metadata to data.wa.gov."""
+
+    success: bool
+    message: str
+    updatedColumns: int

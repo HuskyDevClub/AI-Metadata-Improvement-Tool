@@ -40,6 +40,8 @@ from .models import (
     JudgeResponse,
     ScoringCategory,
     SocrataColumnMetadata,
+    SocrataExportRequest,
+    SocrataExportResponse,
     SocrataImportRequest,
     SocrataImportResponse,
 )
@@ -198,6 +200,110 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
         logger.exception("Socrata import error: %s", str(e))
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch from data.wa.gov: {str(e)}"
+        )
+
+
+# Socrata export endpoint — pushes updated metadata back to data.wa.gov
+@app.post("/api/socrata/export", response_model=SocrataExportResponse)
+async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse:
+    if not request.datasetId or not request.datasetId.strip():
+        raise HTTPException(status_code=400, detail="Dataset ID is required")
+
+    dataset_id = request.datasetId.strip()
+
+    # Build auth — write operations require API Key (HTTP Basic Auth)
+    key_id = request.apiKeyId or SOCRATA_API_KEY_ID
+    key_secret = request.apiKeySecret or SOCRATA_API_KEY_SECRET
+    if not key_id or not key_secret:
+        raise HTTPException(
+            status_code=400,
+            detail="API Key ID and Secret are required to update metadata on data.wa.gov. "
+            "Provide them in the UI or set SOCRATA_API_KEY_ID and SOCRATA_API_KEY_SECRET in the environment.",
+        )
+    auth = (key_id, key_secret)
+
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+    token = request.appToken or SOCRATA_APP_TOKEN
+    if token:
+        headers["X-App-Token"] = token
+
+    metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            # 1. Fetch current metadata to get column IDs
+            meta_resp = await client.get(metadata_url, headers=headers, auth=auth)
+            if meta_resp.status_code != 200:
+                raise HTTPException(
+                    status_code=meta_resp.status_code,
+                    detail=f"Failed to fetch current metadata: {meta_resp.reason_phrase}",
+                )
+            current_metadata = meta_resp.json()
+
+            # 2. Build update payload — only touch description fields
+            update_payload: dict[str, Any] = {}
+
+            if request.datasetDescription is not None:
+                update_payload["description"] = request.datasetDescription
+
+            # Merge column description updates into existing columns
+            updated_col_count = 0
+            if request.columns:
+                field_desc_map = {c.fieldName: c.description for c in request.columns}
+                updated_columns = []
+                for col in current_metadata.get("columns", []):
+                    field_name = col.get("fieldName", "")
+                    if field_name in field_desc_map:
+                        col["description"] = field_desc_map[field_name]
+                        updated_col_count += 1
+                    updated_columns.append(col)
+                update_payload["columns"] = updated_columns
+
+            if not update_payload:
+                return SocrataExportResponse(
+                    success=True,
+                    message="No changes to push.",
+                    updatedColumns=0,
+                )
+
+            # 3. PUT updated metadata back to Socrata
+            put_resp = await client.put(
+                metadata_url,
+                headers=headers,
+                auth=auth,
+                json=update_payload,
+            )
+
+            if put_resp.status_code not in (200, 202):
+                error_detail = (
+                    put_resp.text[:500] if put_resp.text else put_resp.reason_phrase
+                )
+                raise HTTPException(
+                    status_code=put_resp.status_code,
+                    detail=f"Failed to update metadata on data.wa.gov: {error_detail}",
+                )
+
+            parts = []
+            if request.datasetDescription is not None:
+                parts.append("dataset description")
+            if updated_col_count > 0:
+                parts.append(
+                    f"{updated_col_count} column description{'s' if updated_col_count != 1 else ''}"
+                )
+            message = f"Successfully updated {' and '.join(parts)} on data.wa.gov."
+
+            return SocrataExportResponse(
+                success=True,
+                message=message,
+                updatedColumns=updated_col_count,
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Socrata export error: %s", str(e))
+        raise HTTPException(
+            status_code=500, detail=f"Failed to push metadata to data.wa.gov: {str(e)}"
         )
 
 

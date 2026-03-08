@@ -78,6 +78,34 @@ export async function parseUrl(url: string, socrataToken?: string): Promise<Pars
     });
 }
 
+export interface SocrataExportResult {
+    success: boolean;
+    message: string;
+    updatedColumns: number;
+}
+
+export async function pushSocrataMetadata(
+    datasetId: string,
+    datasetDescription: string | undefined,
+    columns: { fieldName: string; description: string }[],
+    appToken?: string,
+    apiKeyId?: string,
+    apiKeySecret?: string
+): Promise<SocrataExportResult> {
+    const response = await fetch(`${API_BASE_URL}/api/socrata/export`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({datasetId, appToken, apiKeyId, apiKeySecret, datasetDescription, columns}),
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.detail || `Failed to push metadata (${response.status})`);
+    }
+
+    return response.json();
+}
+
 export async function fetchSocrataImport(
     datasetId: string,
     appToken?: string,

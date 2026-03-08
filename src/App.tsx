@@ -16,7 +16,7 @@ import { ColumnComparison } from './components/ColumnComparison/ColumnComparison
 import { useOpenAI } from './hooks/useOpenAI';
 import { useComparisonGeneration } from './hooks/useComparisonGeneration';
 import { generateJudgeSystemPrompt, useComparisonState } from './hooks/useComparisonState';
-import { fetchSocrataImport, parseFile, parseUrl } from './utils/csvParser';
+import { fetchSocrataImport, parseFile, parseUrl, pushSocrataMetadata } from './utils/csvParser';
 import {
     analyzeColumn,
     buildSampleRows,
@@ -100,6 +100,16 @@ function App() {
         completionTokens: 0,
         totalTokens: 0,
     });
+
+    // Socrata push-back state
+    const [socrataDatasetId, setSocrataDatasetId] = useState('');
+    const [socrataCredentials, setSocrataCredentials] = useState<{
+        appToken?: string;
+        apiKeyId?: string;
+        apiKeySecret?: string;
+    }>({});
+    const [socrataFieldNameMap, setSocrataFieldNameMap] = useState<Record<string, string>>({});
+    const [isPushingSocrata, setIsPushingSocrata] = useState(false);
 
     // Comparison Mode State (extracted to custom hook)
     const comparison = useComparisonState();
@@ -540,6 +550,10 @@ function App() {
             setImportedRowCount(0);
             setGeneratedResults({datasetDescription: '', columnDescriptions: {}});
             setTokenUsage({promptTokens: 0, completionTokens: 0, totalTokens: 0});
+
+            // Clear Socrata push-back state (non-Socrata source)
+            setSocrataDatasetId('');
+            setSocrataFieldNameMap({});
 
             // Reset comparison state
             if (comparisonEnabled) {
@@ -1125,6 +1139,10 @@ function App() {
             setGeneratedResults({datasetDescription: '', columnDescriptions: {}});
             setTokenUsage({promptTokens: 0, completionTokens: 0, totalTokens: 0});
 
+            // Store dataset ID and credentials for push-back
+            setSocrataDatasetId(datasetId);
+            setSocrataCredentials({appToken, apiKeyId, apiKeySecret});
+
             if (comparisonEnabled) {
                 resetComparisonState();
             }
@@ -1156,15 +1174,29 @@ function App() {
 
                 // Pre-populate descriptions from Socrata metadata
                 const columnDescriptions: Record<string, string> = {};
+                const fieldNameSet = new Set(result.columns.map((c) => c.fieldName));
+                const nameToFieldName = new Map(
+                    result.columns.map((c) => [c.name, c.fieldName])
+                );
                 const fieldNameDescMap = new Map(
                     result.columns.map((c) => [c.fieldName, c.description])
                 );
                 const displayNameDescMap = new Map(
                     result.columns.map((c) => [c.name, c.description])
                 );
+
+                // Build CSV column name → Socrata fieldName mapping
+                const fieldMap: Record<string, string> = {};
                 columns.forEach((col) => {
                     columnDescriptions[col] = fieldNameDescMap.get(col) || displayNameDescMap.get(col) || '';
+                    // CSV header matches fieldName directly, or maps via display name
+                    if (fieldNameSet.has(col)) {
+                        fieldMap[col] = col;
+                    } else if (nameToFieldName.has(col)) {
+                        fieldMap[col] = nameToFieldName.get(col)!;
+                    }
                 });
+                setSocrataFieldNameMap(fieldMap);
 
                 setGeneratedResults({
                     datasetDescription: result.datasetDescription || '',
@@ -1304,6 +1336,39 @@ function App() {
 
         setStatus({message: 'File downloaded successfully!', type: 'success'});
     }, [csvData, fileName, columnStats, generatedResults, comparisonEnabled, comparisonConfig, datasetComparison, columnComparisons, comparisonTokenUsage]);
+
+    const handlePushToSocrata = useCallback(async () => {
+        if (!socrataDatasetId) return;
+
+        setIsPushingSocrata(true);
+        setStatus({message: 'Pushing metadata to data.wa.gov...', type: 'info'});
+
+        try {
+            // Build column updates from current descriptions
+            const columnUpdates = Object.entries(generatedResults.columnDescriptions)
+                .filter(([, desc]) => desc) // skip empty descriptions
+                .map(([colName, desc]) => ({
+                    fieldName: socrataFieldNameMap[colName] || colName,
+                    description: desc,
+                }));
+
+            const result = await pushSocrataMetadata(
+                socrataDatasetId,
+                generatedResults.datasetDescription || undefined,
+                columnUpdates,
+                socrataCredentials.appToken,
+                socrataCredentials.apiKeyId,
+                socrataCredentials.apiKeySecret,
+            );
+
+            setStatus({message: result.message, type: 'success'});
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : 'Unknown error';
+            setStatus({message: `Push error: ${detail}`, type: 'error'});
+        } finally {
+            setIsPushingSocrata(false);
+        }
+    }, [socrataDatasetId, generatedResults, socrataFieldNameMap, socrataCredentials]);
 
     const renderTokenUsage = () => {
         if (comparisonEnabled && comparisonTokenUsage.total.totalTokens > 0) {
@@ -1520,7 +1585,12 @@ function App() {
                                 )}
 
                                 {(datasetComparison.judgeResult || Object.values(columnComparisons).some(c => c.judgeResult)) && (
-                                    <ExportSection onExport={handleExport}/>
+                                    <ExportSection
+                                        onExport={handleExport}
+                                        onPushToSocrata={handlePushToSocrata}
+                                        isPushingSocrata={isPushingSocrata}
+                                        showSocrataPush={!!socrataDatasetId}
+                                    />
                                 )}
                             </>
                         ) : (
@@ -1569,7 +1639,12 @@ function App() {
                                 )}
 
                                 {Object.keys(generatedResults.columnDescriptions).length > 0 && (
-                                    <ExportSection onExport={handleExport}/>
+                                    <ExportSection
+                                        onExport={handleExport}
+                                        onPushToSocrata={handlePushToSocrata}
+                                        isPushingSocrata={isPushingSocrata}
+                                        showSocrataPush={!!socrataDatasetId}
+                                    />
                                 )}
                             </>
                         )}
