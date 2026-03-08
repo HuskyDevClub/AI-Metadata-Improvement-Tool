@@ -26,6 +26,31 @@
     margin-bottom: 15px;
     padding-bottom: 10px;
     border-bottom: 2px solid var(--primary-start);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.generate-empty-btn {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    background: var(--primary-start);
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+.generate-empty-btn:hover:not(:disabled) {
+    background: var(--primary-end);
+}
+
+.generate-empty-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .columnsGrid {

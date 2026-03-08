@@ -110,6 +110,7 @@ function App() {
     }>({});
     const [socrataFieldNameMap, setSocrataFieldNameMap] = useState<Record<string, string>>({});
     const [isPushingSocrata, setIsPushingSocrata] = useState(false);
+    const [isGeneratingEmpty, setIsGeneratingEmpty] = useState(false);
 
     // Comparison Mode State (extracted to custom hook)
     const comparison = useComparisonState();
@@ -780,6 +781,57 @@ function App() {
         },
         [csvData, columnStats, generatedResults.datasetDescription, generateColumnDescription]
     );
+
+    const handleGenerateEmptyDescriptions = useCallback(async () => {
+        if (!csvData) return;
+
+        const emptyColumns = Object.keys(columnStats).filter(
+            (col) => !generatedResults.columnDescriptions[col]?.trim()
+        );
+        if (emptyColumns.length === 0) {
+            setStatus({message: 'All columns already have descriptions.', type: 'info'});
+            return;
+        }
+
+        setIsGeneratingEmpty(true);
+        setGeneratingColumns(new Set(emptyColumns));
+        setStatus({
+            message: `Generating descriptions for ${emptyColumns.length} empty column(s)...`,
+            type: 'info',
+        });
+
+        try {
+            // Generate dataset description first if empty
+            let datasetDesc = generatedResults.datasetDescription;
+            if (!datasetDesc.trim()) {
+                const dsResult = await generateDatasetDescription(csvData, fileName, columnStats);
+                datasetDesc = dsResult.content;
+                setGeneratedResults((prev) => ({...prev, datasetDescription: datasetDesc}));
+            }
+
+            const columnPromises = emptyColumns.map(async (col) => {
+                const info = columnStats[col];
+                const colValues = csvData.map((row) => row[col]);
+                const result = await generateColumnDescription(col, info, datasetDesc, colValues);
+                return {col, result};
+            });
+
+            await Promise.all(columnPromises);
+
+            setStatus({
+                message: `Successfully generated descriptions for ${emptyColumns.length} column(s)!`,
+                type: 'success',
+            });
+        } catch (error) {
+            setStatus({
+                message: `Error generating descriptions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                type: 'error',
+            });
+        } finally {
+            setGeneratingColumns(new Set());
+            setIsGeneratingEmpty(false);
+        }
+    }, [csvData, columnStats, generatedResults, fileName, generateDatasetDescription, generateColumnDescription]);
 
     const handleSuggestDatasetImprovement = useCallback(async () => {
         const currentDesc = generatedResults.datasetDescription;
@@ -1614,7 +1666,20 @@ function App() {
 
                                 {(generatingColumns.size > 0 || Object.keys(generatedResults.columnDescriptions).length > 0) && (
                                     <div className="section">
-                                        <div className="sectionTitle">Column Descriptions</div>
+                                        <div className="sectionTitle">
+                                            Column Descriptions
+                                            {Object.keys(columnStats).some(col => !generatedResults.columnDescriptions[col]?.trim()) && csvData && (
+                                                <button
+                                                    className="generate-empty-btn"
+                                                    onClick={handleGenerateEmptyDescriptions}
+                                                    disabled={isGeneratingEmpty || isProcessing}
+                                                >
+                                                    {isGeneratingEmpty
+                                                        ? `Generating (${Object.keys(columnStats).filter(col => !generatedResults.columnDescriptions[col]?.trim()).length} remaining)...`
+                                                        : `Generate ${Object.keys(columnStats).filter(col => !generatedResults.columnDescriptions[col]?.trim()).length} Empty Descriptions`}
+                                                </button>
+                                            )}
+                                        </div>
                                         <div className="columnsGrid">
                                             {Object.entries(columnStats).map(([name, info]) => (
                                                 <ColumnCard
