@@ -1,0 +1,217 @@
+/* Navigation */
+.field-overview-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.field-overview-back {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--primary-start);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.field-overview-back:hover {
+    color: var(--primary-end);
+    text-decoration: underline;
+}
+
+.field-overview-pager {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.field-overview-pager-btn {
+    padding: 5px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-white);
+    color: var(--primary-start);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.field-overview-pager-btn:hover:not(.disabled) {
+    background: var(--bg-light);
+    border-color: var(--primary-start);
+}
+
+.field-overview-pager-btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    color: var(--text-lighter);
+}
+
+.field-overview-pager-info {
+    font-size: 13px;
+    color: var(--text-light);
+    min-width: 50px;
+    text-align: center;
+}
+
+/* Header */
+.field-overview-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.field-overview-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.field-overview-type {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.field-overview-type-numeric {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.field-overview-type-categorical {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.field-overview-type-text {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.field-overview-type-empty {
+    background: var(--bg-lighter);
+    color: var(--text-lighter);
+}
+
+/* Statistics */
+.field-overview-stats {
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.field-overview-stats-title,
+.field-overview-samples-title,
+.field-overview-desc-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 12px;
+}
+
+.field-overview-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.field-overview-stat {
+    background: var(--bg-white);
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 10px 14px;
+}
+
+.field-overview-stat-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-lighter);
+    margin-bottom: 4px;
+}
+
+.field-overview-stat-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.field-overview-stats-detail {
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+}
+
+.field-overview-stats-line {
+    font-size: 13px;
+    color: var(--text-medium);
+    padding: 3px 0;
+}
+
+/* Samples */
+.field-overview-samples {
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.field-overview-samples-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.field-overview-sample-item {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--bg-white);
+    border: 1px solid #eee;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--text-medium);
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.field-overview-null {
+    color: var(--text-lighter);
+    font-style: italic;
+}
+
+/* Description */
+.field-overview-description {
+    margin-bottom: 20px;
+}
+
+.field-overview-notfound {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-medium);
+    font-size: 16px;
+}
+
+.field-overview-notfound p {
+    margin-bottom: 16px;
+}

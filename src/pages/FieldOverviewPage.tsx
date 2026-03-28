@@ -1,0 +1,145 @@
+import { useMemo } from 'react';
+import { ColumnCard } from '../components/ColumnCard/ColumnCard';
+import { useAppContext } from '../contexts/AppContext';
+import { formatColumnStats } from '../utils/columnAnalyzer';
+import './FieldOverviewPage.css';
+
+export function FieldOverviewPage() {
+    const {
+        currentFieldName: fieldName,
+        columnStats,
+        generatedResults,
+        csvData,
+        generatingColumns,
+        regeneratingColumns,
+        suggestingColumns,
+        columnSuggestions,
+        navigate,
+        handleEditColumnDescription,
+        handleRegenerateColumn,
+        handleSuggestColumnImprovement,
+        handleDismissColumnSuggestions,
+        renderTokenUsage,
+    } = useAppContext();
+
+    const columnNames = useMemo(() => Object.keys(columnStats), [columnStats]);
+    const currentIndex = fieldName ? columnNames.indexOf(fieldName) : -1;
+
+    if (!fieldName || currentIndex === -1) {
+        return (
+            <div className="field-overview-notfound">
+                <p>Field "{fieldName}" not found.</p>
+                <button onClick={() => navigate('data')} className="field-overview-back">Back to Data Overview</button>
+            </div>
+        );
+    }
+
+    const info = columnStats[fieldName];
+    const description = generatedResults.columnDescriptions[fieldName] || '';
+    const prevField = currentIndex > 0 ? columnNames[currentIndex - 1] : null;
+    const nextField = currentIndex < columnNames.length - 1 ? columnNames[currentIndex + 1] : null;
+    const statsText = formatColumnStats(info);
+    const nullPercent = info.totalCount > 0
+        ? ((info.nullCount / info.totalCount) * 100).toFixed(1)
+        : '0.0';
+    const completeness = info.totalCount > 0
+        ? (((info.totalCount - info.nullCount) / info.totalCount) * 100).toFixed(1)
+        : '0.0';
+
+    return (
+        <div className="field-overview-page">
+            <div className="field-overview-nav">
+                <button onClick={() => navigate('data')} className="field-overview-back">
+                    Back to Data Overview
+                </button>
+                <div className="field-overview-pager">
+                    {prevField ? (
+                        <button onClick={() => navigate('field', prevField)} className="field-overview-pager-btn">
+                            Prev
+                        </button>
+                    ) : (
+                        <span className="field-overview-pager-btn disabled">Prev</span>
+                    )}
+                    <span className="field-overview-pager-info">
+                        {currentIndex + 1} / {columnNames.length}
+                    </span>
+                    {nextField ? (
+                        <button onClick={() => navigate('field', nextField)} className="field-overview-pager-btn">
+                            Next
+                        </button>
+                    ) : (
+                        <span className="field-overview-pager-btn disabled">Next</span>
+                    )}
+                </div>
+            </div>
+
+            <div className="field-overview-header">
+                <h2 className="field-overview-name">{fieldName}</h2>
+                <span className={`field-overview-type field-overview-type-${info.type}`}>
+                    {info.type}
+                </span>
+            </div>
+
+            <div className="field-overview-stats">
+                <div className="field-overview-stats-title">Column Statistics</div>
+                <div className="field-overview-stats-grid">
+                    <div className="field-overview-stat">
+                        <span className="field-overview-stat-label">Total Rows</span>
+                        <span className="field-overview-stat-value">{info.totalCount.toLocaleString()}</span>
+                    </div>
+                    <div className="field-overview-stat">
+                        <span className="field-overview-stat-label">Null Count</span>
+                        <span className="field-overview-stat-value">{info.nullCount.toLocaleString()} ({nullPercent}%)</span>
+                    </div>
+                    <div className="field-overview-stat">
+                        <span className="field-overview-stat-label">Completeness</span>
+                        <span className="field-overview-stat-value">{completeness}%</span>
+                    </div>
+                    <div className="field-overview-stat">
+                        <span className="field-overview-stat-label">Data Type</span>
+                        <span className="field-overview-stat-value">{info.type}</span>
+                    </div>
+                </div>
+                {statsText && (
+                    <div className="field-overview-stats-detail">
+                        <div className="field-overview-stats-line">{statsText}</div>
+                    </div>
+                )}
+            </div>
+
+            {csvData && (
+                <div className="field-overview-samples">
+                    <div className="field-overview-samples-title">Sample Values</div>
+                    <div className="field-overview-samples-list">
+                        {csvData.slice(0, 8).map((row, i) => (
+                            <span key={i} className="field-overview-sample-item">
+                                {row[fieldName] || <em className="field-overview-null">null</em>}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <div className="field-overview-description">
+                <div className="field-overview-desc-title">Description</div>
+                <ColumnCard
+                    name={fieldName}
+                    info={info}
+                    description={description}
+                    onEdit={(newDesc) => handleEditColumnDescription(fieldName, newDesc)}
+                    onRegenerate={(modifier, customInstruction) =>
+                        handleRegenerateColumn(fieldName, modifier, customInstruction)
+                    }
+                    onSuggestImprovement={() => handleSuggestColumnImprovement(fieldName)}
+                    onDismissSuggestions={() => handleDismissColumnSuggestions(fieldName)}
+                    suggestions={columnSuggestions[fieldName] || ''}
+                    isSuggesting={suggestingColumns.has(fieldName)}
+                    isRegenerating={regeneratingColumns.has(fieldName)}
+                    isGenerating={generatingColumns.has(fieldName)}
+                />
+            </div>
+
+            {renderTokenUsage()}
+        </div>
+    );
+}
