@@ -146,6 +146,7 @@ class SocrataImportRequest(BaseModel):
     appToken: str | None = None
     apiKeyId: str | None = None
     apiKeySecret: str | None = None
+    oauthToken: str | None = None
 
 
 class SocrataColumnMetadata(BaseModel):
@@ -186,6 +187,7 @@ class SocrataExportRequest(BaseModel):
     appToken: str | None = None
     apiKeyId: str | None = None
     apiKeySecret: str | None = None
+    oauthToken: str | None = None
     datasetDescription: str | None = None
     columns: list[SocrataColumnUpdate] = []
 
@@ -196,3 +198,22 @@ class SocrataExportResponse(BaseModel):
     success: bool
     message: str
     updatedColumns: int
+
+
+# ============================================================================
+# Socrata OAuth Models
+# ============================================================================
+
+
+class SocrataOAuthLoginResponse(BaseModel):
+    """Response containing the OAuth authorization URL."""
+
+    authUrl: str
+
+
+class SocrataOAuthUserInfo(BaseModel):
+    """Current user info from Socrata after OAuth authentication."""
+
+    id: str
+    displayName: str
+    email: str | None = None

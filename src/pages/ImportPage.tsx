@@ -13,6 +13,10 @@ export function ImportPage() {
         isProcessing,
         showResults,
         navigate,
+        socrataOAuthUser,
+        isSocrataOAuthAuthenticating,
+        handleSocrataOAuthLogin,
+        handleSocrataOAuthLogout,
     } = useAppContext();
 
     const prevShowResults = useRef(showResults);
@@ -34,6 +38,10 @@ export function ImportPage() {
                     onAnalyze={handleAnalyze}
                     onSocrataImport={handleSocrataImport}
                     isProcessing={isProcessing}
+                    oauthUser={socrataOAuthUser}
+                    isOAuthAuthenticating={isSocrataOAuthAuthenticating}
+                    onOAuthLogin={handleSocrataOAuthLogin}
+                    onOAuthLogout={handleSocrataOAuthLogout}
                 />
             </div>
 

@@ -7,9 +7,21 @@ interface CsvInputProps {
     onAnalyze: (method: 'file' | 'url', file?: File, url?: string, socrataToken?: string) => void;
     onSocrataImport: (datasetId: string, appToken?: string, apiKeyId?: string, apiKeySecret?: string) => void;
     isProcessing: boolean;
+    oauthUser: { id: string; displayName: string; email?: string } | null;
+    isOAuthAuthenticating: boolean;
+    onOAuthLogin: () => void;
+    onOAuthLogout: () => void;
 }
 
-export function CsvInput({ onAnalyze, onSocrataImport, isProcessing }: CsvInputProps) {
+export function CsvInput({
+                             onAnalyze,
+                             onSocrataImport,
+                             isProcessing,
+                             oauthUser,
+                             isOAuthAuthenticating,
+                             onOAuthLogin,
+                             onOAuthLogout
+                         }: CsvInputProps) {
     const [inputMethod, setInputMethod] = useState<InputMethod>('url');
     const [file, setFile] = useState<File | null>(null);
     const [url, setUrl] = useState('https://data.wa.gov/api/v3/views/6fex-3r7d/query.csv');
@@ -115,56 +127,88 @@ export function CsvInput({ onAnalyze, onSocrataImport, isProcessing }: CsvInputP
                         />
                         <span className="csv-input-help-text">The dataset identifier from the data.wa.gov URL</span>
                     </div>
-                    <div className="csv-input-group" style={{ marginTop: '15px' }}>
-                        <label htmlFor="socrataAppToken">Socrata App Token</label>
-                        <input
-                            id="socrataAppToken"
-                            type="password"
-                            placeholder="Enter your Socrata app token"
-                            value={appToken}
-                            onChange={(e) => setAppToken(e.target.value)}
-                            className="csv-input-url-input"
-                        />
-                        <span
-                            className="csv-input-help-text">Optional — leave empty to use SOCRATA_APP_TOKEN from .env</span>
+
+                    <div className="csv-input-oauth-section">
+                        {oauthUser ? (
+                            <div className="csv-input-oauth-status">
+                                <span>Signed in as <strong>{oauthUser.displayName}</strong></span>
+                                <button
+                                    type="button"
+                                    className="csv-input-oauth-logout"
+                                    onClick={onOAuthLogout}
+                                >
+                                    Sign out
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                className="csv-input-oauth-btn"
+                                onClick={onOAuthLogin}
+                                disabled={isOAuthAuthenticating}
+                            >
+                                {isOAuthAuthenticating ? 'Signing in...' : 'Sign in with data.wa.gov'}
+                            </button>
+                        )}
                     </div>
-                    <label className="csv-input-toggle" style={{ marginTop: '15px' }}>
-                        <input
-                            type="checkbox"
-                            checked={showApiKey}
-                            onChange={(e) => setShowApiKey(e.target.checked)}
-                        />
-                        Private dataset (requires API Key)
-                    </label>
-                    {showApiKey && (
-                        <div style={{ marginTop: '10px' }}>
+
+                    {!oauthUser && (
+                        <>
+                            <div className="csv-input-oauth-divider">or enter credentials manually</div>
                             <div className="csv-input-group">
-                                <label htmlFor="socrataApiKeyId">API Key ID</label>
+                                <label htmlFor="socrataAppToken">Socrata App Token</label>
                                 <input
-                                    id="socrataApiKeyId"
-                                    type="text"
-                                    placeholder="Key ID"
-                                    value={apiKeyId}
-                                    onChange={(e) => setApiKeyId(e.target.value)}
-                                    className="csv-input-url-input"
-                                />
-                            </div>
-                            <div className="csv-input-group" style={{ marginTop: '10px' }}>
-                                <label htmlFor="socrataApiKeySecret">API Key Secret</label>
-                                <input
-                                    id="socrataApiKeySecret"
+                                    id="socrataAppToken"
                                     type="password"
-                                    placeholder="Key Secret"
-                                    value={apiKeySecret}
-                                    onChange={(e) => setApiKeySecret(e.target.value)}
+                                    placeholder="Enter your Socrata app token"
+                                    value={appToken}
+                                    onChange={(e) => setAppToken(e.target.value)}
                                     className="csv-input-url-input"
                                 />
+                                <span className="csv-input-help-text">
+                                    Optional — leave empty to use SOCRATA_APP_TOKEN from .env
+                                </span>
                             </div>
-                            <span className="csv-input-help-text">
-                                Leave empty to use SOCRATA_API_KEY_ID / SOCRATA_API_KEY_SECRET from .env
-                            </span>
-                        </div>
+                            <label className="csv-input-toggle" style={{ marginTop: '15px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={showApiKey}
+                                    onChange={(e) => setShowApiKey(e.target.checked)}
+                                />
+                                Private dataset (requires API Key)
+                            </label>
+                            {showApiKey && (
+                                <div style={{ marginTop: '10px' }}>
+                                    <div className="csv-input-group">
+                                        <label htmlFor="socrataApiKeyId">API Key ID</label>
+                                        <input
+                                            id="socrataApiKeyId"
+                                            type="text"
+                                            placeholder="Key ID"
+                                            value={apiKeyId}
+                                            onChange={(e) => setApiKeyId(e.target.value)}
+                                            className="csv-input-url-input"
+                                        />
+                                    </div>
+                                    <div className="csv-input-group" style={{ marginTop: '10px' }}>
+                                        <label htmlFor="socrataApiKeySecret">API Key Secret</label>
+                                        <input
+                                            id="socrataApiKeySecret"
+                                            type="password"
+                                            placeholder="Key Secret"
+                                            value={apiKeySecret}
+                                            onChange={(e) => setApiKeySecret(e.target.value)}
+                                            className="csv-input-url-input"
+                                        />
+                                    </div>
+                                    <span className="csv-input-help-text">
+                                        Leave empty to use SOCRATA_API_KEY_ID / SOCRATA_API_KEY_SECRET from .env
+                                    </span>
+                                </div>
+                            )}
+                        </>
                     )}
+
                     <p className="csv-input-help-text" style={{ marginTop: '10px' }}>
                         Fetches metadata and CSV data, then pre-populates existing descriptions
                     </p>

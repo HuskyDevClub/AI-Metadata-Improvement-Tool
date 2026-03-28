@@ -96,6 +96,71 @@
     cursor: not-allowed;
 }
 
+.csv-input-oauth-section {
+    margin-top: 15px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+}
+
+.csv-input-oauth-btn {
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background: white;
+    color: var(--text);
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.csv-input-oauth-btn:hover:not(:disabled) {
+    background: var(--surface);
+    border-color: var(--accent);
+}
+
+.csv-input-oauth-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.csv-input-oauth-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.csv-input-oauth-logout {
+    font-size: 13px;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+}
+
+.csv-input-oauth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 15px 0;
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.csv-input-oauth-divider::before,
+.csv-input-oauth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
 @media (max-width: 768px) {
     .csv-input-url-input {
         width: 100%;

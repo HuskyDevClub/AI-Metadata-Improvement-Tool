@@ -1,10 +1,17 @@
 import type { ReactNode } from 'react';
-import { createContext, useCallback, useContext, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useOpenAI } from '../hooks/useOpenAI';
 import { useComparisonGeneration } from '../hooks/useComparisonGeneration';
 import { generateJudgeSystemPrompt, useComparisonState } from '../hooks/useComparisonState';
-import { fetchSocrataImport, parseFile, parseUrl, pushSocrataMetadata } from '../utils/csvParser';
+import {
+    fetchSocrataImport,
+    fetchSocrataOAuthLoginUrl,
+    fetchSocrataOAuthUserInfo,
+    parseFile,
+    parseUrl,
+    pushSocrataMetadata,
+} from '../utils/csvParser';
 import {
     analyzeColumn,
     buildSampleRows,
@@ -88,6 +95,13 @@ interface AppContextType {
     socrataCredentials: { appToken?: string; apiKeyId?: string; apiKeySecret?: string };
     socrataFieldNameMap: Record<string, string>;
     isPushingSocrata: boolean;
+
+    // Socrata OAuth
+    socrataOAuthToken: string | null;
+    socrataOAuthUser: { id: string; displayName: string; email?: string } | null;
+    isSocrataOAuthAuthenticating: boolean;
+    handleSocrataOAuthLogin: () => Promise<void>;
+    handleSocrataOAuthLogout: () => void;
 
     // Comparison state
     comparisonEnabled: boolean;
@@ -211,7 +225,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }>({});
     const [socrataFieldNameMap, setSocrataFieldNameMap] = useState<Record<string, string>>({});
     const [isPushingSocrata, setIsPushingSocrata] = useState(false);
+    const [socrataOAuthToken, setSocrataOAuthToken] = useState<string | null>(null);
+    const [socrataOAuthUser, setSocrataOAuthUser] = useState<{
+        id: string; displayName: string; email?: string;
+    } | null>(null);
+    const [isSocrataOAuthAuthenticating, setIsSocrataOAuthAuthenticating] = useState(false);
     const [isGeneratingEmpty, setIsGeneratingEmpty] = useState(false);
+
+    // Socrata OAuth: detect token in URL fragment on mount
+    useEffect(() => {
+        const hash = window.location.hash;
+        if (hash.startsWith('#oauth_token=')) {
+            const token = hash.slice('#oauth_token='.length);
+            window.history.replaceState(null, '', window.location.pathname);
+
+            setSocrataOAuthToken(token);
+            setIsSocrataOAuthAuthenticating(true);
+
+            fetchSocrataOAuthUserInfo(token)
+                .then((user) => {
+                    setSocrataOAuthUser(user);
+                    setStatus({ message: `Signed in to data.wa.gov as ${user.displayName}`, type: 'success' });
+                })
+                .catch(() => {
+                    setSocrataOAuthToken(null);
+                    setStatus({ message: 'OAuth sign-in failed: could not verify token', type: 'error' });
+                })
+                .finally(() => setIsSocrataOAuthAuthenticating(false));
+        } else if (hash.startsWith('#oauth_error=')) {
+            const error = decodeURIComponent(hash.slice('#oauth_error='.length));
+            window.history.replaceState(null, '', window.location.pathname);
+            setStatus({ message: `OAuth sign-in failed: ${error}`, type: 'error' });
+        }
+    }, []);
+
+    const handleSocrataOAuthLogin = useCallback(async () => {
+        setIsSocrataOAuthAuthenticating(true);
+        try {
+            const authUrl = await fetchSocrataOAuthLoginUrl();
+            window.location.href = authUrl;
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : 'Unknown error';
+            setStatus({ message: `OAuth error: ${detail}`, type: 'error' });
+            setIsSocrataOAuthAuthenticating(false);
+        }
+    }, []);
+
+    const handleSocrataOAuthLogout = useCallback(() => {
+        setSocrataOAuthToken(null);
+        setSocrataOAuthUser(null);
+        setStatus({ message: 'Signed out from data.wa.gov', type: 'info' });
+    }, []);
 
     // Comparison Mode State (extracted to custom hook)
     const comparison = useComparisonState();
@@ -1230,7 +1294,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
             try {
                 setStatus({ message: 'Importing dataset from data.wa.gov...', type: 'info' });
-                const result = await fetchSocrataImport(datasetId, appToken, apiKeyId, apiKeySecret);
+                const result = await fetchSocrataImport(
+                    datasetId, appToken, apiKeyId, apiKeySecret,
+                    socrataOAuthToken || undefined,
+                );
 
                 if (!result.data || result.data.length === 0) {
                     setStatus({ message: 'No data found in dataset', type: 'error' });
@@ -1290,7 +1357,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 setIsProcessing(false);
             }
         },
-        [comparisonEnabled, resetComparisonState]
+        [comparisonEnabled, resetComparisonState, socrataOAuthToken]
     );
 
     const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
@@ -1428,6 +1495,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 socrataCredentials.appToken,
                 socrataCredentials.apiKeyId,
                 socrataCredentials.apiKeySecret,
+                socrataOAuthToken || undefined,
             );
 
             setStatus({ message: result.message, type: 'success' });
@@ -1437,7 +1505,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsPushingSocrata(false);
         }
-    }, [socrataDatasetId, generatedResults, socrataFieldNameMap, socrataCredentials]);
+    }, [socrataDatasetId, generatedResults, socrataFieldNameMap, socrataCredentials, socrataOAuthToken]);
 
     const getColumnGeneratingModels = useCallback((columnName: string): Set<number> => {
         const result = new Set<number>();
@@ -1565,6 +1633,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         socrataCredentials,
         socrataFieldNameMap,
         isPushingSocrata,
+        socrataOAuthToken,
+        socrataOAuthUser,
+        isSocrataOAuthAuthenticating,
+        handleSocrataOAuthLogin,
+        handleSocrataOAuthLogout,
         comparisonEnabled,
         comparisonConfig,
         datasetComparison,

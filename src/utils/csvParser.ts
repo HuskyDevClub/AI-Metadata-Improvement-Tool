@@ -90,12 +90,13 @@ export async function pushSocrataMetadata(
     columns: { fieldName: string; description: string }[],
     appToken?: string,
     apiKeyId?: string,
-    apiKeySecret?: string
+    apiKeySecret?: string,
+    oauthToken?: string,
 ): Promise<SocrataExportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datasetId, appToken, apiKeyId, apiKeySecret, datasetDescription, columns }),
+        body: JSON.stringify({ datasetId, appToken, apiKeyId, apiKeySecret, oauthToken, datasetDescription, columns }),
     });
 
     if (!response.ok) {
@@ -110,12 +111,13 @@ export async function fetchSocrataImport(
     datasetId: string,
     appToken?: string,
     apiKeyId?: string,
-    apiKeySecret?: string
+    apiKeySecret?: string,
+    oauthToken?: string,
 ): Promise<SocrataImportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datasetId, appToken, apiKeyId, apiKeySecret }),
+        body: JSON.stringify({ datasetId, appToken, apiKeyId, apiKeySecret, oauthToken }),
     });
 
     if (!response.ok) {
@@ -144,4 +146,28 @@ export async function fetchSocrataImport(
             },
         });
     });
+}
+
+export async function fetchSocrataOAuthLoginUrl(): Promise<string> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/socrata/login`);
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.detail || `Failed to get OAuth URL (${response.status})`);
+    }
+    const result = await response.json();
+    return result.authUrl;
+}
+
+export async function fetchSocrataOAuthUserInfo(
+    oauthToken: string,
+): Promise<{ id: string; displayName: string; email?: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/socrata/userinfo`, {
+        method: 'POST',
+        headers: { 'Authorization': `OAuth ${oauthToken}` },
+    });
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.detail || `Failed to fetch user info (${response.status})`);
+    }
+    return response.json();
 }

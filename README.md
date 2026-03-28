@@ -46,102 +46,26 @@ metadata automatically.
 
 ## Getting Started
 
-### Prerequisites
+See [DEPLOYMENT.md](DEPLOYMENT.md) for full installation, environment setup, OAuth configuration, and deployment instructions.
 
-- Node.js 24+ (for frontend build)
-- Python 3.11+ (for backend)
-- An LLM provider — any of the following:
-  - [Ollama](https://ollama.com/) (local, auto-discovered)
-  - [LM Studio](https://lmstudio.ai/) (local, auto-discovered)
-  - [HuggingFace](https://huggingface.co/) (API key required)
-  - Azure OpenAI or any OpenAI-compatible API
-- A Socrata Open Data API App Token (for fetching data from government data portals — can be entered via the UI or
-  pre-configured in environment variables)
-
-### Installation
+**Quick start:**
 
 ```bash
-# Install frontend dependencies
+# Install dependencies
 npm install
+cd backend && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && cd ..
 
-# Install backend dependencies
-cd backend
-python3 -m venv venv  # On Windows: python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cd ..
-```
+# Copy environment files
+cp .env.example .env
+cp backend/.env.example backend/.env
 
-### Environment Setup
-
-1. Copy the example environment files:
-   ```bash
-   cp .env.example .env
-   cp backend/.env.example backend/.env
-   ```
-
-2. Configure the frontend `.env` file (optional for local development):
-   ```env
-   # Backend API URL (defaults to http://localhost:8000)
-   VITE_API_BASE_URL=http://localhost:8000
-   
-   # Optional: Pre-fill API configuration in the UI (works with any OpenAI-compatible endpoint)
-   VITE_AZURE_ENDPOINT=https://api.openai.com/v1
-   VITE_AZURE_KEY=your-api-key
-   VITE_AZURE_MODEL=gpt5-mini
-   
-   # Optional: Pre-fill comparison mode models
-   VITE_COMPARISON_MODEL_A=
-   VITE_COMPARISON_MODEL_B=
-   VITE_COMPARISON_JUDGE_MODEL=
-   
-   # Optional: Pre-fill Socrata API token in the UI
-   VITE_SOCRATA_APP_TOKEN=
-   ```
-
-3. Configure the backend `.env` file in the `backend/` directory:
-   ```env
-   SOCRATA_APP_TOKEN=your-socrata-app-token
-   
-   # Default LLM endpoint (optional — can also be set via frontend UI)
-   # Works with any OpenAI-compatible API (OpenAI, Azure, HuggingFace, etc.)
-   AZURE_ENDPOINT=https://api.openai.com/v1
-   AZURE_KEY=your-api-key
-   AZURE_MODEL=gpt5-mini
-   
-   # Local providers (optional — auto-discovered if running)
-   OLLAMA_HOST=http://localhost:11434
-   LM_STUDIO_URL=http://localhost:1234/v1
-   
-   # HuggingFace (optional — requires API key)
-   HF_API_KEY=
-   HF_API_URL=https://router.huggingface.co/v1
-   
-   # Server Configuration
-   PORT=8000
-   ```
-
-### Development
-
-Start both the frontend and backend:
-
-```bash
-# Terminal 1: Start the backend server
-python -m backend.main
-
-# Terminal 2: Start the frontend
-npm run dev
+# Start the app
+python -m backend.main   # Terminal 1: backend
+npm run dev              # Terminal 2: frontend
 ```
 
 - Frontend: [http://localhost:5173](http://localhost:5173)
 - Backend: [http://localhost:8000](http://localhost:8000)
-
-### Production Build
-
-```bash
-# Build frontend for Databricks deployment
-npm run build:databricks
-```
 
 ## Usage
 
@@ -217,45 +141,9 @@ npm run build:databricks
 | AI/LLM        | OpenAI SDK — Ollama, LM Studio, HuggingFace, Azure OpenAI, OpenAI |
 | Data Platform | Tyler Technologies Data & Insights (Socrata Open Data API)        |
 
-## Databricks Apps Deployment
+## Deployment
 
-This project is designed for deployment to **Databricks Apps**.
-
-### Deploy to Databricks
-
-1. **Build the frontend** (optional — `app.yaml` builds on startup, but useful for validation):
-   ```bash
-   npm install
-   npm run build:databricks
-   ```
-
-2. **Configure environment variables** in your Databricks workspace (optional):
-
-   - `SOCRATA_APP_TOKEN`: Your Socrata API token
-   - `AZURE_ENDPOINT`: LLM API endpoint URL (any OpenAI-compatible endpoint)
-   - `AZURE_KEY`: LLM API key
-   - `AZURE_MODEL`: Model name (e.g., `gpt5-mini`, `Qwen3-4B-Instruct-2507`, `mistralai/Ministral-3-8B-Instruct-2512`)
-   - `HF_API_KEY`: HuggingFace API key
-   - `HF_API_URL`: HuggingFace Router URL
-
-3. **Deploy using Databricks CLI**:
-   ```bash
-   # Create the app (first time only)
-   databricks apps create ai-metadata-tool
-   
-   # Sync source code to workspace
-   databricks sync . /Workspace/Users/<your-email>/ai-metadata-tool
-   
-   # Deploy the app
-   databricks apps deploy ai-metadata-tool \
-     --source-code-path /Workspace/Users/<your-email>/ai-metadata-tool
-   ```
-
-4. **Or deploy via Databricks UI**:
-   - Go to your Databricks workspace
-   - Navigate to **Compute** > **Apps**
-   - Click **Create App**, configure the app name and settings
-   - Upload the project files or connect to a Git repository
+See [DEPLOYMENT.md](DEPLOYMENT.md) for Databricks Apps deployment, OAuth setup, and production configuration.
 
 ## OpenAI-Compatible API Support
 

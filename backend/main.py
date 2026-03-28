@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from openai import APIStatusError, AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
@@ -44,6 +45,8 @@ from .models import (
     SocrataExportResponse,
     SocrataImportRequest,
     SocrataImportResponse,
+    SocrataOAuthLoginResponse,
+    SocrataOAuthUserInfo,
 )
 
 # Load environment variables from .env file
@@ -53,6 +56,13 @@ load_dotenv()
 SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
 SOCRATA_API_KEY_ID = os.getenv("SOCRATA_API_KEY_ID", "")
 SOCRATA_API_KEY_SECRET = os.getenv("SOCRATA_API_KEY_SECRET", "")
+SOCRATA_OAUTH_CLIENT_ID = os.getenv("SOCRATA_OAUTH_CLIENT_ID", "")
+SOCRATA_OAUTH_CLIENT_SECRET = os.getenv("SOCRATA_OAUTH_CLIENT_SECRET", "")
+SOCRATA_OAUTH_REDIRECT_URI = os.getenv(
+    "SOCRATA_OAUTH_REDIRECT_URI",
+    "http://localhost:8000/api/auth/socrata/callback",
+)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "")
 AZURE_KEY = os.getenv("AZURE_KEY", "")
 AZURE_MODEL = os.getenv("AZURE_MODEL", "")
@@ -126,6 +136,108 @@ async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
         raise HTTPException(status_code=500, detail=f"Failed to fetch CSV: {str(e)}")
 
 
+# Socrata OAuth endpoints
+@app.get("/api/auth/socrata/login", response_model=SocrataOAuthLoginResponse)
+async def socrata_oauth_login() -> SocrataOAuthLoginResponse:
+    """Return the OAuth authorization URL for data.wa.gov sign-in."""
+    if not SOCRATA_OAUTH_CLIENT_ID:
+        raise HTTPException(
+            status_code=400,
+            detail="OAuth not configured. Set SOCRATA_OAUTH_CLIENT_ID in the environment.",
+        )
+    params = urlencode(
+        {
+            "client_id": SOCRATA_OAUTH_CLIENT_ID,
+            "response_type": "code",
+            "redirect_uri": SOCRATA_OAUTH_REDIRECT_URI,
+        }
+    )
+    auth_url = f"https://data.wa.gov/oauth/authorize?{params}"
+    return SocrataOAuthLoginResponse(authUrl=auth_url)
+
+
+@app.get("/api/auth/socrata/callback")
+async def socrata_oauth_callback(code: str | None = None, error: str | None = None):
+    """OAuth callback — exchanges authorization code for access token, redirects to frontend."""
+    base = FRONTEND_URL.rstrip("/") if FRONTEND_URL else ""
+
+    if error:
+        return RedirectResponse(url=f"{base}/#oauth_error={error}")
+
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing authorization code")
+
+    if not SOCRATA_OAUTH_CLIENT_ID or not SOCRATA_OAUTH_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="OAuth not configured on server")
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            token_resp = await client.post(
+                "https://data.wa.gov/oauth/access_token",
+                data={
+                    "client_id": SOCRATA_OAUTH_CLIENT_ID,
+                    "client_secret": SOCRATA_OAUTH_CLIENT_SECRET,
+                    "grant_type": "authorization_code",
+                    "redirect_uri": SOCRATA_OAUTH_REDIRECT_URI,
+                    "code": code,
+                },
+            )
+
+            if token_resp.status_code != 200:
+                logger.error("OAuth token exchange failed: %s", token_resp.text)
+                return RedirectResponse(
+                    url=f"{base}/#oauth_error=token_exchange_failed"
+                )
+
+            token_data = token_resp.json()
+            access_token = token_data.get("access_token")
+
+            if not access_token:
+                return RedirectResponse(url=f"{base}/#oauth_error=no_access_token")
+
+            return RedirectResponse(url=f"{base}/#oauth_token={access_token}")
+
+    except Exception as e:
+        logger.exception("OAuth callback error: %s", str(e))
+        return RedirectResponse(url=f"{base}/#oauth_error=server_error")
+
+
+@app.post("/api/auth/socrata/userinfo", response_model=SocrataOAuthUserInfo)
+async def socrata_oauth_userinfo(request: Request) -> SocrataOAuthUserInfo:
+    """Fetch the current authenticated user's info from data.wa.gov."""
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("OAuth "):
+        raise HTTPException(status_code=401, detail="Missing OAuth token")
+
+    token = auth_header[6:]
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                "https://data.wa.gov/api/users/current.json",
+                headers={"Authorization": f"OAuth {token}"},
+            )
+
+            if resp.status_code != 200:
+                raise HTTPException(
+                    status_code=401, detail="Invalid or expired OAuth token"
+                )
+
+            user_data = resp.json()
+            return SocrataOAuthUserInfo(
+                id=user_data.get("id", ""),
+                displayName=user_data.get("displayName", ""),
+                email=user_data.get("email"),
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("OAuth userinfo error: %s", str(e))
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch user info: {str(e)}"
+        )
+
+
 # Socrata import endpoint — fetches metadata + CSV in one request
 @app.post("/api/socrata/import", response_model=SocrataImportResponse)
 async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse:
@@ -134,18 +246,22 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
 
     dataset_id = request.datasetId.strip()
 
-    # Build auth headers
+    # Build auth headers — OAuth token takes precedence over API keys
     headers: dict[str, str] = {}
-    token = request.appToken or SOCRATA_APP_TOKEN
-    if token:
-        headers["X-App-Token"] = token
-
-    # HTTP Basic Auth for private datasets (request overrides env vars)
     auth = None
-    key_id = request.apiKeyId or SOCRATA_API_KEY_ID
-    key_secret = request.apiKeySecret or SOCRATA_API_KEY_SECRET
-    if key_id and key_secret:
-        auth = (key_id, key_secret)
+
+    if request.oauthToken:
+        headers["Authorization"] = f"OAuth {request.oauthToken}"
+    else:
+        token = request.appToken or SOCRATA_APP_TOKEN
+        if token:
+            headers["X-App-Token"] = token
+
+        # HTTP Basic Auth for private datasets (request overrides env vars)
+        key_id = request.apiKeyId or SOCRATA_API_KEY_ID
+        key_secret = request.apiKeySecret or SOCRATA_API_KEY_SECRET
+        if key_id and key_secret:
+            auth = (key_id, key_secret)
 
     metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
     csv_url = f"https://data.wa.gov/api/views/{dataset_id}/rows.csv?accessType=DOWNLOAD"
@@ -211,21 +327,26 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
 
     dataset_id = request.datasetId.strip()
 
-    # Build auth — write operations require API Key (HTTP Basic Auth)
-    key_id = request.apiKeyId or SOCRATA_API_KEY_ID
-    key_secret = request.apiKeySecret or SOCRATA_API_KEY_SECRET
-    if not key_id or not key_secret:
-        raise HTTPException(
-            status_code=400,
-            detail="API Key ID and Secret are required to update metadata on data.wa.gov. "
-            "Provide them in the UI or set SOCRATA_API_KEY_ID and SOCRATA_API_KEY_SECRET in the environment.",
-        )
-    auth = (key_id, key_secret)
-
+    # Build auth — write operations require OAuth token or API Key
     headers: dict[str, str] = {"Content-Type": "application/json"}
-    token = request.appToken or SOCRATA_APP_TOKEN
-    if token:
-        headers["X-App-Token"] = token
+    auth = None
+
+    if request.oauthToken:
+        headers["Authorization"] = f"OAuth {request.oauthToken}"
+    else:
+        key_id = request.apiKeyId or SOCRATA_API_KEY_ID
+        key_secret = request.apiKeySecret or SOCRATA_API_KEY_SECRET
+        if not key_id or not key_secret:
+            raise HTTPException(
+                status_code=400,
+                detail="Authentication required to update metadata on data.wa.gov. "
+                "Sign in with OAuth or provide API Key ID and Secret.",
+            )
+        auth = (key_id, key_secret)
+
+        token = request.appToken or SOCRATA_APP_TOKEN
+        if token:
+            headers["X-App-Token"] = token
 
     metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
 
@@ -270,7 +391,7 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
             put_resp = await client.put(
                 metadata_url,
                 headers=headers,
-                auth=auth,
+                auth=auth,  # type: ignore[arg-type]
                 json=update_payload,
             )
 
