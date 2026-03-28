@@ -13,7 +13,7 @@ export function OpenAIConfig({
                                  showModel = true,
                              }: OpenAIConfigProps) {
     const handleChange = (field: keyof OpenAIConfigType, value: string) => {
-        onChange({...config, [field]: value});
+        onChange({ ...config, [field]: value });
     };
 
     return (

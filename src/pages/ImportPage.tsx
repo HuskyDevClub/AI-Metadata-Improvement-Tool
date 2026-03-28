@@ -27,7 +27,7 @@ export function ImportPage() {
 
     return (
         <div className="import-page">
-            <HowItWorks />
+            <HowItWorks/>
 
             <div className="import-page-section">
                 <CsvInput

@@ -6,19 +6,19 @@
 .side-panel {
     display: flex;
     flex-direction: column;
-    background: #fff;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     overflow: hidden;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.15s;
 }
 
 .side-panel.loser {
-    opacity: 0.8;
+    opacity: 0.7;
 }
 
 .side-panel.tie {
-    border-color: #9ca3af;
+    border-color: var(--text-tertiary);
 }
 
 .panel-header {
@@ -26,13 +26,14 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 14px;
-    background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
+    background: var(--surface-secondary);
+    border-bottom: 1px solid var(--border);
 }
 
 .panel-label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
+    color: var(--text);
 }
 
 .winner-badge {
@@ -43,29 +44,29 @@
     background: #fef08a;
     color: #854d0e;
     text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .panel-content {
     flex: 1;
-    padding: 14px;
+    padding: 16px;
     font-size: 14px;
     line-height: 1.6;
-    color: #374151;
+    color: var(--text-secondary);
     min-height: 80px;
 }
 
 .placeholder {
-    color: #9ca3af;
+    color: var(--text-tertiary);
     font-style: italic;
 }
 
 .streaming-cursor {
     display: inline-block;
     animation: blink 0.8s infinite;
-    color: #6366f1;
+    color: var(--accent);
     font-weight: bold;
 }
-
 
 @media (max-width: 768px) {
     .side-by-side-view {

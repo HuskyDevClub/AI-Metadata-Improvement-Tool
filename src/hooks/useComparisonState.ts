@@ -9,7 +9,7 @@ import type {
     TokenUsage,
 } from '../types';
 
-const EMPTY_TOKEN_USAGE: TokenUsage = {promptTokens: 0, completionTokens: 0, totalTokens: 0};
+const EMPTY_TOKEN_USAGE: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
 const DEFAULT_SCORING_CATEGORIES: ScoringCategory[] = [
     {
@@ -61,7 +61,7 @@ export function generateJudgeSystemPrompt(
     slotCount: number,
     labelPrefix: string = 'Model'
 ): string {
-    const slotLabels = Array.from({length: slotCount}, (_, i) => `${labelPrefix} ${i + 1}`);
+    const slotLabels = Array.from({ length: slotCount }, (_, i) => `${labelPrefix} ${i + 1}`);
     const categoryLines = categories
         .map((cat, i) => `${i + 1}. ${cat.label.toUpperCase()} (${cat.minScore}-${cat.maxScore}) - ${cat.description}`)
         .join('\n');
@@ -71,12 +71,12 @@ export function generateJudgeSystemPrompt(
         .join(',\n');
 
     // Build model JSON blocks matching the backend schema (model1, model2, ...)
-    const modelBlocks = Array.from({length: slotCount}, (_, i) => {
+    const modelBlocks = Array.from({ length: slotCount }, (_, i) => {
         const key = `model${i + 1}`;
         return `    "${key}": {\n${scoreFields},\n        "reasoning": "<brief explanation for ${slotLabels[i]} scores>"\n    }`;
     }).join(',\n');
 
-    const winnerOptions = Array.from({length: slotCount}, (_, i) => String(i + 1)).join(', ');
+    const winnerOptions = Array.from({ length: slotCount }, (_, i) => String(i + 1)).join(', ');
 
     return `You are an expert evaluator assessing metadata descriptions for government open data.
 You will compare ${slotCount} candidate descriptions (${slotLabels.join(', ')}) and score each on the following metrics:
@@ -95,7 +95,7 @@ export function generateDefaultEvaluationPrompt(
     slotCount: number,
     labelPrefix: string = 'Model'
 ): string {
-    const candidateBlocks = Array.from({length: slotCount}, (_, i) =>
+    const candidateBlocks = Array.from({ length: slotCount }, (_, i) =>
         `${labelPrefix.toUpperCase()} ${i + 1}:\n{output_${i}}`
     ).join('\n\n');
 
@@ -135,9 +135,9 @@ function createInitialConfig(slotCount: number): ComparisonConfig {
 
 function createInitialTokenUsage(slotCount: number): ComparisonTokenUsage {
     return {
-        models: Array(slotCount).fill(null).map(() => ({...EMPTY_TOKEN_USAGE})),
-        judge: {...EMPTY_TOKEN_USAGE},
-        total: {...EMPTY_TOKEN_USAGE},
+        models: Array(slotCount).fill(null).map(() => ({ ...EMPTY_TOKEN_USAGE })),
+        judge: { ...EMPTY_TOKEN_USAGE },
+        total: { ...EMPTY_TOKEN_USAGE },
     };
 }
 
@@ -218,9 +218,9 @@ export function useComparisonState() {
     ) => {
         setComparisonTokenUsage((prev) => {
             const newUsage = {
-                models: prev.models.map(m => ({...m})),
-                judge: {...prev.judge},
-                total: {...prev.total},
+                models: prev.models.map(m => ({ ...m })),
+                judge: { ...prev.judge },
+                total: { ...prev.total },
             };
             if (slot.type === 'model') {
                 const i = slot.index;

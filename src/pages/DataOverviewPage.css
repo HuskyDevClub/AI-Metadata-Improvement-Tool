@@ -1,8 +1,6 @@
 .data-overview-page {
-    /* spacing handled by content wrapper */
 }
 
-/* Field Table Controls */
 .field-table-controls {
     display: flex;
     align-items: center;
@@ -20,52 +18,51 @@
 
 .field-table-select-label {
     font-size: 13px;
-    color: var(--text-light);
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
 .field-table-select-btn {
     padding: 4px 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: var(--bg-white);
-    color: var(--text-medium);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-secondary);
     font-size: 12px;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    transition: all 0.15s;
 }
 
 .field-table-select-btn:hover {
-    background: var(--bg-light);
-    border-color: var(--primary-start);
-    color: var(--primary-start);
+    background: var(--surface-secondary);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .field-table-generate-btn {
     padding: 7px 16px;
     border: none;
-    border-radius: 6px;
-    background: var(--primary-start);
+    border-radius: var(--radius-sm);
+    background: var(--accent);
     color: #fff;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s, opacity 0.2s;
+    transition: background 0.15s;
 }
 
 .field-table-generate-btn:hover:not(:disabled) {
-    background: var(--primary-end);
+    background: var(--accent-hover);
 }
 
 .field-table-generate-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
-/* Field Table */
 .field-table-wrapper {
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     overflow: hidden;
 }
 
@@ -77,47 +74,49 @@
 
 .field-table th {
     text-align: left;
-    padding: 10px 14px;
-    background: var(--bg-lighter);
+    padding: 10px 16px;
+    background: var(--surface-secondary);
     font-weight: 600;
-    color: var(--text-dark);
-    font-size: 13px;
-    border-bottom: 2px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
 }
 
 .field-table td {
-    padding: 10px 14px;
-    border-bottom: 1px solid #f0f0f0;
-    color: var(--text-medium);
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-secondary);
     vertical-align: middle;
 }
 
 .field-table tbody tr:hover {
-    background: #fafbff;
+    background: var(--surface-secondary);
 }
 
 .field-row-selected {
-    background: #f0f4ff !important;
+    background: var(--accent-light) !important;
 }
 
 .field-table-th-check,
 .field-table-td-check {
-    width: 36px;
+    width: 40px;
     text-align: center;
 }
 
 .field-table-td-check input,
 .field-table-th-check input {
     cursor: pointer;
+    accent-color: var(--accent);
 }
 
-/* Field name link */
 .field-name-link {
     background: none;
     border: none;
     padding: 0;
     font: inherit;
-    color: var(--primary-start);
+    color: var(--accent);
     text-decoration: none;
     font-weight: 500;
     cursor: pointer;
@@ -125,82 +124,79 @@
 }
 
 .field-name-link:hover {
-    color: var(--primary-end);
+    color: var(--accent-hover);
     text-decoration: underline;
 }
 
-/* Type badges */
 .field-type-badge {
     display: inline-block;
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.03em;
 }
 
 .field-type-numeric {
-    background: #e3f2fd;
-    color: #1565c0;
+    background: #eff6ff;
+    color: #2563eb;
 }
 
 .field-type-categorical {
-    background: #f3e5f5;
-    color: #7b1fa2;
+    background: #f5f3ff;
+    color: #7c3aed;
 }
 
 .field-type-text {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: #ecfdf5;
+    color: #059669;
 }
 
 .field-type-empty {
-    background: var(--bg-lighter);
-    color: var(--text-lighter);
+    background: var(--surface-tertiary);
+    color: var(--text-tertiary);
 }
 
-/* Description cell */
 .field-desc-cell {
     max-width: 400px;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
 .field-no-desc {
-    color: var(--text-lighter);
+    color: var(--text-tertiary);
     font-style: italic;
 }
 
 .field-generating {
-    color: var(--text-medium);
+    color: var(--text-secondary);
 }
 
 .field-cursor {
     animation: blink 1s infinite;
     font-weight: bold;
-    color: var(--primary-start);
+    color: var(--accent);
 }
 
-/* Status badges */
 .field-status-badge {
     display: inline-block;
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 600;
 }
 
 .field-status-done {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--success-bg);
+    color: var(--success);
 }
 
 .field-status-empty {
-    background: #fff3e0;
-    color: #e65100;
+    background: var(--warning-bg);
+    color: var(--warning);
 }
 
 .field-status-generating {
-    background: #e3f2fd;
-    color: #1565c0;
+    background: var(--accent-light);
+    color: var(--accent);
 }

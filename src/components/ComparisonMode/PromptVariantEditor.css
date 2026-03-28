@@ -1,8 +1,8 @@
 .prompt-variant-card {
-    background: white;
-    border-radius: 8px;
-    padding: 12px;
-    border: 2px solid #e5e7eb;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    border: 1px solid var(--border);
     width: 100%;
     box-sizing: border-box;
 }
@@ -15,8 +15,9 @@
 }
 
 .prompt-variant-header label {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
+    color: var(--text-secondary);
 }
 
 .prompt-variant-label-row {
@@ -26,18 +27,19 @@
 .prompt-variant-label-input {
     width: 100%;
     padding: 6px 10px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     font-size: 13px;
-    background: white;
+    background: var(--surface);
+    color: var(--text);
     box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .prompt-variant-label-input:focus {
     outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .prompt-variant-sections {
@@ -47,13 +49,13 @@
 }
 
 .prompt-variant-section {
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .prompt-variant-section-toggle {
     font-size: 12px;
     font-weight: 500;
-    color: #6b7280;
+    color: var(--text-tertiary);
     cursor: pointer;
     padding: 4px 0;
     user-select: none;
@@ -73,25 +75,26 @@
 }
 
 .prompt-variant-section-toggle:hover {
-    color: #374151;
+    color: var(--text);
 }
 
 .prompt-variant-textarea {
     width: 100%;
     padding: 8px 10px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     font-size: 12px;
-    font-family: monospace;
-    background: white;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    background: var(--surface);
+    color: var(--text);
     box-sizing: border-box;
     resize: vertical;
     margin-top: 4px;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .prompt-variant-textarea:focus {
     outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }

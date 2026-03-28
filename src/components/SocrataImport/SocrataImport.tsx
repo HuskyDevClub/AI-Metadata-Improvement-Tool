@@ -6,7 +6,7 @@ interface SocrataImportProps {
     disabled?: boolean;
 }
 
-export function SocrataImport({onImport, disabled}: SocrataImportProps) {
+export function SocrataImport({ onImport, disabled }: SocrataImportProps) {
     const [datasetId, setDatasetId] = useState('');
     const [appToken, setAppToken] = useState(import.meta.env.VITE_SOCRATA_APP_TOKEN || '');
     const [showApiKey, setShowApiKey] = useState(false);

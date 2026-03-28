@@ -6,10 +6,10 @@
 .compare-page-empty {
     text-align: center;
     padding: 48px 24px;
-    background: var(--bg-light);
-    border: 1px dashed var(--border-color);
-    border-radius: var(--radius-sm);
-    color: var(--text-medium);
+    background: var(--surface-secondary);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
 }
 
 .compare-page-disabled p:first-child,
@@ -20,7 +20,7 @@
 
 .compare-page-hint {
     font-size: 13px;
-    color: var(--text-light);
+    color: var(--text-tertiary);
 }
 
 .compare-page-link {
@@ -28,8 +28,7 @@
     border: none;
     padding: 0;
     font: inherit;
-    color: var(--primary-start);
-    text-decoration: none;
+    color: var(--accent);
     font-weight: 500;
     cursor: pointer;
 }

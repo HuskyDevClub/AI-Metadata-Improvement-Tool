@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { ComparisonSubMode, PromptTemplates, ScoringCategory } from '../../types';
 import './PromptEditor.css';
 
@@ -27,8 +26,6 @@ export function PromptEditor({
                                  scoringCategories,
                                  onScoringCategoriesChange,
                              }: PromptEditorProps) {
-    const [isCollapsed, setIsCollapsed] = useState(true);
-
     const hideGlobalPrompts = comparisonEnabled && comparisonSubMode === 'prompts';
     const showJudgeSection = comparisonEnabled;
 
@@ -40,9 +37,9 @@ export function PromptEditor({
             const key = value.trim().split(/\s+/)
                 .map((w, i) => i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
                 .join('');
-            updated[index] = {...updated[index], label: value, key};
+            updated[index] = { ...updated[index], label: value, key };
         } else {
-            updated[index] = {...updated[index], [field]: value};
+            updated[index] = { ...updated[index], [field]: value };
         }
         onScoringCategoriesChange(updated);
     };
@@ -52,7 +49,7 @@ export function PromptEditor({
         const key = `category_${Date.now()}`;
         onScoringCategoriesChange([
             ...scoringCategories,
-            {key, label: '', description: '', minScore: 0, maxScore: 10},
+            { key, label: '', description: '', minScore: 0, maxScore: 10 },
         ]);
     };
 
@@ -63,20 +60,17 @@ export function PromptEditor({
 
     return (
         <div className="prompt-editor-section">
-            <div
-                className={`prompt-editor-section-title prompt-editor-toggle ${isCollapsed ? 'collapsed' : ''}`}
-                onClick={() => setIsCollapsed(!isCollapsed)}
-            >
+            <div className="prompt-editor-section-title">
                 Customize AI Prompts (Optional)
             </div>
-            <div className={`prompt-editor-content ${isCollapsed ? 'content-collapsed' : ''}`}>
+            <div className="prompt-editor-content">
                 {!hideGlobalPrompts && (
                     <>
                         <div className="prompt-editor-box">
                             <h4>System Prompt</h4>
                             <textarea
                                 value={templates.systemPrompt}
-                                onChange={(e) => onChange({...templates, systemPrompt: e.target.value})}
+                                onChange={(e) => onChange({ ...templates, systemPrompt: e.target.value })}
                             />
                             <p className="prompt-editor-field-help">
                                 Instructs the AI how to generate descriptions (e.g., tone, style, focus areas). A
@@ -89,7 +83,7 @@ export function PromptEditor({
                             <h4>Dataset Description Prompt Template</h4>
                             <textarea
                                 value={templates.dataset}
-                                onChange={(e) => onChange({...templates, dataset: e.target.value})}
+                                onChange={(e) => onChange({ ...templates, dataset: e.target.value })}
                             />
                         </div>
 
@@ -97,7 +91,7 @@ export function PromptEditor({
                             <h4>Column Description Prompt Template</h4>
                             <textarea
                                 value={templates.column}
-                                onChange={(e) => onChange({...templates, column: e.target.value})}
+                                onChange={(e) => onChange({ ...templates, column: e.target.value })}
                             />
                         </div>
                         <p className="prompt-editor-help-text">
@@ -111,7 +105,7 @@ export function PromptEditor({
                 )}
 
                 {hideGlobalPrompts && (
-                    <p className="prompt-editor-help-text" style={{marginTop: 15}}>
+                    <p className="prompt-editor-help-text" style={{ marginTop: 15 }}>
                         System, dataset, and column prompts are configured per-variant in the Comparison Mode section
                         above.
                     </p>
@@ -193,7 +187,7 @@ export function PromptEditor({
                                             }}
                                             title="Min score"
                                         />
-                                        <span style={{fontSize: 12, color: '#6b7280'}}>-</span>
+                                        <span style={{ fontSize: 12, color: '#6b7280' }}>-</span>
                                         <input
                                             type="number"
                                             value={cat.maxScore}

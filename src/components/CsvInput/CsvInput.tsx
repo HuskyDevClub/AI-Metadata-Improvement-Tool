@@ -9,7 +9,7 @@ interface CsvInputProps {
     isProcessing: boolean;
 }
 
-export function CsvInput({onAnalyze, onSocrataImport, isProcessing}: CsvInputProps) {
+export function CsvInput({ onAnalyze, onSocrataImport, isProcessing }: CsvInputProps) {
     const [inputMethod, setInputMethod] = useState<InputMethod>('url');
     const [file, setFile] = useState<File | null>(null);
     const [url, setUrl] = useState('https://data.wa.gov/api/v3/views/6fex-3r7d/query.csv');
@@ -59,7 +59,7 @@ export function CsvInput({onAnalyze, onSocrataImport, isProcessing}: CsvInputPro
             </div>
 
             {inputMethod === 'file' && (
-                <div className="csv-input-group" style={{marginTop: '15px'}}>
+                <div className="csv-input-group" style={{ marginTop: '15px' }}>
                     <label htmlFor="csvFile">Select CSV File *</label>
                     <div className="csv-input-file-wrapper">
                         <input
@@ -73,7 +73,7 @@ export function CsvInput({onAnalyze, onSocrataImport, isProcessing}: CsvInputPro
             )}
 
             {inputMethod === 'url' && (
-                <div style={{marginTop: '15px'}}>
+                <div style={{ marginTop: '15px' }}>
                     <div className="csv-input-group">
                         <label htmlFor="csvUrl">CSV URL *</label>
                         <input
@@ -86,7 +86,7 @@ export function CsvInput({onAnalyze, onSocrataImport, isProcessing}: CsvInputPro
                         />
                         <span className="csv-input-help-text">Direct link to a CSV file</span>
                     </div>
-                    <div className="csv-input-group" style={{marginTop: '15px'}}>
+                    <div className="csv-input-group" style={{ marginTop: '15px' }}>
                         <label htmlFor="socrataToken">Socrata API Token</label>
                         <input
                             id="socrataToken"
@@ -102,7 +102,7 @@ export function CsvInput({onAnalyze, onSocrataImport, isProcessing}: CsvInputPro
             )}
 
             {inputMethod === 'socrata' && (
-                <div style={{marginTop: '15px'}}>
+                <div style={{ marginTop: '15px' }}>
                     <div className="csv-input-group">
                         <label htmlFor="socrataDatasetId">Dataset ID *</label>
                         <input
@@ -115,7 +115,7 @@ export function CsvInput({onAnalyze, onSocrataImport, isProcessing}: CsvInputPro
                         />
                         <span className="csv-input-help-text">The dataset identifier from the data.wa.gov URL</span>
                     </div>
-                    <div className="csv-input-group" style={{marginTop: '15px'}}>
+                    <div className="csv-input-group" style={{ marginTop: '15px' }}>
                         <label htmlFor="socrataAppToken">Socrata App Token</label>
                         <input
                             id="socrataAppToken"
@@ -128,7 +128,7 @@ export function CsvInput({onAnalyze, onSocrataImport, isProcessing}: CsvInputPro
                         <span
                             className="csv-input-help-text">Optional — leave empty to use SOCRATA_APP_TOKEN from .env</span>
                     </div>
-                    <label className="csv-input-toggle" style={{marginTop: '15px'}}>
+                    <label className="csv-input-toggle" style={{ marginTop: '15px' }}>
                         <input
                             type="checkbox"
                             checked={showApiKey}
@@ -137,7 +137,7 @@ export function CsvInput({onAnalyze, onSocrataImport, isProcessing}: CsvInputPro
                         Private dataset (requires API Key)
                     </label>
                     {showApiKey && (
-                        <div style={{marginTop: '10px'}}>
+                        <div style={{ marginTop: '10px' }}>
                             <div className="csv-input-group">
                                 <label htmlFor="socrataApiKeyId">API Key ID</label>
                                 <input
@@ -149,7 +149,7 @@ export function CsvInput({onAnalyze, onSocrataImport, isProcessing}: CsvInputPro
                                     className="csv-input-url-input"
                                 />
                             </div>
-                            <div className="csv-input-group" style={{marginTop: '10px'}}>
+                            <div className="csv-input-group" style={{ marginTop: '10px' }}>
                                 <label htmlFor="socrataApiKeySecret">API Key Secret</label>
                                 <input
                                     id="socrataApiKeySecret"
@@ -165,7 +165,7 @@ export function CsvInput({onAnalyze, onSocrataImport, isProcessing}: CsvInputPro
                             </span>
                         </div>
                     )}
-                    <p className="csv-input-help-text" style={{marginTop: '10px'}}>
+                    <p className="csv-input-help-text" style={{ marginTop: '10px' }}>
                         Fetches metadata and CSV data, then pre-populates existing descriptions
                     </p>
                 </div>
@@ -175,7 +175,7 @@ export function CsvInput({onAnalyze, onSocrataImport, isProcessing}: CsvInputPro
                 className="csv-input-btn-primary"
                 onClick={handleSubmit}
                 disabled={isDisabled}
-                style={{marginTop: '20px'}}
+                style={{ marginTop: '20px' }}
             >
                 {buttonLabel}
             </button>

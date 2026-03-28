@@ -35,7 +35,7 @@ export function SideBySideView({
     return (
         <div
             className="side-by-side-view"
-            style={{gridTemplateColumns: `repeat(${slotCount}, 1fr)`}}
+            style={{ gridTemplateColumns: `repeat(${slotCount}, 1fr)` }}
         >
             {outputs.map((output, i) => {
                 const color = getModelColor(i);
@@ -58,7 +58,7 @@ export function SideBySideView({
                                 background: `linear-gradient(135deg, ${color.lighter} 0%, ${color.light} 100%)`,
                             }}
                         >
-                            <span className="panel-label" style={{color: color.text}}>
+                            <span className="panel-label" style={{ color: color.text }}>
                                 {modelNames[i] || `Slot ${i + 1}`}
                             </span>
                             {isWinner && <span className="winner-badge">Winner</span>}

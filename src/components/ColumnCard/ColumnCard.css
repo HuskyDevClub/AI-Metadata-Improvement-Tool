@@ -1,59 +1,58 @@
 .column-card {
-    background: white;
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    padding: 15px;
-    transition: border-color 0.3s, box-shadow 0.3s;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    transition: border-color 0.15s;
 }
 
 .column-card:hover {
-    border-color: var(--primary-start);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent-border);
 }
 
 .column-card h4 {
-    color: var(--text-dark);
+    color: var(--text);
     margin-bottom: 10px;
-    font-size: 16px;
+    font-size: 15px;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
 .column-card-type {
-    font-size: 12px;
-    padding: 3px 8px;
-    border-radius: 4px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
 }
 
 .column-card-type-categorical {
-    background: var(--info-bg);
-    color: var(--info-color);
+    background: #f5f3ff;
+    color: #7c3aed;
 }
 
 .column-card-type-numeric {
-    background: var(--success-bg);
-    color: var(--success-color);
+    background: #eff6ff;
+    color: #2563eb;
 }
 
 .column-card-type-text {
-    background: var(--warning-bg);
-    color: var(--warning-color);
+    background: #ecfdf5;
+    color: #059669;
 }
 
 .column-card-stats {
     font-size: 12px;
-    color: var(--text-light);
-    margin-bottom: 10px;
-    padding: 8px;
-    background: var(--bg-lighter);
-    border-radius: 4px;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: var(--surface-secondary);
+    border-radius: var(--radius-sm);
 }
 
 .column-card-description {
-    color: var(--text-medium);
-    line-height: 1.5;
+    color: var(--text-secondary);
+    line-height: 1.6;
     font-size: 14px;
     display: flex;
     align-items: flex-start;
@@ -67,14 +66,14 @@
 
 .column-card-edit-icon {
     cursor: pointer;
-    color: var(--primary-start);
+    color: var(--text-tertiary);
     font-size: 16px;
-    transition: color 0.3s;
+    transition: color 0.15s;
     flex-shrink: 0;
 }
 
 .column-card-edit-icon:hover {
-    color: var(--primary-end);
+    color: var(--accent);
 }
 
 .column-card-streaming {
@@ -83,7 +82,7 @@
 
 .column-card-cursor {
     display: inline-block;
-    color: var(--primary-start);
+    color: var(--accent);
     font-weight: bold;
     animation: blink 0.8s infinite;
 }
@@ -95,12 +94,19 @@
 .column-card-edit-textarea {
     width: 100%;
     min-height: 80px;
-    padding: 8px;
-    border: 2px solid var(--primary-start);
-    border-radius: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
     font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
     resize: vertical;
     margin-bottom: 8px;
+}
+
+.column-card-edit-textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .column-card-edit-actions {
@@ -110,23 +116,31 @@
 
 .column-card-btn-primary,
 .column-card-btn-secondary {
-    padding: 6px 12px;
+    padding: 6px 14px;
     border: none;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.3s, transform 0.3s;
+    transition: background 0.15s;
 }
 
 .column-card-btn-primary {
-    background: var(--primary-gradient);
+    background: var(--accent);
     color: white;
 }
 
+.column-card-btn-primary:hover {
+    background: var(--accent-hover);
+}
+
 .column-card-btn-secondary {
-    background: #f0f0f0;
-    color: var(--text-dark);
+    background: var(--surface-tertiary);
+    color: var(--text-secondary);
+}
+
+.column-card-btn-secondary:hover {
+    background: var(--border);
 }
 
 .column-card-regenerate-controls {
@@ -135,61 +149,69 @@
     gap: 6px;
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--border);
     align-items: center;
 }
 
 .column-card-label {
     font-size: 12px;
-    color: #666;
+    color: var(--text-tertiary);
     font-weight: 600;
 }
 
 .column-card-btn-regenerate {
-    background: var(--primary-start);
-    color: white;
+    background: var(--surface);
+    color: var(--text-secondary);
     padding: 4px 10px;
     font-size: 11px;
-    border: none;
-    border-radius: 4px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: background-color 0.3s, transform 0.3s;
+    transition: all 0.15s;
 }
 
 .column-card-btn-regenerate:hover {
-    background: #5568d3;
-    transform: translateY(-1px);
+    background: var(--surface-secondary);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .column-card-btn-regenerate.concise {
-    background: #17a2b8;
+    color: #0891b2;
+    border-color: #cffafe;
 }
 
 .column-card-btn-regenerate.concise:hover {
-    background: #138496;
+    background: #ecfeff;
+    border-color: #0891b2;
 }
 
 .column-card-btn-regenerate.detailed {
-    background: #28a745;
+    color: #059669;
+    border-color: #a7f3d0;
 }
 
 .column-card-btn-regenerate.detailed:hover {
-    background: #218838;
+    background: #ecfdf5;
+    border-color: #059669;
 }
 
 .column-card-btn-regenerate.suggest {
-    background: #e67e22;
+    color: #d97706;
+    border-color: #fde68a;
 }
 
 .column-card-btn-regenerate.suggest:hover {
-    background: #cf6d17;
+    background: #fffbeb;
+    border-color: #d97706;
 }
 
 .column-card-suggestions {
-    margin-top: 10px;
-    border: 2px solid #e67e22;
-    border-radius: 6px;
-    background: #fef9f3;
+    margin-top: 12px;
+    border: 1px solid var(--warning-border);
+    border-radius: var(--radius-md);
+    background: var(--warning-bg);
     overflow: hidden;
 }
 
@@ -197,21 +219,21 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 10px;
-    background: #fdf0e0;
-    border-bottom: 1px solid #f0d4a8;
+    padding: 8px 12px;
+    background: #fef3c7;
+    border-bottom: 1px solid var(--warning-border);
 }
 
 .column-card-suggestions-title {
     font-size: 12px;
     font-weight: 600;
-    color: #b35c00;
+    color: var(--warning);
 }
 
 .column-card-suggestions-dismiss {
     background: none;
     border: none;
-    color: #b35c00;
+    color: var(--warning);
     font-size: 14px;
     cursor: pointer;
     padding: 0 4px;
@@ -219,20 +241,20 @@
 }
 
 .column-card-suggestions-dismiss:hover {
-    color: #7a3e00;
+    color: #92400e;
 }
 
 .column-card-suggestions-content {
-    padding: 10px;
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--text-medium);
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
     white-space: pre-wrap;
 }
 
 .column-card-suggestions-cursor {
     display: inline-block;
-    color: #e67e22;
+    color: var(--warning);
     font-weight: bold;
     animation: blink 0.8s infinite;
 }
@@ -248,31 +270,33 @@
 .column-card-custom-instruction-input {
     flex: 1;
     padding: 4px 8px;
-    border: 2px solid var(--border-color);
-    border-radius: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     font-size: 11px;
+    color: var(--text);
 }
 
 .column-card-custom-instruction-input:focus {
     outline: none;
-    border-color: var(--primary-start);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .column-card-regenerating {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: var(--primary-start);
+    color: var(--accent);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .column-card-spinner {
     display: inline-block;
     width: 14px;
     height: 14px;
-    border: 2px solid #f3f3f3;
-    border-top: 2px solid var(--primary-start);
+    border: 2px solid var(--border);
+    border-top: 2px solid var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }

@@ -131,13 +131,13 @@ function isComparisonExport(data: unknown): data is ComparisonExport {
     return meta?.mode === 'comparison';
 }
 
-const EMPTY_TOKEN_USAGE: TokenUsage = {promptTokens: 0, completionTokens: 0, totalTokens: 0};
+const EMPTY_TOKEN_USAGE: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
 // --- Main validator ---
 
 export function validateAndParseImport(json: unknown): ImportResult {
     if (!json || typeof json !== 'object') {
-        return {ok: false, error: 'Invalid JSON: expected an object.'};
+        return { ok: false, error: 'Invalid JSON: expected an object.' };
     }
 
     const data = json as Record<string, unknown>;
@@ -145,13 +145,13 @@ export function validateAndParseImport(json: unknown): ImportResult {
     // Validate metadata
     const metadata = data.metadata as Record<string, unknown> | undefined;
     if (!metadata || typeof metadata !== 'object') {
-        return {ok: false, error: 'Missing or invalid "metadata" field.'};
+        return { ok: false, error: 'Missing or invalid "metadata" field.' };
     }
     if (typeof metadata.fileName !== 'string') {
-        return {ok: false, error: 'Missing "metadata.fileName".'};
+        return { ok: false, error: 'Missing "metadata.fileName".' };
     }
     if (typeof metadata.rowCount !== 'number' || metadata.rowCount < 0) {
-        return {ok: false, error: 'Missing or invalid "metadata.rowCount".'};
+        return { ok: false, error: 'Missing or invalid "metadata.rowCount".' };
     }
 
     // Determine mode
@@ -165,11 +165,11 @@ function parseStandardImport(data: unknown): ImportResult {
     const d = data as StandardExport;
 
     if (typeof d.datasetDescription !== 'string') {
-        return {ok: false, error: 'Missing "datasetDescription" string for standard export.'};
+        return { ok: false, error: 'Missing "datasetDescription" string for standard export.' };
     }
 
     if (!Array.isArray(d.columns) || d.columns.length === 0) {
-        return {ok: false, error: 'Missing or empty "columns" array.'};
+        return { ok: false, error: 'Missing or empty "columns" array.' };
     }
 
     const columnStats: Record<string, ColumnInfo> = {};
@@ -177,7 +177,7 @@ function parseStandardImport(data: unknown): ImportResult {
 
     for (const col of d.columns) {
         if (!col.name || typeof col.name !== 'string') {
-            return {ok: false, error: 'Column entry missing "name".'};
+            return { ok: false, error: 'Column entry missing "name".' };
         }
         columnStats[col.name] = reconstructColumnInfo(
             col.type,
@@ -206,15 +206,15 @@ function parseComparisonImport(data: ComparisonExport): ImportResult {
     const meta = data.metadata;
 
     if (!data.datasetDescription || typeof data.datasetDescription !== 'object') {
-        return {ok: false, error: 'Missing "datasetDescription" object for comparison export.'};
+        return { ok: false, error: 'Missing "datasetDescription" object for comparison export.' };
     }
 
     if (!Array.isArray(data.datasetDescription.outputs)) {
-        return {ok: false, error: 'Missing "datasetDescription.outputs" array.'};
+        return { ok: false, error: 'Missing "datasetDescription.outputs" array.' };
     }
 
     if (!Array.isArray(data.columns) || data.columns.length === 0) {
-        return {ok: false, error: 'Missing or empty "columns" array.'};
+        return { ok: false, error: 'Missing or empty "columns" array.' };
     }
 
     const slotCount = data.datasetDescription.outputs.length;
@@ -254,7 +254,7 @@ function parseComparisonImport(data: ComparisonExport): ImportResult {
 
     for (const col of data.columns) {
         if (!col.name || typeof col.name !== 'string') {
-            return {ok: false, error: 'Column entry missing "name".'};
+            return { ok: false, error: 'Column entry missing "name".' };
         }
         columnStats[col.name] = reconstructColumnInfo(
             col.type,
@@ -272,9 +272,9 @@ function parseComparisonImport(data: ComparisonExport): ImportResult {
 
     // Token usage (may not be present in older exports)
     const comparisonTokenUsage: ComparisonTokenUsage = data.tokenUsage || {
-        models: Array(slotCount).fill(null).map(() => ({...EMPTY_TOKEN_USAGE})),
-        judge: {...EMPTY_TOKEN_USAGE},
-        total: {...EMPTY_TOKEN_USAGE},
+        models: Array(slotCount).fill(null).map(() => ({ ...EMPTY_TOKEN_USAGE })),
+        judge: { ...EMPTY_TOKEN_USAGE },
+        total: { ...EMPTY_TOKEN_USAGE },
     };
 
     return {

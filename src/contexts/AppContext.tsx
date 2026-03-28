@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useOpenAI } from '../hooks/useOpenAI';
 import { useComparisonGeneration } from '../hooks/useComparisonGeneration';
@@ -308,14 +308,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, [buildColumnInfo]);
 
     const buildDatasetPrompt = useCallback((
-        data: CsvRow[],
-        name: string,
-        stats: Record<string, ColumnInfo>,
-        modifier: '' | 'concise' | 'detailed' = '',
-        customInstruction?: string
-    ): string =>
-        buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.dataset, modifier, customInstruction),
-    [promptTemplates.dataset, buildDatasetPromptFromTemplate]);
+            data: CsvRow[],
+            name: string,
+            stats: Record<string, ColumnInfo>,
+            modifier: '' | 'concise' | 'detailed' = '',
+            customInstruction?: string
+        ): string =>
+            buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.dataset, modifier, customInstruction),
+        [promptTemplates.dataset, buildDatasetPromptFromTemplate]);
 
     const buildColumnPromptFromTemplate = useCallback((
         columnName: string,
@@ -346,15 +346,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const buildColumnPrompt = useCallback((
-        columnName: string,
-        info: ColumnInfo,
-        datasetDesc: string,
-        columnValues?: (string | null | undefined)[],
-        modifier: '' | 'concise' | 'detailed' = '',
-        customInstruction?: string
-    ): string =>
-        buildColumnPromptFromTemplate(columnName, info, datasetDesc, promptTemplates.column, columnValues, modifier, customInstruction),
-    [promptTemplates.column, buildColumnPromptFromTemplate]);
+            columnName: string,
+            info: ColumnInfo,
+            datasetDesc: string,
+            columnValues?: (string | null | undefined)[],
+            modifier: '' | 'concise' | 'detailed' = '',
+            customInstruction?: string
+        ): string =>
+            buildColumnPromptFromTemplate(columnName, info, datasetDesc, promptTemplates.column, columnValues, modifier, customInstruction),
+        [promptTemplates.column, buildColumnPromptFromTemplate]);
 
     const generateDatasetDescription = useCallback(
         async (
@@ -1467,7 +1467,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     {Array.from({ length: comparisonSlotCount }, (_, i) => (
                         <div className="tokenUsageRow" key={i}>
                             <span className="tokenLabel">{comparisonSlotShortNames[i]}:</span>
-                            <span className="tokenValue">{comparisonTokenUsage.models[i]?.totalTokens.toLocaleString() || 0} tokens</span>
+                            <span
+                                className="tokenValue">{comparisonTokenUsage.models[i]?.totalTokens.toLocaleString() || 0} tokens</span>
                             {(() => {
                                 const usage = comparisonTokenUsage.models[i];
                                 if (!usage) return null;
@@ -1478,7 +1479,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     ))}
                     <div className="tokenUsageRow">
                         <span className="tokenLabel">Judge:</span>
-                        <span className="tokenValue">{comparisonTokenUsage.judge.totalTokens.toLocaleString()} tokens</span>
+                        <span
+                            className="tokenValue">{comparisonTokenUsage.judge.totalTokens.toLocaleString()} tokens</span>
                         {(() => {
                             const cost = getEstimatedCost(comparisonConfig.judgeModel, comparisonTokenUsage.judge.promptTokens, comparisonTokenUsage.judge.completionTokens);
                             return cost !== null ? <span className="tokenCost judge">~${cost.toFixed(4)}</span> : null;
@@ -1486,7 +1488,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     </div>
                     <div className="tokenUsageRow total">
                         <span className="tokenLabel">Total:</span>
-                        <span className="tokenValue tokenTotal">{comparisonTokenUsage.total.totalTokens.toLocaleString()} tokens</span>
+                        <span
+                            className="tokenValue tokenTotal">{comparisonTokenUsage.total.totalTokens.toLocaleString()} tokens</span>
                         {(() => {
                             let totalCost = 0;
                             for (let i = 0; i < comparisonSlotCount; i++) {
@@ -1496,7 +1499,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
                                 }
                             }
                             totalCost += getEstimatedCost(comparisonConfig.judgeModel, comparisonTokenUsage.judge.promptTokens, comparisonTokenUsage.judge.completionTokens) || 0;
-                            return totalCost > 0 ? <span className="tokenCost total">~${totalCost.toFixed(4)}</span> : null;
+                            return totalCost > 0 ?
+                                <span className="tokenCost total">~${totalCost.toFixed(4)}</span> : null;
                         })()}
                     </div>
                 </div>

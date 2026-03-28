@@ -1,7 +1,7 @@
 .column-comparison-card {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     padding: 16px;
     margin-bottom: 16px;
 }
@@ -12,20 +12,21 @@
     gap: 10px;
     margin-bottom: 12px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border);
 }
 
 .column-name {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--text);
 }
 
 .column-type-badge {
     font-size: 11px;
     font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
     color: white;
     text-transform: uppercase;
+    letter-spacing: 0.03em;
 }

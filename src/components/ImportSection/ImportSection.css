@@ -8,7 +8,7 @@
     align-items: center;
     gap: 12px;
     margin-bottom: 12px;
-    color: var(--text-light, #999);
+    color: var(--text-tertiary);
     font-size: 13px;
 }
 
@@ -17,7 +17,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: var(--border-color, #e0e0e0);
+    background: var(--border);
 }
 
 .import-hidden-input {
@@ -25,23 +25,19 @@
 }
 
 .import-section-btn {
-    background: #2563eb;
+    background: var(--accent);
     color: white;
     padding: 10px 22px;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    transition: background 0.15s;
 }
 
 .import-section-btn:hover:not(:disabled) {
-    background: #1d4ed8;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4);
+    background: var(--accent-hover);
 }
 
 .import-section-btn:disabled {
@@ -52,5 +48,5 @@
 .import-help-text {
     margin-top: 8px;
     font-size: 12px;
-    color: var(--text-light, #999);
+    color: var(--text-tertiary);
 }

@@ -1,14 +1,14 @@
 .csv-input-section {
-    margin-bottom: 30px;
+    margin-bottom: 24px;
 }
 
 .csv-input-section-title {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
-    color: var(--text-dark);
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--primary-start);
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
 }
 
 .csv-input-group {
@@ -17,25 +17,28 @@
 }
 
 .csv-input-group label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
-    color: var(--text-medium);
-    margin-bottom: 5px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
 }
 
 .csv-input-group input,
 .csv-input-group select {
-    padding: 10px;
-    border: 2px solid var(--border-color);
-    border-radius: 6px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     font-size: 14px;
-    transition: border-color 0.3s;
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .csv-input-group input:focus,
 .csv-input-group select:focus {
     outline: none;
-    border-color: var(--primary-start);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .csv-input-url-input {
@@ -53,10 +56,9 @@
 }
 
 .csv-input-help-text {
-    font-size: 13px;
-    color: var(--text-light);
-    margin-top: 5px;
-    font-style: italic;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 6px;
 }
 
 .csv-input-toggle {
@@ -64,37 +66,34 @@
     align-items: center;
     gap: 6px;
     font-size: 13px;
-    color: var(--text-medium);
+    color: var(--text-secondary);
     cursor: pointer;
 }
 
 .csv-input-toggle input[type="checkbox"] {
     cursor: pointer;
+    accent-color: var(--accent);
 }
 
 .csv-input-btn-primary {
-    padding: 12px 24px;
+    padding: 10px 24px;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.3s, box-shadow 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: var(--primary-gradient);
+    transition: background 0.15s;
+    background: var(--accent);
     color: white;
 }
 
 .csv-input-btn-primary:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    background: var(--accent-hover);
 }
 
 .csv-input-btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
 }
 
 @media (max-width: 768px) {

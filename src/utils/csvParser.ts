@@ -50,7 +50,7 @@ export async function parseUrl(url: string, socrataToken?: string): Promise<Pars
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({url, socrataToken}),
+        body: JSON.stringify({ url, socrataToken }),
     });
 
     if (!response.ok) {
@@ -94,8 +94,8 @@ export async function pushSocrataMetadata(
 ): Promise<SocrataExportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/export`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({datasetId, appToken, apiKeyId, apiKeySecret, datasetDescription, columns}),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ datasetId, appToken, apiKeyId, apiKeySecret, datasetDescription, columns }),
     });
 
     if (!response.ok) {
@@ -114,8 +114,8 @@ export async function fetchSocrataImport(
 ): Promise<SocrataImportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/import`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({datasetId, appToken, apiKeyId, apiKeySecret}),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ datasetId, appToken, apiKeyId, apiKeySecret }),
     });
 
     if (!response.ok) {

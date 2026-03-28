@@ -15,7 +15,7 @@ interface JudgeCallResult {
 }
 
 export function useComparisonGeneration() {
-    const {callOpenAIStream} = useOpenAI();
+    const { callOpenAIStream } = useOpenAI();
 
     const generateParallel = useCallback(
         async (
@@ -31,7 +31,7 @@ export function useComparisonGeneration() {
                 : systemPrompts;
 
             const results = await Promise.all(
-                Array.from({length: count}, (_, i) =>
+                Array.from({ length: count }, (_, i) =>
                     callOpenAIStream(prompts[i], configs[i], systemPromptArray[i], onChunks[i], abortSignal)
                 )
             );
@@ -93,5 +93,5 @@ export function useComparisonGeneration() {
         []
     );
 
-    return {generateParallel, callJudge};
+    return { generateParallel, callJudge };
 }

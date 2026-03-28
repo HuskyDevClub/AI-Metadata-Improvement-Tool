@@ -1,14 +1,14 @@
 .prompt-editor-section {
-    margin-bottom: 30px;
+    margin-bottom: 24px;
 }
 
 .prompt-editor-section-title {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
-    color: var(--text-dark);
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--primary-start);
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
 }
 
 .prompt-editor-toggle {
@@ -21,8 +21,9 @@
 
 .prompt-editor-toggle::before {
     content: '\25BC';
-    font-size: 12px;
-    transition: transform 0.3s;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    transition: transform 0.2s;
 }
 
 .prompt-editor-toggle.collapsed::before {
@@ -40,15 +41,15 @@
 }
 
 .prompt-editor-box {
-    margin-top: 15px;
-    padding: 15px;
-    background: var(--bg-light);
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
 }
 
 .prompt-editor-box h4 {
-    color: var(--text-dark);
+    color: var(--text);
     margin-bottom: 10px;
     font-size: 14px;
     font-weight: 600;
@@ -57,36 +58,36 @@
 .prompt-editor-box textarea {
     width: 100%;
     min-height: 120px;
-    padding: 10px;
-    border: 2px solid var(--border-color);
-    border-radius: 6px;
-    font-family: 'Courier New', monospace;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'SF Mono', 'Fira Code', monospace;
     font-size: 13px;
+    color: var(--text);
     resize: vertical;
 }
 
 .prompt-editor-box textarea:focus {
     outline: none;
-    border-color: var(--primary-start);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .prompt-editor-help-text {
-    font-size: 13px;
-    color: var(--text-light);
-    margin-top: 10px;
-    font-style: italic;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 8px;
 }
 
 .prompt-editor-field-help {
     font-size: 12px;
-    color: #666;
+    color: var(--text-tertiary);
     margin-top: 8px;
-    font-style: italic;
 }
 
 .prompt-editor-box.judge-prompt-box {
-    border-color: #c4b5fd;
-    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+    border-color: #ddd6fe;
+    background: #faf5ff;
 }
 
 .prompt-editor-box.judge-prompt-box h4 {
@@ -95,4 +96,5 @@
 
 .prompt-editor-box.judge-prompt-box textarea:focus {
     border-color: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
 }

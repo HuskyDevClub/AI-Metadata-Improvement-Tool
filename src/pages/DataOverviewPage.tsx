@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { DatasetDescription } from '../components/DatasetDescription/DatasetDescription';
 import { ExportSection } from '../components/ExportSection/ExportSection';
 import { useAppContext } from '../contexts/AppContext';
@@ -68,10 +68,14 @@ export function DataOverviewPage() {
 
     const getTypeBadgeClass = (type: string) => {
         switch (type) {
-            case 'numeric': return 'field-type-numeric';
-            case 'categorical': return 'field-type-categorical';
-            case 'text': return 'field-type-text';
-            default: return 'field-type-empty';
+            case 'numeric':
+                return 'field-type-numeric';
+            case 'categorical':
+                return 'field-type-categorical';
+            case 'text':
+                return 'field-type-text';
+            default:
+                return 'field-type-empty';
         }
     };
 
@@ -132,71 +136,73 @@ export function DataOverviewPage() {
                 <div className="field-table-wrapper">
                     <table className="field-table">
                         <thead>
-                            <tr>
-                                <th className="field-table-th-check">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedColumns.size === columnNames.length && columnNames.length > 0}
-                                        onChange={(e) => e.target.checked ? selectAll() : selectNone()}
-                                    />
-                                </th>
-                                <th>Field Name</th>
-                                <th>Type</th>
-                                <th>Description</th>
-                                <th>Status</th>
-                            </tr>
+                        <tr>
+                            <th className="field-table-th-check">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.size === columnNames.length && columnNames.length > 0}
+                                    onChange={(e) => e.target.checked ? selectAll() : selectNone()}
+                                />
+                            </th>
+                            <th>Field Name</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            {columnNames.map(name => {
-                                const info = columnStats[name];
-                                const desc = generatedResults.columnDescriptions[name] || '';
-                                const isGenerating = generatingColumns.has(name);
-                                const hasDesc = desc.trim().length > 0;
+                        {columnNames.map(name => {
+                            const info = columnStats[name];
+                            const desc = generatedResults.columnDescriptions[name] || '';
+                            const isGenerating = generatingColumns.has(name);
+                            const hasDesc = desc.trim().length > 0;
 
-                                return (
-                                    <tr key={name} className={selectedColumns.has(name) ? 'field-row-selected' : ''}>
-                                        <td className="field-table-td-check">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedColumns.has(name)}
-                                                onChange={() => toggleColumn(name)}
-                                            />
-                                        </td>
-                                        <td>
-                                            <button
-                                                className="field-name-link"
-                                                onClick={() => navigate('field', name)}
-                                            >
-                                                {name}
-                                            </button>
-                                        </td>
-                                        <td>
+                            return (
+                                <tr key={name} className={selectedColumns.has(name) ? 'field-row-selected' : ''}>
+                                    <td className="field-table-td-check">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedColumns.has(name)}
+                                            onChange={() => toggleColumn(name)}
+                                        />
+                                    </td>
+                                    <td>
+                                        <button
+                                            className="field-name-link"
+                                            onClick={() => navigate('field', name)}
+                                        >
+                                            {name}
+                                        </button>
+                                    </td>
+                                    <td>
                                             <span className={`field-type-badge ${getTypeBadgeClass(info.type)}`}>
                                                 {info.type}
                                             </span>
-                                        </td>
-                                        <td className="field-desc-cell">
-                                            {isGenerating ? (
-                                                <span className="field-generating">
+                                    </td>
+                                    <td className="field-desc-cell">
+                                        {isGenerating ? (
+                                            <span className="field-generating">
                                                     {desc ? truncate(desc, 100) : 'Generating...'}
-                                                    <span className="field-cursor">|</span>
+                                                <span className="field-cursor">|</span>
                                                 </span>
-                                            ) : (
-                                                desc ? truncate(desc, 120) : <span className="field-no-desc">No description</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            {isGenerating ? (
-                                                <span className="field-status-badge field-status-generating">Generating</span>
-                                            ) : hasDesc ? (
-                                                <span className="field-status-badge field-status-done">Done</span>
-                                            ) : (
-                                                <span className="field-status-badge field-status-empty">Empty</span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                        ) : (
+                                            desc ? truncate(desc, 120) :
+                                                <span className="field-no-desc">No description</span>
+                                        )}
+                                    </td>
+                                    <td>
+                                        {isGenerating ? (
+                                            <span
+                                                className="field-status-badge field-status-generating">Generating</span>
+                                        ) : hasDesc ? (
+                                            <span className="field-status-badge field-status-done">Done</span>
+                                        ) : (
+                                            <span className="field-status-badge field-status-empty">Empty</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                         </tbody>
                     </table>
                 </div>

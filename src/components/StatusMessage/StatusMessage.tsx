@@ -7,7 +7,7 @@ interface StatusMessageProps {
     onStop?: () => void;
 }
 
-export function StatusMessage({status, isProcessing, onStop}: StatusMessageProps) {
+export function StatusMessage({ status, isProcessing, onStop }: StatusMessageProps) {
     if (!status) return null;
 
     return (

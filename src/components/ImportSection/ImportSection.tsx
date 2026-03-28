@@ -6,7 +6,7 @@ interface ImportSectionProps {
     disabled?: boolean;
 }
 
-export function ImportSection({onImport, disabled}: ImportSectionProps) {
+export function ImportSection({ onImport, disabled }: ImportSectionProps) {
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

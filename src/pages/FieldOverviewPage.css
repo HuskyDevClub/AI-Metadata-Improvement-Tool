@@ -1,9 +1,8 @@
-/* Navigation */
 .field-overview-nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .field-overview-back {
@@ -11,8 +10,7 @@
     border: none;
     padding: 0;
     font: inherit;
-    color: var(--primary-start);
-    text-decoration: none;
+    color: var(--accent);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -20,8 +18,7 @@
 }
 
 .field-overview-back:hover {
-    color: var(--primary-end);
-    text-decoration: underline;
+    color: var(--accent-hover);
 }
 
 .field-overview-pager {
@@ -31,97 +28,95 @@
 }
 
 .field-overview-pager-btn {
-    padding: 5px 14px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: var(--bg-white);
-    color: var(--primary-start);
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-secondary);
     font: inherit;
     font-size: 13px;
     font-weight: 500;
-    text-decoration: none;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    transition: all 0.15s;
 }
 
 .field-overview-pager-btn:hover:not(.disabled) {
-    background: var(--bg-light);
-    border-color: var(--primary-start);
+    background: var(--surface-secondary);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .field-overview-pager-btn.disabled {
     opacity: 0.35;
     cursor: not-allowed;
-    color: var(--text-lighter);
 }
 
 .field-overview-pager-info {
     font-size: 13px;
-    color: var(--text-light);
+    color: var(--text-tertiary);
     min-width: 50px;
     text-align: center;
 }
 
-/* Header */
 .field-overview-header {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .field-overview-name {
     font-size: 22px;
     font-weight: 700;
-    color: var(--text-dark);
+    color: var(--text);
     margin: 0;
+    letter-spacing: -0.025em;
 }
 
 .field-overview-type {
     display: inline-block;
     padding: 3px 10px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.03em;
 }
 
 .field-overview-type-numeric {
-    background: #e3f2fd;
-    color: #1565c0;
+    background: #eff6ff;
+    color: #2563eb;
 }
 
 .field-overview-type-categorical {
-    background: #f3e5f5;
-    color: #7b1fa2;
+    background: #f5f3ff;
+    color: #7c3aed;
 }
 
 .field-overview-type-text {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: #ecfdf5;
+    color: #059669;
 }
 
 .field-overview-type-empty {
-    background: var(--bg-lighter);
-    color: var(--text-lighter);
+    background: var(--surface-tertiary);
+    color: var(--text-tertiary);
 }
 
-/* Statistics */
 .field-overview-stats {
-    background: var(--bg-light);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    padding: 18px;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px;
     margin-bottom: 20px;
 }
 
 .field-overview-stats-title,
 .field-overview-samples-title,
 .field-overview-desc-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    color: var(--text-dark);
+    color: var(--text);
     margin-bottom: 12px;
 }
 
@@ -133,10 +128,10 @@
 }
 
 .field-overview-stat {
-    background: var(--bg-white);
-    border: 1px solid #eee;
-    border-radius: 6px;
-    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
 }
 
 .field-overview-stat-label {
@@ -144,34 +139,33 @@
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-    color: var(--text-lighter);
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
     margin-bottom: 4px;
 }
 
 .field-overview-stat-value {
     font-size: 15px;
     font-weight: 600;
-    color: var(--text-dark);
+    color: var(--text);
 }
 
 .field-overview-stats-detail {
-    padding-top: 8px;
-    border-top: 1px solid #eee;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
 }
 
 .field-overview-stats-line {
     font-size: 13px;
-    color: var(--text-medium);
+    color: var(--text-secondary);
     padding: 3px 0;
 }
 
-/* Samples */
 .field-overview-samples {
-    background: var(--bg-light);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    padding: 18px;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px;
     margin-bottom: 20px;
 }
 
@@ -184,11 +178,11 @@
 .field-overview-sample-item {
     display: inline-block;
     padding: 4px 10px;
-    background: var(--bg-white);
-    border: 1px solid #eee;
-    border-radius: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     font-size: 13px;
-    color: var(--text-medium);
+    color: var(--text-secondary);
     max-width: 250px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -196,11 +190,10 @@
 }
 
 .field-overview-null {
-    color: var(--text-lighter);
+    color: var(--text-tertiary);
     font-style: italic;
 }
 
-/* Description */
 .field-overview-description {
     margin-bottom: 20px;
 }
@@ -208,7 +201,7 @@
 .field-overview-notfound {
     text-align: center;
     padding: 60px 20px;
-    color: var(--text-medium);
+    color: var(--text-secondary);
     font-size: 16px;
 }
 

@@ -42,7 +42,7 @@ export function ColumnComparison({
                 <span className="column-name">{columnName}</span>
                 <span
                     className="column-type-badge"
-                    style={{backgroundColor: TYPE_COLORS[columnInfo.type]}}
+                    style={{ backgroundColor: TYPE_COLORS[columnInfo.type] }}
                 >
                     {columnInfo.type}
                 </span>

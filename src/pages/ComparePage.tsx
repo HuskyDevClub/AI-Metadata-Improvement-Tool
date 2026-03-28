@@ -63,9 +63,11 @@ export function ComparePage() {
 
             {!comparisonEnabled && (
                 <div className="compare-page-disabled">
-                    <p>Enable comparison mode above to compare outputs from multiple models or prompt variants side by side.</p>
+                    <p>Enable comparison mode above to compare outputs from multiple models or prompt variants side by
+                        side.</p>
                     <p className="compare-page-hint">
-                        After enabling, go to the <button onClick={() => navigate('import')} className="compare-page-link">Import page</button> and
+                        After enabling, go to the <button onClick={() => navigate('import')}
+                                                          className="compare-page-link">Import page</button> and
                         import a CSV to generate comparison results.
                     </p>
                 </div>
@@ -75,7 +77,8 @@ export function ComparePage() {
                 <div className="compare-page-empty">
                     <p>No comparison results yet.</p>
                     <p className="compare-page-hint">
-                        Import a CSV from the <button onClick={() => navigate('import')} className="compare-page-link">Import page</button> with
+                        Import a CSV from the <button onClick={() => navigate('import')}
+                                                      className="compare-page-link">Import page</button> with
                         comparison mode enabled to generate side-by-side results.
                     </p>
                 </div>

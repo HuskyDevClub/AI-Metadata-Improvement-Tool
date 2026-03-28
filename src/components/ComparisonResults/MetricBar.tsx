@@ -13,7 +13,7 @@ interface MetricBarProps {
     maxScore?: number;
 }
 
-export function MetricBar({label, scores, maxScore = 10}: MetricBarProps) {
+export function MetricBar({ label, scores, maxScore = 10 }: MetricBarProps) {
     const highestScore = Math.max(...scores.map(s => s.score));
 
     return (
@@ -29,7 +29,7 @@ export function MetricBar({label, scores, maxScore = 10}: MetricBarProps) {
                         <div key={s.modelIndex} className="metric-score-row">
                             <span
                                 className="metric-model-label"
-                                style={{color: color.text}}
+                                style={{ color: color.text }}
                             >
                                 {s.modelName || `M${s.modelIndex + 1}`}
                             </span>
@@ -43,7 +43,7 @@ export function MetricBar({label, scores, maxScore = 10}: MetricBarProps) {
                                 ></div>
                                 <span
                                     className="metric-score-value"
-                                    style={{color: isWinner ? color.text : '#374151'}}
+                                    style={{ color: isWinner ? color.text : '#374151' }}
                                 >
                                     {s.score}
                                 </span>

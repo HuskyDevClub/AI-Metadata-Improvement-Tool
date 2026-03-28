@@ -1,18 +1,19 @@
 .how-it-works-section {
-    margin-bottom: 30px;
+    margin-bottom: 24px;
 }
 
 .how-it-works-box {
-    background: #f0f7ff;
-    border: 2px solid var(--primary-start);
-    border-radius: 8px;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     padding: 20px;
 }
 
 .how-it-works-toggle {
-    color: var(--primary-start);
-    margin-bottom: 15px;
-    font-size: 18px;
+    color: var(--text);
+    margin-bottom: 12px;
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
     user-select: none;
     display: flex;
@@ -22,8 +23,9 @@
 
 .how-it-works-toggle::before {
     content: '\25BC';
-    font-size: 12px;
-    transition: transform 0.3s;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    transition: transform 0.2s;
 }
 
 .how-it-works-toggle.collapsed::before {
@@ -43,7 +45,8 @@
 .how-it-works-content ol {
     margin-left: 20px;
     line-height: 1.8;
-    color: var(--text-medium);
+    color: var(--text-secondary);
+    font-size: 14px;
 }
 
 .how-it-works-content ol li {

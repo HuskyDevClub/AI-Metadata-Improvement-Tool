@@ -35,7 +35,7 @@ export function ComparisonMode({
             // Switch to prompt mode: initialize variants from current global templates
             const variants = config.promptVariants.length >= MIN_SLOTS
                 ? config.promptVariants
-                : Array.from({length: MIN_SLOTS}, (_, i) =>
+                : Array.from({ length: MIN_SLOTS }, (_, i) =>
                     createDefaultPromptVariant(i, promptTemplates)
                 );
             const labelPrefix = 'Prompt';
@@ -65,7 +65,7 @@ export function ComparisonMode({
     const handleModelChange = (index: number, value: string) => {
         const models = [...config.models];
         models[index] = value;
-        onChange({...config, models});
+        onChange({ ...config, models });
     };
 
     const handleAddModel = () => {
@@ -93,7 +93,7 @@ export function ComparisonMode({
     const handleVariantChange = (index: number, variant: typeof config.promptVariants[number]) => {
         const variants = [...config.promptVariants];
         variants[index] = variant;
-        onChange({...config, promptVariants: variants});
+        onChange({ ...config, promptVariants: variants });
     };
 
     const handleAddVariant = () => {
@@ -174,7 +174,7 @@ export function ComparisonMode({
                                         }}
                                     >
                                         <div className="model-input-header">
-                                            <label htmlFor={`comparisonModel${i}`} style={{color: color.text}}>
+                                            <label htmlFor={`comparisonModel${i}`} style={{ color: color.text }}>
                                                 Model {i + 1}
                                             </label>
                                             {config.models.length > MIN_SLOTS && (
@@ -214,7 +214,7 @@ export function ComparisonMode({
                                     type="text"
                                     placeholder="e.g., gpt-4o"
                                     value={config.judgeModel}
-                                    onChange={(e) => onChange({...config, judgeModel: e.target.value})}
+                                    onChange={(e) => onChange({ ...config, judgeModel: e.target.value })}
                                 />
                             </div>
                         </div>
@@ -227,7 +227,7 @@ export function ComparisonMode({
                                     type="text"
                                     placeholder="e.g., gpt-4o"
                                     value={config.promptModel}
-                                    onChange={(e) => onChange({...config, promptModel: e.target.value})}
+                                    onChange={(e) => onChange({ ...config, promptModel: e.target.value })}
                                 />
                             </div>
 
@@ -262,7 +262,7 @@ export function ComparisonMode({
                                     type="text"
                                     placeholder="e.g., gpt-4o"
                                     value={config.judgeModel}
-                                    onChange={(e) => onChange({...config, judgeModel: e.target.value})}
+                                    onChange={(e) => onChange({ ...config, judgeModel: e.target.value })}
                                 />
                             </div>
                         </div>

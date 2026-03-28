@@ -1,35 +1,32 @@
 .export-section {
-    margin-top: 20px;
-    padding: 15px;
-    background: #f0f7ff;
-    border-radius: 8px;
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     text-align: center;
 }
 
 .export-section h4 {
-    color: var(--text-dark);
-    margin-bottom: 10px;
-    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 12px;
+    font-size: 15px;
 }
 
 .export-section-btn {
-    background: #28a745;
+    background: var(--accent);
     color: white;
-    padding: 12px 24px;
+    padding: 10px 24px;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    transition: background 0.15s;
 }
 
 .export-section-btn:hover {
-    background: #218838;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+    background: var(--accent-hover);
 }
 
 .export-section-buttons {
@@ -45,12 +42,9 @@
 
 .export-section-btn--socrata:hover {
     background: #0052a3;
-    box-shadow: 0 5px 15px rgba(0, 102, 204, 0.4);
 }
 
 .export-section-btn--socrata:disabled {
-    background: #6c9fd8;
+    opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
 }

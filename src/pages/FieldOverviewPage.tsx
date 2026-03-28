@@ -89,7 +89,8 @@ export function FieldOverviewPage() {
                     </div>
                     <div className="field-overview-stat">
                         <span className="field-overview-stat-label">Null Count</span>
-                        <span className="field-overview-stat-value">{info.nullCount.toLocaleString()} ({nullPercent}%)</span>
+                        <span
+                            className="field-overview-stat-value">{info.nullCount.toLocaleString()} ({nullPercent}%)</span>
                     </div>
                     <div className="field-overview-stat">
                         <span className="field-overview-stat-label">Completeness</span>

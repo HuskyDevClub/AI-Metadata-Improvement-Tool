@@ -39,14 +39,14 @@ export function JudgeScoreCard({
 
     const getWinnerDisplay = () => {
         if (result.winnerIndex === null || result.winnerIndex === undefined) {
-            return {text: 'Tie', className: 'tie', style: {}};
+            return { text: 'Tie', className: 'tie', style: {} };
         }
         const winnerName = modelNames?.[result.winnerIndex] || `Slot ${result.winnerIndex + 1}`;
         const color = getModelColor(result.winnerIndex);
         return {
             text: `${winnerName} Wins`,
             className: 'has-winner',
-            style: {background: color.light, color: color.text},
+            style: { background: color.light, color: color.text },
         };
     };
 
@@ -54,8 +54,8 @@ export function JudgeScoreCard({
 
     // Get scoring category keys from the categories prop or from the result data
     const categoryKeys = scoringCategories
-        ? scoringCategories.map(c => ({key: c.key, label: c.label, maxScore: c.maxScore}))
-        : Object.keys(result.models[0]?.scores || {}).map(key => ({key, label: key, maxScore: 10}));
+        ? scoringCategories.map(c => ({ key: c.key, label: c.label, maxScore: c.maxScore }))
+        : Object.keys(result.models[0]?.scores || {}).map(key => ({ key, label: key, maxScore: 10 }));
 
     // Calculate total max score
     const maxTotal = categoryKeys.reduce((sum, c) => sum + c.maxScore, 0);
@@ -79,7 +79,7 @@ export function JudgeScoreCard({
             </div>
 
             <div className="judge-metrics">
-                {categoryKeys.map(({key, label, maxScore}) => {
+                {categoryKeys.map(({ key, label, maxScore }) => {
                     const scores = result.models.map((m, i) => ({
                         modelIndex: i,
                         score: m.scores[key] || 0,
@@ -102,7 +102,7 @@ export function JudgeScoreCard({
                     const color = getModelColor(i);
                     const name = modelNames?.[i] || `Slot ${i + 1}`;
                     return (
-                        <span key={i} className="total" style={{color: color.text}}>
+                        <span key={i} className="total" style={{ color: color.text }}>
                             {name}: {total}/{maxTotal}
                         </span>
                     );
@@ -116,14 +116,14 @@ export function JudgeScoreCard({
             {!compact && (
                 <div
                     className="judge-individual-reasoning"
-                    style={{gridTemplateColumns: `repeat(${result.models.length}, 1fr)`}}
+                    style={{ gridTemplateColumns: `repeat(${result.models.length}, 1fr)` }}
                 >
                     {result.models.map((m, i) => {
                         const color = getModelColor(i);
                         const name = modelNames?.[i] || `Slot ${i + 1}`;
                         return (
-                            <div key={i} className="reasoning-section" style={{borderLeftColor: color.primary}}>
-                                <strong style={{color: color.text}}>{name}:</strong> {m.reasoning}
+                            <div key={i} className="reasoning-section" style={{ borderLeftColor: color.primary }}>
+                                <strong style={{ color: color.text }}>{name}:</strong> {m.reasoning}
                             </div>
                         );
                     })}

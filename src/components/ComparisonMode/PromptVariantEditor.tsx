@@ -44,7 +44,7 @@ export function PromptVariantEditor({
             }}
         >
             <div className="prompt-variant-header">
-                <label style={{color: color.text}}>
+                <label style={{ color: color.text }}>
                     Prompt {index + 1}
                 </label>
                 {canRemove && (
@@ -64,7 +64,7 @@ export function PromptVariantEditor({
                     type="text"
                     placeholder={`Prompt ${index + 1}`}
                     value={variant.label}
-                    onChange={(e) => onChange({...variant, label: e.target.value})}
+                    onChange={(e) => onChange({ ...variant, label: e.target.value })}
                     className="prompt-variant-label-input"
                 />
             </div>
@@ -80,7 +80,7 @@ export function PromptVariantEditor({
                     {expandedSections.has('system') && (
                         <textarea
                             value={variant.systemPrompt}
-                            onChange={(e) => onChange({...variant, systemPrompt: e.target.value})}
+                            onChange={(e) => onChange({ ...variant, systemPrompt: e.target.value })}
                             placeholder="Enter system prompt for this variant..."
                             rows={5}
                             className="prompt-variant-textarea"
@@ -98,7 +98,7 @@ export function PromptVariantEditor({
                     {expandedSections.has('dataset') && (
                         <textarea
                             value={variant.datasetPrompt}
-                            onChange={(e) => onChange({...variant, datasetPrompt: e.target.value})}
+                            onChange={(e) => onChange({ ...variant, datasetPrompt: e.target.value })}
                             placeholder="Enter dataset description prompt template..."
                             rows={5}
                             className="prompt-variant-textarea"
@@ -116,7 +116,7 @@ export function PromptVariantEditor({
                     {expandedSections.has('column') && (
                         <textarea
                             value={variant.columnPrompt}
-                            onChange={(e) => onChange({...variant, columnPrompt: e.target.value})}
+                            onChange={(e) => onChange({ ...variant, columnPrompt: e.target.value })}
                             placeholder="Enter column description prompt template..."
                             rows={5}
                             className="prompt-variant-textarea"

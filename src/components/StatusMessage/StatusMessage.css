@@ -1,11 +1,12 @@
 .status-message {
-    padding: 12px;
-    border-radius: 6px;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
     margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
+    font-size: 14px;
 }
 
 .status-message-text {
@@ -20,43 +21,43 @@
 
 .status-btn {
     padding: 6px 16px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     border: none;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background 0.15s;
 }
 
 .status-btn-stop {
-    background: #ef5350;
+    background: var(--error);
     color: white;
 }
 
 .status-btn-stop:hover {
-    background: #d32f2f;
+    background: #b91c1c;
 }
 
 .status-message-info {
     background: var(--info-bg);
-    color: var(--info-color);
-    border-left: 4px solid var(--info-color);
+    color: var(--info);
+    border-left: 3px solid var(--info);
 }
 
 .status-message-success {
     background: var(--success-bg);
-    color: var(--success-color);
-    border-left: 4px solid var(--success-color);
+    color: var(--success);
+    border-left: 3px solid var(--success);
 }
 
 .status-message-error {
     background: var(--error-bg);
-    color: var(--error-color);
-    border-left: 4px solid var(--error-color);
+    color: var(--error);
+    border-left: 3px solid var(--error);
 }
 
 .status-message-warning {
     background: var(--warning-bg);
-    color: var(--warning-color);
-    border-left: 4px solid var(--warning-color);
+    color: var(--warning);
+    border-left: 3px solid var(--warning);
 }

@@ -7,7 +7,7 @@ interface ExportSectionProps {
     showSocrataPush?: boolean;
 }
 
-export function ExportSection({onExport, onPushToSocrata, isPushingSocrata, showSocrataPush}: ExportSectionProps) {
+export function ExportSection({ onExport, onPushToSocrata, isPushingSocrata, showSocrataPush }: ExportSectionProps) {
     return (
         <div className="export-section">
             <h4>Export Results</h4>

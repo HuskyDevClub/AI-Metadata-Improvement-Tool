@@ -9,7 +9,7 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
     const totalCount = values.length;
 
     if (nonNullValues.length === 0) {
-        return {type: 'empty', stats: {}, nullCount, totalCount};
+        return { type: 'empty', stats: {}, nullCount, totalCount };
     }
 
     // Try to parse as numbers
@@ -29,7 +29,7 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
             median: numericValues[Math.floor(numericValues.length * 0.5)],
             q3: numericValues[Math.floor(numericValues.length * 0.75)],
         };
-        return {type: 'numeric', stats, nullCount, totalCount};
+        return { type: 'numeric', stats, nullCount, totalCount };
     }
 
     // Check if categorical
@@ -44,7 +44,7 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
             values: uniqueValues.slice(0, 20),
             hasMore: uniqueValues.length > 20,
         };
-        return {type: 'categorical', stats, nullCount, totalCount};
+        return { type: 'categorical', stats, nullCount, totalCount };
     }
 
     // Text column
@@ -53,7 +53,7 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
         uniqueCount: uniqueValues.length,
         samples: nonNullValues.slice(0, 5),
     };
-    return {type: 'text', stats, nullCount, totalCount};
+    return { type: 'text', stats, nullCount, totalCount };
 }
 
 export function formatColumnStats(info: ColumnInfo): string {

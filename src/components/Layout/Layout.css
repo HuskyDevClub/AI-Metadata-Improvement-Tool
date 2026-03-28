@@ -1,66 +1,66 @@
 .layout-header {
-    background: var(--primary-gradient);
-    padding: 24px 30px 0;
-    color: #fff;
+    padding: 20px 32px 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
 }
 
 .layout-header-title {
     display: flex;
     align-items: baseline;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .layout-header-title h1 {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
+    color: var(--text);
     margin: 0;
+    letter-spacing: -0.025em;
 }
 
 .layout-header-subtitle {
-    font-size: 14px;
-    opacity: 0.8;
+    font-size: 13px;
+    color: var(--text-tertiary);
 }
 
 .layout-nav {
     display: flex;
     gap: 0;
+    margin: 0 -32px;
+    padding: 0 32px;
 }
 
 .layout-nav-link {
-    padding: 10px 20px;
-    color: rgba(255, 255, 255, 0.75);
+    padding: 10px 16px;
+    color: var(--text-secondary);
     text-decoration: none;
     font: inherit;
     font-size: 14px;
     font-weight: 500;
     background: none;
     border: none;
-    border-bottom: 3px solid transparent;
+    border-bottom: 2px solid transparent;
     cursor: pointer;
-    transition: color 0.2s, border-color 0.2s, background 0.2s;
-    border-radius: 6px 6px 0 0;
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -1px;
 }
 
 .layout-nav-link:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
 }
 
 .layout-nav-link.active {
-    color: #fff;
-    background: var(--bg-white);
-    color: var(--text-dark);
+    color: var(--accent);
+    border-bottom-color: var(--accent);
     font-weight: 600;
-    border-bottom-color: transparent;
 }
 
 .layout-nav-link.disabled {
-    opacity: 0.4;
+    opacity: 0.35;
     cursor: not-allowed;
 }
 
 .layout-nav-link.disabled:hover {
-    background: transparent;
-    color: rgba(255, 255, 255, 0.75);
+    color: var(--text-secondary);
 }

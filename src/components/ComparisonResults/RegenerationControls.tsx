@@ -52,7 +52,7 @@ export function RegenerationControls({
     const color = getModelColor(slotIndex);
 
     return (
-        <div className="regeneration-controls" style={{borderTopColor: color.border, background: color.lighter}}>
+        <div className="regeneration-controls" style={{ borderTopColor: color.border, background: color.lighter }}>
             {isRegenerating ? (
                 <div className="regenerating-indicator">
                     <span className="spinner"></span>

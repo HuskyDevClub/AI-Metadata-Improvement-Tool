@@ -1,9 +1,9 @@
 .dataset-comparison-section {
-    margin-bottom: 30px;
+    margin-bottom: 32px;
     padding: 20px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
 }
 
 .dataset-comparison-header {
@@ -11,22 +11,22 @@
 }
 
 .dataset-comparison-title {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--text);
     margin: 0 0 8px 0;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #6366f1;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
 }
 
 .dataset-comparison-meta {
     font-size: 14px;
-    color: #6b7280;
+    color: var(--text-secondary);
     margin: 0;
 }
 
 .dataset-comparison-meta strong {
-    color: #374151;
+    color: var(--text);
 }
 
 .dataset-comparison-actions {
@@ -34,5 +34,5 @@
     gap: 12px;
     margin-top: 16px;
     padding-top: 16px;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--border);
 }
