@@ -1,11 +1,269 @@
-.import-page-section {
-    margin-bottom: 24px;
+.import-page {
+    max-width: 640px;
+    margin: 0 auto;
 }
 
-.import-page-loaded {
+.import-page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.import-page-subtitle {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    margin-bottom: 28px;
+}
+
+/* Source card grid */
+.import-source-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.import-source-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 24px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    text-align: center;
+}
+
+.import-source-card:hover:not(:disabled) {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+    background: var(--accent-light);
+}
+
+.import-source-card.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    background: var(--accent-light);
+}
+
+.import-source-card:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.import-source-icon {
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2px;
+}
+
+.import-source-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.import-source-desc {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+/* Expandable form panel */
+.import-form-panel {
+    margin-top: 16px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    animation: import-form-slide 0.15s ease-out;
+}
+
+@keyframes import-form-slide {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.import-form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 14px;
+}
+
+.import-form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+
+.import-form-group input {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.import-form-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.import-form-hint {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 5px;
+}
+
+.import-form-submit {
+    width: 100%;
+    padding: 10px 24px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--accent);
+    color: white;
+    transition: background 0.15s;
+    margin-top: 4px;
+}
+
+.import-form-submit:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.import-form-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Socrata auth section */
+.import-form-auth {
+    margin-bottom: 14px;
+}
+
+.import-form-oauth-btn {
+    width: 100%;
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background: white;
+    color: var(--text);
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.import-form-oauth-btn:hover:not(:disabled) {
+    background: var(--surface-secondary);
+    border-color: var(--accent);
+}
+
+.import-form-oauth-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.import-form-oauth-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.import-form-link-btn {
+    font-size: 13px;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+}
+
+.import-form-divider {
     display: flex;
     align-items: center;
     gap: 12px;
+    margin: 14px 0;
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.import-form-divider::before,
+.import-form-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.import-form-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    margin-bottom: 14px;
+}
+
+.import-form-toggle input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: var(--accent);
+}
+
+.import-form-credentials {
+    margin-bottom: 14px;
+}
+
+.import-form-credentials .import-form-group:last-child {
+    margin-bottom: 0;
+}
+
+/* Processing indicator */
+.import-processing {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 16px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.import-processing-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+/* Success state */
+.import-page-loaded {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     padding: 14px 18px;
     background: var(--success-bg);
     border: 1px solid var(--success-border);
@@ -13,10 +271,11 @@
     color: var(--success);
     font-size: 14px;
     font-weight: 500;
-    margin-top: 16px;
+    margin-top: 20px;
 }
 
 .import-page-goto-btn {
+    margin-left: auto;
     padding: 6px 16px;
     border: none;
     border-radius: var(--radius-sm);
@@ -30,4 +289,10 @@
 
 .import-page-goto-btn:hover {
     background: #047857;
+}
+
+@media (max-width: 480px) {
+    .import-source-grid {
+        grid-template-columns: 1fr;
+    }
 }

@@ -96,19 +96,25 @@ export function CsvInput({
                 <div style={{ marginTop: '15px' }}>
                     <div className="csv-input-group">
                         <label htmlFor="csvUrl">CSV URL *</label>
-                        <input
-                            id="csvUrl"
-                            type="text"
-                            placeholder="https://example.com/data.csv"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            className="csv-input-url-input"
-                        />
-                        <span className="csv-input-help-text">
-                            Socrata URLs (data.wa.gov) will auto-detect the dataset ID and fetch via API.
-                            For non-Socrata URLs, the full CSV will be downloaded directly — some sites may
-                            block requests due to CORS restrictions, require authentication, or enforce rate limits.
-                        </span>
+                        <div className="csv-input-url-wrapper">
+                            <input
+                                id="csvUrl"
+                                type="text"
+                                placeholder="https://example.com/data.csv"
+                                value={url}
+                                onChange={(e) => setUrl(e.target.value)}
+                                className="csv-input-url-input"
+                            />
+                            <span className="csv-input-info-icon"
+                                  data-tooltip="Socrata URLs (data.wa.gov) will auto-detect the dataset ID and fetch via API. For non-Socrata URLs, the full CSV will be downloaded directly — some sites may block requests due to CORS restrictions, require authentication, or enforce rate limits.">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                                     xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
+                                    <path d="M8 7v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                                    <circle cx="8" cy="4.5" r="0.75" fill="currentColor"/>
+                                </svg>
+                            </span>
+                        </div>
                     </div>
                     <div className="csv-input-group" style={{ marginTop: '15px' }}>
                         <label htmlFor="socrataToken">Socrata API Token</label>

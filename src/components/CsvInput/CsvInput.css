@@ -41,6 +41,49 @@
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+.csv-input-url-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.csv-input-info-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    color: var(--text-tertiary);
+    cursor: help;
+    flex-shrink: 0;
+}
+
+.csv-input-info-icon:hover {
+    color: var(--accent);
+}
+
+.csv-input-info-icon::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    width: 280px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    background: var(--text);
+    color: var(--surface);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: normal;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 10;
+}
+
+.csv-input-info-icon:hover::after {
+    opacity: 1;
+}
+
 .csv-input-url-input {
     width: 50%;
 }
