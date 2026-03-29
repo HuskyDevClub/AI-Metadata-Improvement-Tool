@@ -357,14 +357,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         stats: Record<string, ColumnInfo>,
         template: string,
         modifier: '' | 'concise' | 'detailed' = '',
-        customInstruction?: string
+        customInstruction?: string,
+        rowCountOverride?: number
     ): string => {
         const columnInfo = buildColumnInfo(stats);
         const sampleRows = buildSampleRows(data);
         const sampleCount = String(getSampleCount(data));
+        const effectiveRowCount = rowCountOverride ?? data.length;
         const prompt = template
             .replace('{fileName}', name)
-            .replace('{rowCount}', String(data.length))
+            .replace('{rowCount}', String(effectiveRowCount))
             .replace('{columnInfo}', columnInfo)
             .replace('{sampleRows}', sampleRows)
             .replace('{sampleCount}', sampleCount);
@@ -376,9 +378,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             name: string,
             stats: Record<string, ColumnInfo>,
             modifier: '' | 'concise' | 'detailed' = '',
-            customInstruction?: string
+            customInstruction?: string,
+            rowCountOverride?: number
         ): string =>
-            buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.dataset, modifier, customInstruction),
+            buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.dataset, modifier, customInstruction, rowCountOverride),
         [promptTemplates.dataset, buildDatasetPromptFromTemplate]);
 
     const buildColumnPromptFromTemplate = useCallback((
@@ -429,7 +432,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             customInstruction?: string,
             abortSignal?: AbortSignal
         ): Promise<{ content: string; aborted: boolean }> => {
-            const prompt = buildDatasetPrompt(data, name, stats, modifier, customInstruction);
+            const prompt = buildDatasetPrompt(data, name, stats, modifier, customInstruction, importedRowCount || undefined);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
@@ -441,7 +444,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             addTokenUsage(result.usage);
             return { content: fullContent, aborted: result.aborted };
         },
-        [openaiConfig, promptTemplates.systemPrompt, buildDatasetPrompt, callOpenAIStream, addTokenUsage]
+        [openaiConfig, promptTemplates.systemPrompt, buildDatasetPrompt, callOpenAIStream, addTokenUsage, importedRowCount]
     );
 
     const generateColumnDescription = useCallback(
@@ -532,14 +535,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
             let prompts: string[];
             let systemPrompts: string | string[];
 
+            const rowCount = importedRowCount || undefined;
             if (comparisonConfig.subMode === 'prompts') {
                 configs = Array(slotCount).fill(getComparisonModelConfig(comparisonConfig.promptModel));
                 prompts = comparisonConfig.promptVariants.map(v =>
-                    buildDatasetPromptFromTemplate(data, name, stats, v.datasetPrompt)
+                    buildDatasetPromptFromTemplate(data, name, stats, v.datasetPrompt, '', undefined, rowCount)
                 );
                 systemPrompts = comparisonConfig.promptVariants.map(v => v.systemPrompt);
             } else {
-                const prompt = buildDatasetPrompt(data, name, stats);
+                const prompt = buildDatasetPrompt(data, name, stats, '', undefined, rowCount);
                 configs = comparisonConfig.models.map(m => getComparisonModelConfig(m));
                 prompts = Array(slotCount).fill(prompt);
                 systemPrompts = promptTemplates.systemPrompt;
@@ -567,7 +571,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
             setDatasetComparison((prev) => ({ ...prev, isJudging: true }));
             try {
-                const context = `File: ${name}, Rows: ${data.length}, Columns: ${Object.keys(stats).join(', ')}`;
+                const effectiveRows = importedRowCount || data.length;
+                const context = `File: ${name}, Rows: ${effectiveRows}, Columns: ${Object.keys(stats).join(', ')}`;
                 await judgeDatasetOutputs(context, outputs);
             } catch (error) {
                 setDatasetComparison((prev) => ({ ...prev, isJudging: false }));
@@ -579,7 +584,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
             return { aborted: false };
         },
-        [buildDatasetPrompt, buildDatasetPromptFromTemplate, comparisonSlotCount, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, generateParallel, promptTemplates.systemPrompt, addComparisonTokenUsage, setGeneratingDatasetModel, setDatasetComparison, judgeDatasetOutputs]
+        [buildDatasetPrompt, buildDatasetPromptFromTemplate, comparisonSlotCount, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, generateParallel, promptTemplates.systemPrompt, addComparisonTokenUsage, setGeneratingDatasetModel, setDatasetComparison, judgeDatasetOutputs, importedRowCount]
     );
 
     const generateColumnComparisonDescription = useCallback(
@@ -1033,13 +1038,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 let config: OpenAIConfigType;
                 let systemPrompt: string;
 
+                const rowCount = importedRowCount || undefined;
                 if (comparisonConfig.subMode === 'prompts') {
                     const variant = comparisonConfig.promptVariants[slotIndex];
-                    prompt = buildDatasetPromptFromTemplate(csvData, fileName, columnStats, variant.datasetPrompt, modifier, customInstruction);
+                    prompt = buildDatasetPromptFromTemplate(csvData, fileName, columnStats, variant.datasetPrompt, modifier, customInstruction, rowCount);
                     config = getComparisonModelConfig(comparisonConfig.promptModel);
                     systemPrompt = variant.systemPrompt;
                 } else {
-                    prompt = buildDatasetPrompt(csvData, fileName, columnStats, modifier, customInstruction);
+                    prompt = buildDatasetPrompt(csvData, fileName, columnStats, modifier, customInstruction, rowCount);
                     config = getComparisonModelConfig(comparisonConfig.models[slotIndex]);
                     systemPrompt = promptTemplates.systemPrompt;
                 }
@@ -1072,7 +1078,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
                 const slotLabel = comparisonConfig.subMode === 'prompts' ? 'Prompt' : 'Model';
                 try {
-                    const context = `File: ${fileName}, Rows: ${csvData.length}, Columns: ${Object.keys(columnStats).join(', ')}`;
+                    const effectiveRows = importedRowCount || csvData.length;
+                    const context = `File: ${fileName}, Rows: ${effectiveRows}, Columns: ${Object.keys(columnStats).join(', ')}`;
                     await judgeDatasetOutputs(context, allOutputs);
                     setStatus({
                         message: `Successfully regenerated ${slotLabel} ${slotIndex + 1} description!`,
@@ -1088,7 +1095,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 setRegeneratingDatasetModel(slotIndex, false);
             }
         },
-        [csvData, setRegeneratingDatasetModel, buildDatasetPrompt, buildDatasetPromptFromTemplate, fileName, columnStats, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, callOpenAIStream, promptTemplates.systemPrompt, addComparisonTokenUsage, setDatasetComparison, judgeDatasetOutputs]
+        [csvData, setRegeneratingDatasetModel, buildDatasetPrompt, buildDatasetPromptFromTemplate, fileName, columnStats, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, callOpenAIStream, promptTemplates.systemPrompt, addComparisonTokenUsage, setDatasetComparison, judgeDatasetOutputs, importedRowCount]
     );
 
     const handleRegenerateComparisonColumn = useCallback(
@@ -1176,7 +1183,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setReJudgingDataset(true);
         setDatasetComparison((prev) => ({ ...prev, isJudging: true }));
         try {
-            const context = `File: ${fileName}, Rows: ${csvData.length}, Columns: ${Object.keys(columnStats).join(', ')}`;
+            const effectiveRows = importedRowCount || csvData.length;
+            const context = `File: ${fileName}, Rows: ${effectiveRows}, Columns: ${Object.keys(columnStats).join(', ')}`;
             await judgeDatasetOutputs(context, datasetComparison.outputs);
             setStatus({ message: 'Successfully re-judged dataset descriptions!', type: 'success' });
         } catch (error) {
@@ -1188,7 +1196,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } finally {
             setReJudgingDataset(false);
         }
-    }, [csvData, datasetComparison.outputs, setReJudgingDataset, setDatasetComparison, fileName, columnStats, judgeDatasetOutputs]);
+    }, [csvData, datasetComparison.outputs, setReJudgingDataset, setDatasetComparison, fileName, columnStats, judgeDatasetOutputs, importedRowCount]);
 
     const handleReJudgeColumn = useCallback(async (columnName: string) => {
         const info = columnStats[columnName];
@@ -1299,24 +1307,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     socrataOAuthToken || undefined,
                 );
 
-                if (!result.data || result.data.length === 0) {
+                if (!result.sampleRows || result.sampleRows.length === 0) {
                     setStatus({ message: 'No data found in dataset', type: 'error' });
                     setIsProcessing(false);
                     return;
                 }
 
-                setCsvData(result.data);
+                // Store sample rows (sufficient for display & AI prompts)
+                setCsvData(result.sampleRows);
                 setFileName(result.fileName);
+                setImportedRowCount(result.totalRowCount);
 
-                setStatus({ message: 'Analyzing columns...', type: 'info' });
-                const columns = Object.keys(result.data[0]);
-                const stats: Record<string, ColumnInfo> = {};
-                columns.forEach((col) => {
-                    const values = result.data.map((row) => row[col]);
-                    stats[col] = analyzeColumn(col, values);
-                });
-                setColumnStats(stats);
+                // Use pre-computed stats from SODA API — no client-side analyzeColumn
+                setColumnStats(result.columnStats);
 
+                const columns = Object.keys(result.columnStats);
                 const columnDescriptions: Record<string, string> = {};
                 const fieldNameSet = new Set(result.columns.map((c) => c.fieldName));
                 const nameToFieldName = new Map(
@@ -1347,7 +1352,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
                 setShowResults(true);
                 setStatus({
-                    message: `Imported "${result.datasetName}" with ${columns.length} columns. Existing descriptions pre-populated — edit or improve with AI.`,
+                    message: `Imported "${result.datasetName}" with ${columns.length} columns (${result.totalRowCount.toLocaleString()} rows). Existing descriptions pre-populated — edit or improve with AI.`,
                     type: 'success',
                 });
             } catch (error) {
@@ -1380,12 +1385,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const handleExport = useCallback(() => {
         if (!csvData) return;
 
+        const effectiveRowCount = importedRowCount || csvData.length;
+
         if (comparisonEnabled) {
             const isPromptExport = comparisonConfig.subMode === 'prompts';
             const exportData = {
                 metadata: {
                     fileName,
-                    rowCount: csvData.length,
+                    rowCount: effectiveRowCount,
                     columnCount: Object.keys(columnStats).length,
                     exportDate: new Date().toISOString(),
                     mode: 'comparison',
@@ -1448,7 +1455,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const exportData = {
                 metadata: {
                     fileName,
-                    rowCount: csvData.length,
+                    rowCount: effectiveRowCount,
                     columnCount: Object.keys(columnStats).length,
                     exportDate: new Date().toISOString(),
                 },
@@ -1473,7 +1480,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
 
         setStatus({ message: 'File downloaded successfully!', type: 'success' });
-    }, [csvData, fileName, columnStats, generatedResults, comparisonEnabled, comparisonConfig, datasetComparison, columnComparisons, comparisonTokenUsage]);
+    }, [csvData, fileName, columnStats, generatedResults, comparisonEnabled, comparisonConfig, datasetComparison, columnComparisons, comparisonTokenUsage, importedRowCount]);
 
     const handlePushToSocrata = useCallback(async () => {
         if (!socrataDatasetId) return;

@@ -43,7 +43,7 @@ export function ComparePage() {
     } = useAppContext();
 
     const columnNames = useMemo(() => Object.keys(columnStats), [columnStats]);
-    const rowCount = csvData?.length || importedRowCount;
+    const rowCount = importedRowCount || csvData?.length || 0;
 
     const hasResults = datasetComparison.outputs.some(o => o) ||
         Object.values(columnComparisons).some(c => c.outputs.some(o => o));

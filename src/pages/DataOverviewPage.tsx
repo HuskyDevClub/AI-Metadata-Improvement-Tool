@@ -43,7 +43,7 @@ export function DataOverviewPage() {
         [columnNames, generatedResults.columnDescriptions]
     );
 
-    const rowCount = csvData?.length || importedRowCount;
+    const rowCount = importedRowCount || csvData?.length || 0;
 
     const toggleColumn = (col: string) => {
         setSelectedColumns(prev => {

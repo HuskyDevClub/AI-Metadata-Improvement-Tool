@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { extractSocrataDatasetId } from '../../utils/csvParser';
 import './CsvInput.css';
 
 type InputMethod = 'file' | 'url' | 'socrata';
@@ -38,7 +39,14 @@ export function CsvInput({
         if (inputMethod === 'file' && file) {
             onAnalyze('file', file);
         } else if (inputMethod === 'url' && url) {
-            onAnalyze('url', undefined, url, socrataToken || undefined);
+            // Detect Socrata URLs and use the metadata-aware import instead of raw CSV download
+            const detectedId = extractSocrataDatasetId(url);
+            if (detectedId) {
+                console.log(`Detected Socrata dataset ID: ${detectedId}`);
+                onSocrataImport(detectedId, socrataToken || undefined);
+            } else {
+                onAnalyze('url', undefined, url, socrataToken || undefined);
+            }
         } else if (inputMethod === 'socrata' && datasetId.trim()) {
             onSocrataImport(
                 datasetId.trim(),
@@ -96,7 +104,11 @@ export function CsvInput({
                             onChange={(e) => setUrl(e.target.value)}
                             className="csv-input-url-input"
                         />
-                        <span className="csv-input-help-text">Direct link to a CSV file</span>
+                        <span className="csv-input-help-text">
+                            Socrata URLs (data.wa.gov) will auto-detect the dataset ID and fetch via API.
+                            For non-Socrata URLs, the full CSV will be downloaded directly — some sites may
+                            block requests due to CORS restrictions, require authentication, or enforce rate limits.
+                        </span>
                     </div>
                     <div className="csv-input-group" style={{ marginTop: '15px' }}>
                         <label htmlFor="socrataToken">Socrata API Token</label>

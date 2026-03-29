@@ -158,14 +158,25 @@ class SocrataColumnMetadata(BaseModel):
     dataTypeName: str
 
 
-class SocrataImportResponse(BaseModel):
-    """Response containing CSV data and Socrata metadata."""
+class ColumnStats(BaseModel):
+    """Pre-computed column statistics matching the frontend ColumnInfo shape."""
 
-    csvText: str
+    type: str  # "numeric" | "categorical" | "text" | "empty"
+    stats: dict[str, Any]
+    nullCount: int
+    totalCount: int
+
+
+class SocrataImportResponse(BaseModel):
+    """Response containing sample rows, pre-computed stats, and Socrata metadata."""
+
+    sampleRows: list[dict[str, Any]]
+    totalRowCount: int
     fileName: str
     datasetName: str
     datasetDescription: str
     columns: list[SocrataColumnMetadata]
+    columnStats: dict[str, ColumnStats]
 
 
 # ============================================================================

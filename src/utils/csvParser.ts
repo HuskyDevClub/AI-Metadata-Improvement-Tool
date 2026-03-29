@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import type { CsvRow } from '../types';
+import type { ColumnInfo, CsvRow } from '../types';
 
 // For Databricks deployment, use empty string (relative URL) when not specified
 // For local development, default to localhost:3001 (Express) or localhost:8000 (Python)
@@ -18,11 +18,47 @@ export interface SocrataColumnMeta {
 }
 
 export interface SocrataImportResult {
-    data: CsvRow[];
+    sampleRows: CsvRow[];
+    totalRowCount: number;
     fileName: string;
     datasetName: string;
     datasetDescription: string;
     columns: SocrataColumnMeta[];
+    columnStats: Record<string, ColumnInfo>;
+}
+
+/**
+ * Extract a Socrata dataset ID from a URL if it matches known Socrata URL patterns.
+ * Dataset IDs follow the format: xxxx-xxxx (4 alphanumeric chars, hyphen, 4 alphanumeric chars).
+ * Returns the dataset ID if found, or null if the URL is not a recognized Socrata URL.
+ */
+export function extractSocrataDatasetId(url: string): string | null {
+    try {
+        const path = new URL(url).pathname;
+
+        // /api/views/{id}/... or /api/v3/views/{id}/...
+        const viewsMatch = path.match(/\/api\/(?:v\d+\/)?views\/([a-z0-9]{4}-[a-z0-9]{4})/);
+        if (viewsMatch) return viewsMatch[1];
+
+        // /resource/{id}.{ext} (SODA API)
+        const resourceMatch = path.match(/\/resource\/([a-z0-9]{4}-[a-z0-9]{4})\./);
+        if (resourceMatch) return resourceMatch[1];
+
+        // /d/{id} (short URL)
+        const shortMatch = path.match(/\/d\/([a-z0-9]{4}-[a-z0-9]{4})/);
+        if (shortMatch) return shortMatch[1];
+
+        // /{category}/{name}/{id} — dataset ID as last path segment
+        const segments = path.split('/').filter(Boolean);
+        if (segments.length >= 1) {
+            const last = segments[segments.length - 1];
+            if (/^[a-z0-9]{4}-[a-z0-9]{4}$/.test(last)) return last;
+        }
+    } catch {
+        // Not a valid URL
+    }
+
+    return null;
 }
 
 export function parseFile(file: File): Promise<ParseResult> {
@@ -127,25 +163,15 @@ export async function fetchSocrataImport(
 
     const result = await response.json();
 
-    // Parse CSV with PapaParse (same as parseUrl)
-    return new Promise((resolve, reject) => {
-        Papa.parse<CsvRow>(result.csvText, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (parseResult) => {
-                resolve({
-                    data: parseResult.data,
-                    fileName: result.fileName,
-                    datasetName: result.datasetName,
-                    datasetDescription: result.datasetDescription,
-                    columns: result.columns,
-                });
-            },
-            error: (error) => {
-                reject(new Error(`Error parsing CSV: ${error.message}`));
-            },
-        });
-    });
+    return {
+        sampleRows: result.sampleRows,
+        totalRowCount: result.totalRowCount,
+        fileName: result.fileName,
+        datasetName: result.datasetName,
+        datasetDescription: result.datasetDescription,
+        columns: result.columns,
+        columnStats: result.columnStats,
+    };
 }
 
 export async function fetchSocrataOAuthLoginUrl(): Promise<string> {
