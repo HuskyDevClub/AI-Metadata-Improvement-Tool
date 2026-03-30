@@ -55,8 +55,6 @@ load_dotenv()
 
 # Configuration
 SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
-SOCRATA_API_KEY_ID = os.getenv("SOCRATA_API_KEY_ID", "")
-SOCRATA_API_KEY_SECRET = os.getenv("SOCRATA_API_KEY_SECRET", "")
 SOCRATA_OAUTH_CLIENT_ID = os.getenv("SOCRATA_OAUTH_CLIENT_ID", "")
 SOCRATA_OAUTH_CLIENT_SECRET = os.getenv("SOCRATA_OAUTH_CLIENT_SECRET", "")
 SOCRATA_OAUTH_REDIRECT_URI = os.getenv(
@@ -104,18 +102,14 @@ async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
     if not request.url:
         raise HTTPException(status_code=400, detail="URL is required")
 
-    # check if a Socrata token is provided in the request, otherwise use the environment variable
+    # Socrata token is optional — only needed for Socrata open data portals
     token = request.socrataToken or SOCRATA_APP_TOKEN
-    if not token:
-        raise HTTPException(
-            status_code=400,
-            detail="Socrata API token is required. Provide it in the UI or set SOCRATA_APP_TOKEN in the environment.",
-        )
 
     headers: dict[str, str] = {
         "Accept": "text/csv",
-        "X-App-Token": token,
     }
+    if token:
+        headers["X-App-Token"] = token
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -254,23 +248,18 @@ _soda_semaphore = asyncio.Semaphore(10)
 
 def build_socrata_auth(
     request: SocrataImportRequest,
-) -> tuple[dict[str, str], tuple[str, str] | None]:
-    """Build auth headers and HTTP Basic Auth tuple from import request."""
+) -> dict[str, str]:
+    """Build auth headers from import request."""
     headers: dict[str, str] = {}
-    auth: tuple[str, str] | None = None
 
     if request.oauthToken:
         headers["Authorization"] = f"OAuth {request.oauthToken}"
-    else:
-        token = request.appToken or SOCRATA_APP_TOKEN
-        if token:
-            headers["X-App-Token"] = token
-        key_id = request.apiKeyId or SOCRATA_API_KEY_ID
-        key_secret = request.apiKeySecret or SOCRATA_API_KEY_SECRET
-        if key_id and key_secret:
-            auth = (key_id, key_secret)
 
-    return headers, auth
+    token = request.appToken or SOCRATA_APP_TOKEN
+    if token:
+        headers["X-App-Token"] = token
+
+    return headers
 
 
 def soda_escape(field_name: str) -> str:
@@ -285,11 +274,10 @@ async def _soda_get(
     soda_base: str,
     params: dict[str, str],
     headers: dict[str, str],
-    auth: tuple[str, str] | None,
 ) -> list[dict[str, Any]]:
     """Issue a SODA query and return the parsed JSON list."""
     async with _soda_semaphore:
-        resp = await client.get(soda_base, params=params, headers=headers, auth=auth)
+        resp = await client.get(soda_base, params=params, headers=headers)
     if resp.status_code != 200:
         logger.warning(
             "SODA query failed (%s): params=%s body=%s",
@@ -307,7 +295,6 @@ async def _compute_numeric_stats(
     field: str,
     total_rows: int,
     headers: dict[str, str],
-    auth: tuple[str, str] | None,
 ) -> ColumnStats:
     """Compute numeric column stats using SODA aggregate + quartile lookups."""
     esc = soda_escape(field)
@@ -320,7 +307,6 @@ async def _compute_numeric_stats(
             "$select": f"count({esc}) as cnt, min({esc}) as mn, max({esc}) as mx, avg({esc}) as av",
         },
         headers,
-        auth,
     )
 
     if not agg_rows:
@@ -358,7 +344,6 @@ async def _compute_numeric_stats(
                 "$offset": str(offset),
             },
             headers,
-            auth,
         )
         if rows and field in rows[0]:
             return float(rows[0][field])
@@ -391,7 +376,6 @@ async def _compute_groupby(
     soda_base: str,
     field: str,
     headers: dict[str, str],
-    auth: tuple[str, str] | None,
     limit: int = 51,
 ) -> list[dict[str, Any]]:
     """Run a group-by query for a column. Returns up to `limit` groups sorted by count desc."""
@@ -407,7 +391,6 @@ async def _compute_groupby(
             "$where": f"{esc} IS NOT NULL",
         },
         headers,
-        auth,
     )
 
 
@@ -467,7 +450,6 @@ async def _compute_column_stats(
     col_meta: SocrataColumnMetadata,
     total_rows: int,
     headers: dict[str, str],
-    auth: tuple[str, str] | None,
 ) -> tuple[str, ColumnStats]:
     """Compute stats for a single column. Returns (display_name, stats)."""
     field = col_meta.fieldName
@@ -476,14 +458,12 @@ async def _compute_column_stats(
 
     if data_type in NUMERIC_SOCRATA_TYPES:
         stats = await _compute_numeric_stats(
-            client, soda_base, field, total_rows, headers, auth
+            client, soda_base, field, total_rows, headers
         )
         return display_name, stats
 
     if data_type in CATEGORICAL_SOCRATA_TYPES:
-        groups = await _compute_groupby(
-            client, soda_base, field, headers, auth, limit=51
-        )
+        groups = await _compute_groupby(client, soda_base, field, headers, limit=51)
         non_null = sum(int(g.get("cnt") or 0) for g in groups)
         values = [str(g.get(field) or "") for g in groups[:20]]
         unique_count = len(groups)
@@ -500,7 +480,7 @@ async def _compute_column_stats(
         )
 
     # Ambiguous type (text, url, calendar_date, etc.) — run group-by to decide
-    groups = await _compute_groupby(client, soda_base, field, headers, auth, limit=51)
+    groups = await _compute_groupby(client, soda_base, field, headers, limit=51)
     stats = _classify_from_groupby(groups, field, total_rows)
     return display_name, stats
 
@@ -516,7 +496,7 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
         raise HTTPException(status_code=400, detail="Dataset ID is required")
 
     dataset_id = request.datasetId.strip()
-    headers, auth = build_socrata_auth(request)
+    headers = build_socrata_auth(request)
 
     metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
     soda_base = f"https://data.wa.gov/resource/{dataset_id}.json"
@@ -525,11 +505,9 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
         async with httpx.AsyncClient(timeout=90.0) as client:
             # Phase 1: metadata + row count + sample rows (parallel)
             metadata_resp, count_rows, sample_rows = await asyncio.gather(
-                client.get(metadata_url, headers=headers, auth=auth),
-                _soda_get(
-                    client, soda_base, {"$select": "count(*) as total"}, headers, auth
-                ),
-                _soda_get(client, soda_base, {"$limit": "10"}, headers, auth),
+                client.get(metadata_url, headers=headers),
+                _soda_get(client, soda_base, {"$select": "count(*) as total"}, headers),
+                _soda_get(client, soda_base, {"$limit": "10"}, headers),
             )
 
             if metadata_resp.status_code != 200:
@@ -566,7 +544,7 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
 
             # Phase 2+3: compute stats for all columns in parallel
             stats_tasks = [
-                _compute_column_stats(client, soda_base, col, total_rows, headers, auth)
+                _compute_column_stats(client, soda_base, col, total_rows, headers)
                 for col in columns
             ]
             stats_results = await asyncio.gather(*stats_tasks, return_exceptions=True)
@@ -616,33 +594,28 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
 
     dataset_id = request.datasetId.strip()
 
-    # Build auth — write operations require OAuth token or API Key
+    # Build auth — write operations require OAuth login
     headers: dict[str, str] = {"Content-Type": "application/json"}
-    auth = None
 
     if request.oauthToken:
         headers["Authorization"] = f"OAuth {request.oauthToken}"
     else:
-        key_id = request.apiKeyId or SOCRATA_API_KEY_ID
-        key_secret = request.apiKeySecret or SOCRATA_API_KEY_SECRET
-        if not key_id or not key_secret:
-            raise HTTPException(
-                status_code=400,
-                detail="Authentication required to update metadata on data.wa.gov. "
-                "Sign in with OAuth or provide API Key ID and Secret.",
-            )
-        auth = (key_id, key_secret)
+        raise HTTPException(
+            status_code=400,
+            detail="Authentication required to update metadata on data.wa.gov. "
+            "Please sign in with OAuth.",
+        )
 
-        token = request.appToken or SOCRATA_APP_TOKEN
-        if token:
-            headers["X-App-Token"] = token
+    token = request.appToken or SOCRATA_APP_TOKEN
+    if token:
+        headers["X-App-Token"] = token
 
     metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             # 1. Fetch current metadata to get column IDs
-            meta_resp = await client.get(metadata_url, headers=headers, auth=auth)
+            meta_resp = await client.get(metadata_url, headers=headers)
             if meta_resp.status_code != 200:
                 raise HTTPException(
                     status_code=meta_resp.status_code,
@@ -680,7 +653,6 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
             put_resp = await client.put(
                 metadata_url,
                 headers=headers,
-                auth=auth,  # type: ignore[arg-type]
                 json=update_payload,
             )
 

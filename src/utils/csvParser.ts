@@ -125,14 +125,12 @@ export async function pushSocrataMetadata(
     datasetDescription: string | undefined,
     columns: { fieldName: string; description: string }[],
     appToken?: string,
-    apiKeyId?: string,
-    apiKeySecret?: string,
     oauthToken?: string,
 ): Promise<SocrataExportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datasetId, appToken, apiKeyId, apiKeySecret, oauthToken, datasetDescription, columns }),
+        body: JSON.stringify({ datasetId, appToken, oauthToken, datasetDescription, columns }),
     });
 
     if (!response.ok) {
@@ -146,14 +144,12 @@ export async function pushSocrataMetadata(
 export async function fetchSocrataImport(
     datasetId: string,
     appToken?: string,
-    apiKeyId?: string,
-    apiKeySecret?: string,
     oauthToken?: string,
 ): Promise<SocrataImportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datasetId, appToken, apiKeyId, apiKeySecret, oauthToken }),
+        body: JSON.stringify({ datasetId, appToken, oauthToken }),
     });
 
     if (!response.ok) {

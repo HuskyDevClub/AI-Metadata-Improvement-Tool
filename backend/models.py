@@ -144,8 +144,6 @@ class SocrataImportRequest(BaseModel):
 
     datasetId: str
     appToken: str | None = None
-    apiKeyId: str | None = None
-    apiKeySecret: str | None = None
     oauthToken: str | None = None
 
 
@@ -196,8 +194,6 @@ class SocrataExportRequest(BaseModel):
 
     datasetId: str
     appToken: str | None = None
-    apiKeyId: str | None = None
-    apiKeySecret: str | None = None
     oauthToken: str | None = None
     datasetDescription: str | None = None
     columns: list[SocrataColumnUpdate] = []

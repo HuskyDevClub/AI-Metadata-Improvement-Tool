@@ -92,7 +92,7 @@ interface AppContextType {
 
     // Socrata
     socrataDatasetId: string;
-    socrataCredentials: { appToken?: string; apiKeyId?: string; apiKeySecret?: string };
+    socrataCredentials: { appToken?: string };
     socrataFieldNameMap: Record<string, string>;
     isPushingSocrata: boolean;
 
@@ -122,8 +122,9 @@ interface AppContextType {
     setComparisonConfig: React.Dispatch<React.SetStateAction<ComparisonConfig>>;
 
     // Handlers
-    handleAnalyze: (method: 'file' | 'url', file?: File, url?: string, socrataToken?: string) => Promise<void>;
-    handleSocrataImport: (datasetId: string, appToken?: string, apiKeyId?: string, apiKeySecret?: string) => Promise<void>;
+    handleSocrataCredentialsChange: (credentials: { appToken?: string }) => void;
+    handleAnalyze: (method: 'file' | 'url', file?: File, url?: string) => Promise<void>;
+    handleSocrataImport: (datasetId: string) => Promise<void>;
     handleImport: (file: File) => Promise<void>;
     handleStop: () => void;
     handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
@@ -220,9 +221,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [socrataDatasetId, setSocrataDatasetId] = useState('');
     const [socrataCredentials, setSocrataCredentials] = useState<{
         appToken?: string;
-        apiKeyId?: string;
-        apiKeySecret?: string;
-    }>({});
+    }>({
+        appToken: import.meta.env.VITE_SOCRATA_APP_TOKEN || undefined,
+    });
     const [socrataFieldNameMap, setSocrataFieldNameMap] = useState<Record<string, string>>({});
     const [isPushingSocrata, setIsPushingSocrata] = useState(false);
     const [socrataOAuthToken, setSocrataOAuthToken] = useState<string | null>(null);
@@ -232,7 +233,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [isSocrataOAuthAuthenticating, setIsSocrataOAuthAuthenticating] = useState(false);
     const [isGeneratingEmpty, setIsGeneratingEmpty] = useState(false);
 
-    // Socrata OAuth: detect token in URL fragment on mount
+    // Socrata OAuth: detect token in URL fragment on mount, or restore from localStorage
     useEffect(() => {
         const hash = window.location.hash;
         if (hash.startsWith('#oauth_token=')) {
@@ -245,10 +246,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
             fetchSocrataOAuthUserInfo(token)
                 .then((user) => {
                     setSocrataOAuthUser(user);
+                    localStorage.setItem('socrata_oauth_token', token);
+                    localStorage.setItem('socrata_oauth_user', JSON.stringify(user));
                     setStatus({ message: `Signed in to data.wa.gov as ${user.displayName}`, type: 'success' });
                 })
                 .catch(() => {
                     setSocrataOAuthToken(null);
+                    localStorage.removeItem('socrata_oauth_token');
+                    localStorage.removeItem('socrata_oauth_user');
                     setStatus({ message: 'OAuth sign-in failed: could not verify token', type: 'error' });
                 })
                 .finally(() => setIsSocrataOAuthAuthenticating(false));
@@ -256,6 +261,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const error = decodeURIComponent(hash.slice('#oauth_error='.length));
             window.history.replaceState(null, '', window.location.pathname);
             setStatus({ message: `OAuth sign-in failed: ${error}`, type: 'error' });
+        } else {
+            // Restore session from localStorage
+            const savedToken = localStorage.getItem('socrata_oauth_token');
+            const savedUser = localStorage.getItem('socrata_oauth_user');
+            if (savedToken && savedUser) {
+                setSocrataOAuthToken(savedToken);
+                setSocrataOAuthUser(JSON.parse(savedUser));
+                setIsSocrataOAuthAuthenticating(true);
+
+                // Verify the saved token is still valid
+                fetchSocrataOAuthUserInfo(savedToken)
+                    .then((user) => {
+                        setSocrataOAuthUser(user);
+                        localStorage.setItem('socrata_oauth_user', JSON.stringify(user));
+                    })
+                    .catch(() => {
+                        // Token expired or invalid — clear session
+                        setSocrataOAuthToken(null);
+                        setSocrataOAuthUser(null);
+                        localStorage.removeItem('socrata_oauth_token');
+                        localStorage.removeItem('socrata_oauth_user');
+                        setStatus({ message: 'Session expired. Please sign in again.', type: 'info' });
+                    })
+                    .finally(() => setIsSocrataOAuthAuthenticating(false));
+            }
         }
     }, []);
 
@@ -274,6 +304,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const handleSocrataOAuthLogout = useCallback(() => {
         setSocrataOAuthToken(null);
         setSocrataOAuthUser(null);
+        localStorage.removeItem('socrata_oauth_token');
+        localStorage.removeItem('socrata_oauth_user');
         setStatus({ message: 'Signed out from data.wa.gov', type: 'info' });
     }, []);
 
@@ -663,7 +695,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
 
     const handleAnalyze = useCallback(
-        async (method: 'file' | 'url', file?: File, url?: string, socrataToken?: string) => {
+        async (method: 'file' | 'url', file?: File, url?: string) => {
             abortControllerRef.current = new AbortController();
             const abortSignal = abortControllerRef.current.signal;
 
@@ -687,7 +719,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     type: 'info'
                 });
 
-                const result = method === 'file' && file ? await parseFile(file) : await parseUrl(url!, socrataToken);
+                const result = method === 'file' && file ? await parseFile(file) : await parseUrl(url!, socrataCredentials.appToken);
 
                 if (!result.data || result.data.length === 0) {
                     setStatus({ message: 'No data found in CSV file', type: 'error' });
@@ -821,7 +853,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 setIsProcessing(false);
             }
         },
-        [comparisonEnabled, comparisonSlotCount, comparisonConfig.subMode, resetComparisonState, setColumnComparisons, generateDatasetComparisonDescription, setDatasetComparison, generateColumnComparisonDescription, generateDatasetDescription, generateColumnDescription]
+        [comparisonEnabled, comparisonSlotCount, comparisonConfig.subMode, resetComparisonState, setColumnComparisons, generateDatasetComparisonDescription, setDatasetComparison, generateColumnComparisonDescription, generateDatasetDescription, generateColumnDescription, socrataCredentials]
     );
 
     const handleStop = useCallback(() => {
@@ -1286,7 +1318,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, [resetComparisonState, setComparisonEnabled, setComparisonConfig, setDatasetComparison, setColumnComparisons, setComparisonTokenUsage]);
 
     const handleSocrataImport = useCallback(
-        async (datasetId: string, appToken?: string, apiKeyId?: string, apiKeySecret?: string) => {
+        async (datasetId: string) => {
             setIsProcessing(true);
             setShowResults(false);
             setIsImportedData(false);
@@ -1294,7 +1326,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setGeneratedResults({ datasetDescription: '', columnDescriptions: {} });
             setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
             setSocrataDatasetId(datasetId);
-            setSocrataCredentials({ appToken, apiKeyId, apiKeySecret });
 
             if (comparisonEnabled) {
                 resetComparisonState();
@@ -1303,7 +1334,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             try {
                 setStatus({ message: 'Importing dataset from data.wa.gov...', type: 'info' });
                 const result = await fetchSocrataImport(
-                    datasetId, appToken, apiKeyId, apiKeySecret,
+                    datasetId,
+                    socrataCredentials.appToken,
                     socrataOAuthToken || undefined,
                 );
 
@@ -1362,12 +1394,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 setIsProcessing(false);
             }
         },
-        [comparisonEnabled, resetComparisonState, socrataOAuthToken]
+        [comparisonEnabled, resetComparisonState, socrataOAuthToken, socrataCredentials]
     );
 
     const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
         setApiConfig({ baseURL: newConfig.baseURL, apiKey: newConfig.apiKey });
         setModel(newConfig.model);
+    }, []);
+
+    const handleSocrataCredentialsChange = useCallback((credentials: { appToken?: string }) => {
+        setSocrataCredentials(credentials);
     }, []);
 
     const handleScoringCategoriesChange = useCallback((categories: ScoringCategory[]) => {
@@ -1500,8 +1536,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 generatedResults.datasetDescription || undefined,
                 columnUpdates,
                 socrataCredentials.appToken,
-                socrataCredentials.apiKeyId,
-                socrataCredentials.apiKeySecret,
                 socrataOAuthToken || undefined,
             );
 
@@ -1638,6 +1672,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         tokenUsage,
         socrataDatasetId,
         socrataCredentials,
+        handleSocrataCredentialsChange,
         socrataFieldNameMap,
         isPushingSocrata,
         socrataOAuthToken,

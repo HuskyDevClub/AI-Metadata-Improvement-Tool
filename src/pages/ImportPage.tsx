@@ -24,14 +24,9 @@ export function ImportPage() {
 
     // URL form state
     const [url, setUrl] = useState('');
-    const [socrataToken, setSocrataToken] = useState(import.meta.env.VITE_SOCRATA_APP_TOKEN || '');
 
     // Socrata form state
     const [datasetId, setDatasetId] = useState('');
-    const [appToken, setAppToken] = useState(import.meta.env.VITE_SOCRATA_APP_TOKEN || '');
-    const [showApiKey, setShowApiKey] = useState(false);
-    const [apiKeyId, setApiKeyId] = useState(import.meta.env.VITE_SOCRATA_API_KEY_ID || '');
-    const [apiKeySecret, setApiKeySecret] = useState(import.meta.env.VITE_SOCRATA_API_KEY_SECRET || '');
 
     const csvFileRef = useRef<HTMLInputElement>(null);
     const jsonFileRef = useRef<HTMLInputElement>(null);
@@ -75,20 +70,15 @@ export function ImportPage() {
         if (!url) return;
         const detectedId = extractSocrataDatasetId(url);
         if (detectedId) {
-            handleSocrataImport(detectedId, socrataToken || undefined);
+            handleSocrataImport(detectedId);
         } else {
-            handleAnalyze('url', undefined, url, socrataToken || undefined);
+            handleAnalyze('url', undefined, url);
         }
     };
 
     const handleSocrataSubmit = () => {
         if (!datasetId.trim()) return;
-        handleSocrataImport(
-            datasetId.trim(),
-            appToken || undefined,
-            apiKeyId || undefined,
-            apiKeySecret || undefined
-        );
+        handleSocrataImport(datasetId.trim());
     };
 
     return (
@@ -196,16 +186,6 @@ export function ImportPage() {
                             Socrata URLs (data.wa.gov) will auto-detect and fetch via API
                         </span>
                     </div>
-                    <div className="import-form-group">
-                        <label htmlFor="socrataToken">Socrata API Token</label>
-                        <input
-                            id="socrataToken"
-                            type="password"
-                            placeholder="Optional — for Socrata open data portals"
-                            value={socrataToken}
-                            onChange={(e) => setSocrataToken(e.target.value)}
-                        />
-                    </div>
                     <button
                         className="import-form-submit"
                         onClick={handleUrlSubmit}
@@ -254,54 +234,6 @@ export function ImportPage() {
                             </button>
                         )}
                     </div>
-
-                    {!socrataOAuthUser && (
-                        <>
-                            <div className="import-form-divider"><span>or enter credentials</span></div>
-                            <div className="import-form-group">
-                                <label htmlFor="socrataAppToken">App Token</label>
-                                <input
-                                    id="socrataAppToken"
-                                    type="password"
-                                    placeholder="Optional"
-                                    value={appToken}
-                                    onChange={(e) => setAppToken(e.target.value)}
-                                />
-                            </div>
-                            <label className="import-form-toggle">
-                                <input
-                                    type="checkbox"
-                                    checked={showApiKey}
-                                    onChange={(e) => setShowApiKey(e.target.checked)}
-                                />
-                                Private dataset (requires API Key)
-                            </label>
-                            {showApiKey && (
-                                <div className="import-form-credentials">
-                                    <div className="import-form-group">
-                                        <label htmlFor="socrataApiKeyId">API Key ID</label>
-                                        <input
-                                            id="socrataApiKeyId"
-                                            type="text"
-                                            placeholder="Key ID"
-                                            value={apiKeyId}
-                                            onChange={(e) => setApiKeyId(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="import-form-group">
-                                        <label htmlFor="socrataApiKeySecret">API Key Secret</label>
-                                        <input
-                                            id="socrataApiKeySecret"
-                                            type="password"
-                                            placeholder="Key Secret"
-                                            value={apiKeySecret}
-                                            onChange={(e) => setApiKeySecret(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    )}
 
                     <button
                         className="import-form-submit"
