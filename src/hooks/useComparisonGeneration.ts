@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import type { JudgeResult, OpenAIConfig, ScoringCategory, TokenUsage } from '../types';
 import { useOpenAI } from './useOpenAI';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+import { API_BASE_URL } from '../utils/config';
+import { assertResponseOk } from '../utils/api';
 
 interface ParallelGenerationResult {
     usages: TokenUsage[];
@@ -70,10 +70,7 @@ export function useComparisonGeneration() {
                 }),
             });
 
-            if (!response.ok) {
-                const errorBody = await response.json().catch(() => null);
-                throw new Error(errorBody?.detail || `Judge API error (${response.status})`);
-            }
+            await assertResponseOk(response, 'Judge API error');
 
             const data = await response.json();
 

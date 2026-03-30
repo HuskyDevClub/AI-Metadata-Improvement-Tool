@@ -31,6 +31,7 @@ import {
     DEFAULT_DATASET_PROMPT,
     DEFAULT_SYSTEM_PROMPT
 } from '../utils/prompts';
+import { EMPTY_TOKEN_USAGE } from '../utils/config';
 import type {
     APIConfig,
     ColumnComparisonResult,
@@ -46,8 +47,6 @@ import type {
     Status,
     TokenUsage,
 } from '../types';
-
-const EMPTY_TOKEN_USAGE: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
 export type PageId = 'import' | 'data' | 'field' | 'compare' | 'settings';
 

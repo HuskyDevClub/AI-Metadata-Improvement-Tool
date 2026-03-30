@@ -8,8 +8,7 @@ import type {
     ScoringCategory,
     TokenUsage,
 } from '../types';
-
-const EMPTY_TOKEN_USAGE: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+import { EMPTY_TOKEN_USAGE } from '../utils/config';
 
 const DEFAULT_SCORING_CATEGORIES: ScoringCategory[] = [
     {

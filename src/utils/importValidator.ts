@@ -8,8 +8,8 @@ import type {
     DatasetComparisonResult,
     GeneratedResults,
     JudgeResult,
-    TokenUsage,
 } from '../types';
+import { EMPTY_TOKEN_USAGE } from './config';
 
 // --- Export format shapes (what the JSON file looks like) ---
 
@@ -130,8 +130,6 @@ function isComparisonExport(data: unknown): data is ComparisonExport {
     const meta = d?.metadata as Record<string, unknown> | undefined;
     return meta?.mode === 'comparison';
 }
-
-const EMPTY_TOKEN_USAGE: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
 // --- Main validator ---
 

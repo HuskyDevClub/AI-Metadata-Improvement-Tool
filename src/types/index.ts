@@ -106,17 +106,14 @@ export interface JudgeResult {
     winnerReasoning: string;
 }
 
-export interface DatasetComparisonResult {
+export interface ComparisonResult {
     outputs: string[];
     judgeResult: JudgeResult | null;
     isJudging: boolean;
 }
 
-export interface ColumnComparisonResult {
-    outputs: string[];
-    judgeResult: JudgeResult | null;
-    isJudging: boolean;
-}
+export type DatasetComparisonResult = ComparisonResult;
+export type ColumnComparisonResult = ComparisonResult;
 
 export interface ComparisonTokenUsage {
     models: TokenUsage[];

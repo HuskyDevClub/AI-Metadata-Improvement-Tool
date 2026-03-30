@@ -1,9 +1,7 @@
 import Papa from 'papaparse';
 import type { ColumnInfo, CsvRow } from '../types';
-
-// For Databricks deployment, use empty string (relative URL) when not specified
-// For local development, default to localhost:3001 (Express) or localhost:8000 (Python)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+import { API_BASE_URL } from './config';
+import { assertResponseOk } from './api';
 
 export interface ParseResult {
     data: CsvRow[];
@@ -89,10 +87,7 @@ export async function parseUrl(url: string, socrataToken?: string): Promise<Pars
         body: JSON.stringify({ url, socrataToken }),
     });
 
-    if (!response.ok) {
-        const errorBody = await response.json().catch(() => null);
-        throw new Error(errorBody?.detail || `Failed to fetch CSV (${response.status})`);
-    }
+    await assertResponseOk(response, 'Failed to fetch CSV');
 
     const result = await response.json();
 
@@ -133,10 +128,7 @@ export async function pushSocrataMetadata(
         body: JSON.stringify({ datasetId, appToken, oauthToken, datasetDescription, columns }),
     });
 
-    if (!response.ok) {
-        const errorBody = await response.json().catch(() => null);
-        throw new Error(errorBody?.detail || `Failed to push metadata (${response.status})`);
-    }
+    await assertResponseOk(response, 'Failed to push metadata');
 
     return response.json();
 }
@@ -152,10 +144,7 @@ export async function fetchSocrataImport(
         body: JSON.stringify({ datasetId, appToken, oauthToken }),
     });
 
-    if (!response.ok) {
-        const errorBody = await response.json().catch(() => null);
-        throw new Error(errorBody?.detail || `Failed to import dataset (${response.status})`);
-    }
+    await assertResponseOk(response, 'Failed to import dataset');
 
     const result = await response.json();
 
@@ -172,10 +161,7 @@ export async function fetchSocrataImport(
 
 export async function fetchSocrataOAuthLoginUrl(): Promise<string> {
     const response = await fetch(`${API_BASE_URL}/api/auth/socrata/login`);
-    if (!response.ok) {
-        const errorBody = await response.json().catch(() => null);
-        throw new Error(errorBody?.detail || `Failed to get OAuth URL (${response.status})`);
-    }
+    await assertResponseOk(response, 'Failed to get OAuth URL');
     const result = await response.json();
     return result.authUrl;
 }
@@ -187,9 +173,6 @@ export async function fetchSocrataOAuthUserInfo(
         method: 'POST',
         headers: { 'Authorization': `OAuth ${oauthToken}` },
     });
-    if (!response.ok) {
-        const errorBody = await response.json().catch(() => null);
-        throw new Error(errorBody?.detail || `Failed to fetch user info (${response.status})`);
-    }
+    await assertResponseOk(response, 'Failed to fetch user info');
     return response.json();
 }

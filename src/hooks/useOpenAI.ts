@@ -1,9 +1,7 @@
 import { useCallback } from 'react';
 import type { OpenAIConfig, TokenUsage } from '../types';
-
-// For Databricks deployment, use empty string (relative URL) when not specified
-// For local development, default to localhost:3001 (Express) or localhost:8000 (Python)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+import { API_BASE_URL } from '../utils/config';
+import { assertResponseOk } from '../utils/api';
 
 export function useOpenAI() {
     const callOpenAIStream = useCallback(
@@ -29,10 +27,7 @@ export function useOpenAI() {
                 signal: abortSignal,
             });
 
-            if (!response.ok) {
-                const errorBody = await response.json().catch(() => null);
-                throw new Error(errorBody?.detail || `API error (${response.status})`);
-            }
+            await assertResponseOk(response, 'API error');
 
             const reader = response.body?.getReader();
             if (!reader) {

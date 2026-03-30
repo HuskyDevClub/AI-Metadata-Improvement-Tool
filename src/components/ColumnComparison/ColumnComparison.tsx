@@ -2,6 +2,7 @@ import type { ColumnComparisonResult, ColumnInfo, ScoringCategory } from '../../
 import type { RegenerationModifier } from '../ComparisonResults/RegenerationControls';
 import { SideBySideView } from '../ComparisonResults/SideBySideView';
 import { JudgeScoreCard } from '../ComparisonResults/JudgeScoreCard';
+import { TYPE_COLORS } from '../../utils/modelColors';
 import './ColumnComparison.css';
 
 interface ColumnComparisonProps {
@@ -16,13 +17,6 @@ interface ColumnComparisonProps {
     isReJudging?: boolean;
     scoringCategories?: ScoringCategory[];
 }
-
-const TYPE_COLORS: Record<string, string> = {
-    numeric: '#3b82f6',
-    categorical: '#22c55e',
-    text: '#f59e0b',
-    empty: '#9ca3af',
-};
 
 export function ColumnComparison({
                                      columnName,

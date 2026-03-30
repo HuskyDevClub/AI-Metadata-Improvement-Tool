@@ -79,6 +79,13 @@ export const MODEL_COLORS: ModelColor[] = [
     },
 ];
 
+export const TYPE_COLORS: Record<string, string> = {
+    numeric: '#3b82f6',
+    categorical: '#22c55e',
+    text: '#f59e0b',
+    empty: '#9ca3af',
+};
+
 export function getModelColor(index: number): ModelColor {
     return MODEL_COLORS[index % MODEL_COLORS.length];
 }
