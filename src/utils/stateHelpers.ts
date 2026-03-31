@@ -26,21 +26,3 @@ export function handleJudgeError(
         type: 'warning',
     });
 }
-
-/**
- * Helper to add an item to a Set state
- */
-export function addToSet<T>(item: T): (prev: Set<T>) => Set<T> {
-    return (prev) => new Set(prev).add(item);
-}
-
-/**
- * Helper to remove an item from a Set state
- */
-export function removeFromSet<T>(item: T): (prev: Set<T>) => Set<T> {
-    return (prev) => {
-        const next = new Set(prev);
-        next.delete(item);
-        return next;
-    };
-}

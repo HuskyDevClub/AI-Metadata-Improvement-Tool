@@ -554,7 +554,7 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
 
             column_stats: dict[str, ColumnStats] = {}
             for result in stats_results:
-                if isinstance(result, Exception):
+                if isinstance(result, BaseException):
                     logger.warning("Column stats computation failed: %s", result)
                     continue
                 display_name, col_stats = result

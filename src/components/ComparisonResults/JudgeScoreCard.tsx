@@ -52,7 +52,7 @@ export function JudgeScoreCard({
 
     const winner = getWinnerDisplay();
 
-    // Get scoring category keys from the categories prop or from the result data
+    // Get scoring category keys from the category prop or from the result data
     const categoryKeys = scoringCategories
         ? scoringCategories.map(c => ({ key: c.key, label: c.label, maxScore: c.maxScore }))
         : Object.keys(result.models[0]?.scores || {}).map(key => ({ key, label: key, maxScore: 10 }));

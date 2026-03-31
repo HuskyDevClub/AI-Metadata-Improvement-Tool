@@ -1,0 +1,315 @@
+/* ── Description display ── */
+
+.ed-description {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-size: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.ed-description p {
+    flex: 1;
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.ed-edit-icon {
+    cursor: pointer;
+    color: var(--text-tertiary);
+    font-size: 16px;
+    transition: color 0.15s;
+    flex-shrink: 0;
+}
+
+.ed-edit-icon:hover {
+    color: var(--accent);
+}
+
+.ed-streaming {
+    min-height: 40px;
+}
+
+.ed-cursor {
+    display: inline-block;
+    color: var(--accent);
+    font-weight: bold;
+    animation: blink 0.8s infinite;
+}
+
+/* ── Edit mode ── */
+
+.ed-edit-mode {
+    margin-bottom: 10px;
+}
+
+.ed-edit-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    resize: vertical;
+    margin-bottom: 10px;
+}
+
+.ed-edit-textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.ed-edit-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.ed-btn-primary,
+.ed-btn-secondary {
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.ed-btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.ed-btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.ed-btn-secondary {
+    background: var(--surface-tertiary);
+    color: var(--text-secondary);
+}
+
+.ed-btn-secondary:hover {
+    background: var(--border);
+}
+
+/* ── Suggestions panel ── */
+
+.ed-suggestions {
+    margin-top: 12px;
+    border: 1px solid var(--warning-border);
+    border-radius: var(--radius-md);
+    background: var(--warning-bg);
+    overflow: hidden;
+}
+
+.ed-suggestions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #fef3c7;
+    border-bottom: 1px solid var(--warning-border);
+}
+
+.ed-suggestions-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--warning);
+}
+
+.ed-suggestions-dismiss {
+    background: none;
+    border: none;
+    color: var(--warning);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.ed-suggestions-dismiss:hover {
+    color: #92400e;
+}
+
+.ed-suggestions-content {
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+}
+
+.ed-suggestions-cursor {
+    display: inline-block;
+    color: var(--warning);
+    font-weight: bold;
+    animation: blink 0.8s infinite;
+}
+
+/* ── Regenerate controls ── */
+
+.ed-regenerate-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    align-items: center;
+}
+
+.ed-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+}
+
+.ed-btn-regenerate {
+    background: var(--surface);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ed-btn-regenerate:hover {
+    background: var(--surface-secondary);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.ed-btn-regenerate:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ed-btn-regenerate.concise {
+    color: #0891b2;
+    border-color: #cffafe;
+}
+
+.ed-btn-regenerate.concise:hover {
+    background: #ecfeff;
+    border-color: #0891b2;
+}
+
+.ed-btn-regenerate.detailed {
+    color: #059669;
+    border-color: #a7f3d0;
+}
+
+.ed-btn-regenerate.detailed:hover {
+    background: #ecfdf5;
+    border-color: #059669;
+}
+
+.ed-btn-regenerate.suggest {
+    color: #d97706;
+    border-color: #fde68a;
+}
+
+.ed-btn-regenerate.suggest:hover {
+    background: #fffbeb;
+    border-color: #d97706;
+}
+
+.ed-custom-instruction-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 1;
+    min-width: 200px;
+}
+
+.ed-custom-instruction-input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text);
+}
+
+.ed-custom-instruction-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.ed-regenerating {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.ed-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-top: 2px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* ── Compact variant (used by ColumnCard) ── */
+
+.ed-compact .ed-edit-textarea {
+    min-height: 80px;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
+.ed-compact .ed-edit-actions {
+    gap: 8px;
+}
+
+.ed-compact .ed-btn-primary,
+.ed-compact .ed-btn-secondary {
+    padding: 6px 14px;
+}
+
+.ed-compact .ed-regenerate-controls {
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+}
+
+.ed-compact .ed-btn-regenerate {
+    padding: 4px 10px;
+    font-size: 11px;
+}
+
+.ed-compact .ed-custom-instruction-wrapper {
+    gap: 4px;
+    min-width: 150px;
+}
+
+.ed-compact .ed-custom-instruction-input {
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.ed-compact .ed-spinner {
+    width: 14px;
+    height: 14px;
+}
+
+.ed-compact .ed-regenerating {
+    gap: 6px;
+    font-size: 12px;
+}
