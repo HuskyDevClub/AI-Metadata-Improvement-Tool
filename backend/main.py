@@ -55,8 +55,7 @@ load_dotenv()
 
 # Configuration
 SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
-SOCRATA_OAUTH_CLIENT_ID = os.getenv("SOCRATA_OAUTH_CLIENT_ID", "")
-SOCRATA_OAUTH_CLIENT_SECRET = os.getenv("SOCRATA_OAUTH_CLIENT_SECRET", "")
+SOCRATA_SECRET_TOKEN = os.getenv("SOCRATA_SECRET_TOKEN", "")
 SOCRATA_OAUTH_REDIRECT_URI = os.getenv(
     "SOCRATA_OAUTH_REDIRECT_URI",
     "http://localhost:8000/api/auth/socrata/callback",
@@ -102,14 +101,16 @@ async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
     if not request.url:
         raise HTTPException(status_code=400, detail="URL is required")
 
-    # Socrata token is optional — only needed for Socrata open data portals
-    token = request.socrataToken or SOCRATA_APP_TOKEN
+    if not SOCRATA_APP_TOKEN:
+        raise HTTPException(
+            status_code=500,
+            detail="SOCRATA_APP_TOKEN is not configured on the server.",
+        )
 
     headers: dict[str, str] = {
         "Accept": "text/csv",
+        "X-App-Token": SOCRATA_APP_TOKEN,
     }
-    if token:
-        headers["X-App-Token"] = token
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -135,14 +136,14 @@ async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
 @app.get("/api/auth/socrata/login", response_model=SocrataOAuthLoginResponse)
 async def socrata_oauth_login() -> SocrataOAuthLoginResponse:
     """Return the OAuth authorization URL for data.wa.gov sign-in."""
-    if not SOCRATA_OAUTH_CLIENT_ID:
+    if not SOCRATA_APP_TOKEN:
         raise HTTPException(
             status_code=400,
-            detail="OAuth not configured. Set SOCRATA_OAUTH_CLIENT_ID in the environment.",
+            detail="OAuth not configured. Set SOCRATA_APP_TOKEN in the environment.",
         )
     params = urlencode(
         {
-            "client_id": SOCRATA_OAUTH_CLIENT_ID,
+            "client_id": SOCRATA_APP_TOKEN,
             "response_type": "code",
             "redirect_uri": SOCRATA_OAUTH_REDIRECT_URI,
         }
@@ -162,7 +163,7 @@ async def socrata_oauth_callback(code: str | None = None, error: str | None = No
     if not code:
         raise HTTPException(status_code=400, detail="Missing authorization code")
 
-    if not SOCRATA_OAUTH_CLIENT_ID or not SOCRATA_OAUTH_CLIENT_SECRET:
+    if not SOCRATA_APP_TOKEN or not SOCRATA_SECRET_TOKEN:
         raise HTTPException(status_code=500, detail="OAuth not configured on server")
 
     try:
@@ -170,8 +171,8 @@ async def socrata_oauth_callback(code: str | None = None, error: str | None = No
             token_resp = await client.post(
                 "https://data.wa.gov/oauth/access_token",
                 data={
-                    "client_id": SOCRATA_OAUTH_CLIENT_ID,
-                    "client_secret": SOCRATA_OAUTH_CLIENT_SECRET,
+                    "client_id": SOCRATA_APP_TOKEN,
+                    "client_secret": SOCRATA_SECRET_TOKEN,
                     "grant_type": "authorization_code",
                     "redirect_uri": SOCRATA_OAUTH_REDIRECT_URI,
                     "code": code,
@@ -250,14 +251,16 @@ def build_socrata_auth(
     request: SocrataImportRequest,
 ) -> dict[str, str]:
     """Build auth headers from import request."""
-    headers: dict[str, str] = {}
+    if not SOCRATA_APP_TOKEN:
+        raise HTTPException(
+            status_code=500,
+            detail="SOCRATA_APP_TOKEN is not configured on the server.",
+        )
+
+    headers: dict[str, str] = {"X-App-Token": SOCRATA_APP_TOKEN}
 
     if request.oauthToken:
         headers["Authorization"] = f"OAuth {request.oauthToken}"
-
-    token = request.appToken or SOCRATA_APP_TOKEN
-    if token:
-        headers["X-App-Token"] = token
 
     return headers
 
@@ -606,9 +609,12 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
             "Please sign in with OAuth.",
         )
 
-    token = request.appToken or SOCRATA_APP_TOKEN
-    if token:
-        headers["X-App-Token"] = token
+    if not SOCRATA_APP_TOKEN:
+        raise HTTPException(
+            status_code=500,
+            detail="SOCRATA_APP_TOKEN is not configured on the server.",
+        )
+    headers["X-App-Token"] = SOCRATA_APP_TOKEN
 
     metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
 

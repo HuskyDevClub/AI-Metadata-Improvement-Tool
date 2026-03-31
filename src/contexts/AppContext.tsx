@@ -91,7 +91,6 @@ interface AppContextType {
 
     // Socrata
     socrataDatasetId: string;
-    socrataCredentials: { appToken?: string };
     socrataFieldNameMap: Record<string, string>;
     isPushingSocrata: boolean;
 
@@ -121,7 +120,6 @@ interface AppContextType {
     setComparisonConfig: React.Dispatch<React.SetStateAction<ComparisonConfig>>;
 
     // Handlers
-    handleSocrataCredentialsChange: (credentials: { appToken?: string }) => void;
     handleAnalyze: (method: 'file' | 'url', file?: File, url?: string) => Promise<void>;
     handleSocrataImport: (datasetId: string) => Promise<void>;
     handleImport: (file: File) => Promise<void>;
@@ -218,11 +216,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     // Socrata push-back state
     const [socrataDatasetId, setSocrataDatasetId] = useState('');
-    const [socrataCredentials, setSocrataCredentials] = useState<{
-        appToken?: string;
-    }>({
-        appToken: import.meta.env.VITE_SOCRATA_APP_TOKEN || undefined,
-    });
     const [socrataFieldNameMap, setSocrataFieldNameMap] = useState<Record<string, string>>({});
     const [isPushingSocrata, setIsPushingSocrata] = useState(false);
     const [socrataOAuthToken, setSocrataOAuthToken] = useState<string | null>(null);
@@ -718,7 +711,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     type: 'info'
                 });
 
-                const result = method === 'file' && file ? await parseFile(file) : await parseUrl(url!, socrataCredentials.appToken);
+                const result = method === 'file' && file ? await parseFile(file) : await parseUrl(url!);
 
                 if (!result.data || result.data.length === 0) {
                     setStatus({ message: 'No data found in CSV file', type: 'error' });
@@ -852,7 +845,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 setIsProcessing(false);
             }
         },
-        [comparisonEnabled, comparisonSlotCount, comparisonConfig.subMode, resetComparisonState, setColumnComparisons, generateDatasetComparisonDescription, setDatasetComparison, generateColumnComparisonDescription, generateDatasetDescription, generateColumnDescription, socrataCredentials]
+        [comparisonEnabled, comparisonSlotCount, comparisonConfig.subMode, resetComparisonState, setColumnComparisons, generateDatasetComparisonDescription, setDatasetComparison, generateColumnComparisonDescription, generateDatasetDescription, generateColumnDescription]
     );
 
     const handleStop = useCallback(() => {
@@ -1334,7 +1327,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 setStatus({ message: 'Importing dataset from data.wa.gov...', type: 'info' });
                 const result = await fetchSocrataImport(
                     datasetId,
-                    socrataCredentials.appToken,
                     socrataOAuthToken || undefined,
                 );
 
@@ -1393,7 +1385,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 setIsProcessing(false);
             }
         },
-        [comparisonEnabled, resetComparisonState, socrataOAuthToken, socrataCredentials]
+        [comparisonEnabled, resetComparisonState, socrataOAuthToken]
     );
 
     const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
@@ -1401,9 +1393,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setModel(newConfig.model);
     }, []);
 
-    const handleSocrataCredentialsChange = useCallback((credentials: { appToken?: string }) => {
-        setSocrataCredentials(credentials);
-    }, []);
 
     const handleScoringCategoriesChange = useCallback((categories: ScoringCategory[]) => {
         setComparisonConfig((prev) => {
@@ -1534,7 +1523,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 socrataDatasetId,
                 generatedResults.datasetDescription || undefined,
                 columnUpdates,
-                socrataCredentials.appToken,
                 socrataOAuthToken || undefined,
             );
 
@@ -1545,7 +1533,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsPushingSocrata(false);
         }
-    }, [socrataDatasetId, generatedResults, socrataFieldNameMap, socrataCredentials, socrataOAuthToken]);
+    }, [socrataDatasetId, generatedResults, socrataFieldNameMap, socrataOAuthToken]);
 
     const getColumnGeneratingModels = useCallback((columnName: string): Set<number> => {
         const result = new Set<number>();
@@ -1670,8 +1658,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isGeneratingEmpty,
         tokenUsage,
         socrataDatasetId,
-        socrataCredentials,
-        handleSocrataCredentialsChange,
         socrataFieldNameMap,
         isPushingSocrata,
         socrataOAuthToken,

@@ -11,7 +11,6 @@ class FetchCsvRequest(BaseModel):
     """Request to fetch a CSV file from a remote URL (e.g., Socrata open data)."""
 
     url: str
-    socrataToken: str | None = None
 
 
 class FetchCsvResponse(BaseModel):
@@ -143,7 +142,6 @@ class SocrataImportRequest(BaseModel):
     """Request to import a dataset from data.wa.gov by dataset ID."""
 
     datasetId: str
-    appToken: str | None = None
     oauthToken: str | None = None
 
 
@@ -193,7 +191,6 @@ class SocrataExportRequest(BaseModel):
     """Request to push updated metadata back to data.wa.gov."""
 
     datasetId: str
-    appToken: str | None = None
     oauthToken: str | None = None
     datasetDescription: str | None = None
     columns: list[SocrataColumnUpdate] = []

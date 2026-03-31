@@ -13,8 +13,6 @@ export function SettingsPage() {
         setPromptTemplates,
         handleScoringCategoriesChange,
         setComparisonConfig,
-        socrataCredentials,
-        handleSocrataCredentialsChange,
     } = useAppContext();
 
     return (
@@ -25,25 +23,6 @@ export function SettingsPage() {
                     onChange={handleOpenAIConfigChange}
                     showModel={!comparisonEnabled}
                 />
-            </div>
-
-            <div className="settings-page-section">
-                <div className="openai-config-section">
-                    <div className="openai-config-section-title">Socrata / data.wa.gov</div>
-                    <div className="openai-config-grid">
-                        <div className="openai-config-input-group">
-                            <label htmlFor="socrataAppToken">App Token</label>
-                            <input
-                                id="socrataAppToken"
-                                type="password"
-                                placeholder="Your Socrata app token"
-                                value={socrataCredentials.appToken || ''}
-                                onChange={(e) => handleSocrataCredentialsChange({ appToken: e.target.value || undefined })}
-                            />
-                            <span className="openai-config-help-text">Required for Socrata API access</span>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <div className="settings-page-section">

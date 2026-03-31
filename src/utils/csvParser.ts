@@ -77,14 +77,14 @@ export function parseFile(file: File): Promise<ParseResult> {
     });
 }
 
-export async function parseUrl(url: string, socrataToken?: string): Promise<ParseResult> {
+export async function parseUrl(url: string): Promise<ParseResult> {
     // Fetch raw CSV from the backend
     const response = await fetch(`${API_BASE_URL}/api/csv/fetch`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url, socrataToken }),
+        body: JSON.stringify({ url }),
     });
 
     await assertResponseOk(response, 'Failed to fetch CSV');
@@ -119,13 +119,12 @@ export async function pushSocrataMetadata(
     datasetId: string,
     datasetDescription: string | undefined,
     columns: { fieldName: string; description: string }[],
-    appToken?: string,
     oauthToken?: string,
 ): Promise<SocrataExportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datasetId, appToken, oauthToken, datasetDescription, columns }),
+        body: JSON.stringify({ datasetId, oauthToken, datasetDescription, columns }),
     });
 
     await assertResponseOk(response, 'Failed to push metadata');
@@ -135,13 +134,12 @@ export async function pushSocrataMetadata(
 
 export async function fetchSocrataImport(
     datasetId: string,
-    appToken?: string,
     oauthToken?: string,
 ): Promise<SocrataImportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datasetId, appToken, oauthToken }),
+        body: JSON.stringify({ datasetId, oauthToken }),
     });
 
     await assertResponseOk(response, 'Failed to import dataset');

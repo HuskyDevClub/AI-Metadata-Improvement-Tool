@@ -199,7 +199,7 @@ This tool is designed to work with government data portals powered by **Tyler Te
 
 To fetch data directly from these portals:
 
-1. Configure `SOCRATA_APP_TOKEN` in the backend `.env` file, or enter it directly in the frontend UI
+1. Configure `SOCRATA_APP_TOKEN` in the backend `.env` file
 2. Select "Load from URL" in the CSV Data Source section
 3. Enter the data portal API endpoint URL
 

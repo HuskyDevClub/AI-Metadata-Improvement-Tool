@@ -51,12 +51,11 @@ cd ..
    VITE_COMPARISON_MODEL_B=
    VITE_COMPARISON_JUDGE_MODEL=
 
-   # Optional: Pre-fill Socrata API token in the UI
-   VITE_SOCRATA_APP_TOKEN=
    ```
 
 3. Configure the backend `.env` file in the `backend/` directory:
    ```env
+   # Socrata API token (required for Socrata open data portal access)
    SOCRATA_APP_TOKEN=your-socrata-app-token
 
    # Default LLM endpoint (optional — can also be set via frontend UI)
@@ -133,14 +132,14 @@ https://abc123.ngrok-free.app/api/auth/socrata/
 
 Add to `backend/.env`:
 ```env
-SOCRATA_OAUTH_CLIENT_ID=your-app-token
-SOCRATA_OAUTH_CLIENT_SECRET=your-secret-token
+SOCRATA_APP_TOKEN=your-app-token
+SOCRATA_SECRET_TOKEN=your-secret-token
 SOCRATA_OAUTH_REDIRECT_URI=https://abc123.ngrok-free.app/api/auth/socrata/callback
 FRONTEND_URL=http://localhost:5173
 ```
 
-- `SOCRATA_OAUTH_CLIENT_ID`: The App Token from step 1
-- `SOCRATA_OAUTH_CLIENT_SECRET`: The Secret Token from step 1
+- `SOCRATA_APP_TOKEN`: The App Token from step 1 (also used as the OAuth `client_id`)
+- `SOCRATA_SECRET_TOKEN`: The Secret Token from step 1
 - `SOCRATA_OAUTH_REDIRECT_URI`: Must match the Callback Prefix domain registered on data.wa.gov
 - `FRONTEND_URL`: Where the browser redirects after OAuth (your frontend dev server)
 
@@ -183,8 +182,7 @@ This project is designed for deployment to **Databricks Apps**.
    - `HF_API_URL`: HuggingFace Router URL
 
    For OAuth support, also set:
-   - `SOCRATA_OAUTH_CLIENT_ID`: Your Socrata OAuth App Token
-   - `SOCRATA_OAUTH_CLIENT_SECRET`: Your Socrata OAuth Secret Token
+   - `SOCRATA_SECRET_TOKEN`: Your Socrata Secret Token (from the same App Token registration)
    - `SOCRATA_OAUTH_REDIRECT_URI`: `https://your-databricks-app-url/api/auth/socrata/callback`
 
 3. **Deploy using Databricks CLI**:
