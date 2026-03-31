@@ -25,6 +25,10 @@ export function DataOverviewPage() {
         handleRegenerateDataset,
         handleSuggestDatasetImprovement,
         handleDismissDatasetSuggestions,
+        handleToggleDatasetSuggestion,
+        handleEditDatasetSuggestion,
+        handleAddDatasetSuggestion,
+        handleApplyDatasetSuggestions,
         handleGenerateSelectedDescriptions,
         handleExport,
         handlePushToSocrata,
@@ -100,6 +104,10 @@ export function DataOverviewPage() {
                     suggestions={datasetSuggestions}
                     isSuggesting={suggestingDataset}
                     isRegenerating={regeneratingDataset}
+                    onToggleSuggestion={handleToggleDatasetSuggestion}
+                    onEditSuggestion={handleEditDatasetSuggestion}
+                    onAddSuggestion={handleAddDatasetSuggestion}
+                    onApplySuggestions={handleApplyDatasetSuggestions}
                 />
             )}
 

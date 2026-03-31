@@ -19,6 +19,10 @@ export function FieldOverviewPage() {
         handleRegenerateColumn,
         handleSuggestColumnImprovement,
         handleDismissColumnSuggestions,
+        handleToggleColumnSuggestion,
+        handleEditColumnSuggestion,
+        handleAddColumnSuggestion,
+        handleApplyColumnSuggestions,
         renderTokenUsage,
     } = useAppContext();
 
@@ -133,10 +137,14 @@ export function FieldOverviewPage() {
                     }
                     onSuggestImprovement={() => handleSuggestColumnImprovement(fieldName)}
                     onDismissSuggestions={() => handleDismissColumnSuggestions(fieldName)}
-                    suggestions={columnSuggestions[fieldName] || ''}
+                    suggestions={columnSuggestions[fieldName] || []}
                     isSuggesting={suggestingColumns.has(fieldName)}
                     isRegenerating={regeneratingColumns.has(fieldName)}
                     isGenerating={generatingColumns.has(fieldName)}
+                    onToggleSuggestion={(id) => handleToggleColumnSuggestion(fieldName, id)}
+                    onEditSuggestion={(id, text) => handleEditColumnSuggestion(fieldName, id, text)}
+                    onAddSuggestion={(text) => handleAddColumnSuggestion(fieldName, text)}
+                    onApplySuggestions={() => handleApplyColumnSuggestions(fieldName)}
                 />
             </div>
 

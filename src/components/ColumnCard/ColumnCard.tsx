@@ -1,3 +1,4 @@
+import type { SuggestionItem } from '../../utils/prompts';
 import type { ColumnInfo } from '../../types';
 import { formatColumnStats, sanitizeId } from '../../utils/columnAnalyzer';
 import { EditableDescription } from '../EditableDescription/EditableDescription';
@@ -11,10 +12,14 @@ interface ColumnCardProps {
     onRegenerate: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => void;
     onSuggestImprovement: () => void;
     onDismissSuggestions: () => void;
-    suggestions: string;
+    suggestions: SuggestionItem[];
     isSuggesting: boolean;
     isRegenerating: boolean;
     isGenerating: boolean;
+    onToggleSuggestion: (id: string) => void;
+    onEditSuggestion: (id: string, text: string) => void;
+    onAddSuggestion: (text: string) => void;
+    onApplySuggestions: () => void;
 }
 
 export function ColumnCard({
@@ -29,6 +34,10 @@ export function ColumnCard({
                                isSuggesting,
                                isRegenerating,
                                isGenerating,
+                               onToggleSuggestion,
+                               onEditSuggestion,
+                               onAddSuggestion,
+                               onApplySuggestions,
                            }: ColumnCardProps) {
     const getTypeClass = () => {
         switch (info.type) {
@@ -60,6 +69,10 @@ export function ColumnCard({
                 isRegenerating={isRegenerating}
                 isStreaming={isGenerating}
                 compact
+                onToggleSuggestion={onToggleSuggestion}
+                onEditSuggestion={onEditSuggestion}
+                onAddSuggestion={onAddSuggestion}
+                onApplySuggestions={onApplySuggestions}
             />
         </div>
     );

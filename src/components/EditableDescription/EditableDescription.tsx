@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { SuggestionItem } from '../../utils/prompts';
 import './EditableDescription.css';
 
 interface EditableDescriptionProps {
@@ -7,13 +8,17 @@ interface EditableDescriptionProps {
     onRegenerate: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => void;
     onSuggestImprovement: () => void;
     onDismissSuggestions: () => void;
-    suggestions: string;
+    suggestions: SuggestionItem[];
     isSuggesting: boolean;
     isRegenerating: boolean;
     isStreaming?: boolean;
     compact?: boolean;
     suggestLabel?: string;
     suggestionsTitle?: string;
+    onToggleSuggestion?: (id: string) => void;
+    onEditSuggestion?: (id: string, text: string) => void;
+    onAddSuggestion?: (text: string) => void;
+    onApplySuggestions?: () => void;
 }
 
 export function EditableDescription({
@@ -29,10 +34,17 @@ export function EditableDescription({
                                         compact = false,
                                         suggestLabel = 'Suggest',
                                         suggestionsTitle = 'Suggestions',
+                                        onToggleSuggestion,
+                                        onEditSuggestion,
+                                        onAddSuggestion,
+                                        onApplySuggestions,
                                     }: EditableDescriptionProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(description);
     const [customInstruction, setCustomInstruction] = useState('');
+    const [newSuggestionText, setNewSuggestionText] = useState('');
+    const [editingSuggestionId, setEditingSuggestionId] = useState<string | null>(null);
+    const [editingSuggestionText, setEditingSuggestionText] = useState('');
 
     const handleSave = () => {
         onEdit(editValue);
@@ -49,6 +61,31 @@ export function EditableDescription({
             onRegenerate('', customInstruction);
             setCustomInstruction('');
         }
+    };
+
+    const handleAddSuggestion = () => {
+        if (newSuggestionText.trim() && onAddSuggestion) {
+            onAddSuggestion(newSuggestionText.trim());
+            setNewSuggestionText('');
+        }
+    };
+
+    const handleStartEdit = (suggestion: SuggestionItem) => {
+        setEditingSuggestionId(suggestion.id);
+        setEditingSuggestionText(suggestion.text);
+    };
+
+    const handleSaveEdit = (id: string) => {
+        if (onEditSuggestion && editingSuggestionText.trim()) {
+            onEditSuggestion(id, editingSuggestionText.trim());
+        }
+        setEditingSuggestionId(null);
+        setEditingSuggestionText('');
+    };
+
+    const handleCancelEdit = () => {
+        setEditingSuggestionId(null);
+        setEditingSuggestionText('');
     };
 
     const isBusy = isRegenerating || isSuggesting;
@@ -93,7 +130,7 @@ export function EditableDescription({
                         )}
                     </div>
 
-                    {(suggestions || isSuggesting) && (
+                    {(suggestions.length > 0 || isSuggesting) && (
                         <div className="ed-suggestions">
                             <div className="ed-suggestions-header">
                                 <span className="ed-suggestions-title">{suggestionsTitle}</span>
@@ -108,8 +145,108 @@ export function EditableDescription({
                                 )}
                             </div>
                             <div className="ed-suggestions-content">
-                                {suggestions || ''}
-                                {isSuggesting && <span className="ed-suggestions-cursor">|</span>}
+                                {suggestions.length === 0 && isSuggesting && (
+                                    <span className="ed-suggestions-cursor">Analyzing...</span>
+                                )}
+                                {suggestions.map((suggestion) => (
+                                    <div key={suggestion.id} className="ed-suggestion-item">
+                                        <input
+                                            type="checkbox"
+                                            checked={suggestion.selected}
+                                            onChange={() => onToggleSuggestion?.(suggestion.id)}
+                                            className="ed-suggestion-checkbox"
+                                            title="Toggle this suggestion"
+                                        />
+                                        {editingSuggestionId === suggestion.id ? (
+                                            <div className="ed-suggestion-edit-mode">
+                                                <input
+                                                    type="text"
+                                                    value={editingSuggestionText}
+                                                    onChange={(e) => setEditingSuggestionText(e.target.value)}
+                                                    className="ed-suggestion-text-input"
+                                                    autoFocus
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') handleSaveEdit(suggestion.id);
+                                                        if (e.key === 'Escape') handleCancelEdit();
+                                                    }}
+                                                />
+                                                <button
+                                                    className="ed-suggestion-edit-save"
+                                                    onClick={() => handleSaveEdit(suggestion.id)}
+                                                    title="Save"
+                                                >
+                                                    &#10003;
+                                                </button>
+                                                <button
+                                                    className="ed-suggestion-edit-cancel"
+                                                    onClick={handleCancelEdit}
+                                                    title="Cancel"
+                                                >
+                                                    &#10005;
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="ed-suggestion-text-wrapper">
+                                                <span
+                                                    className={`ed-suggestion-text ${suggestion.edited ? 'edited' : ''}`}
+                                                    title="Click edit to modify"
+                                                >
+                                                    {suggestion.text}
+                                                </span>
+                                                <button
+                                                    className="ed-suggestion-edit-btn"
+                                                    onClick={() => handleStartEdit(suggestion)}
+                                                    title="Edit suggestion"
+                                                >
+                                                    &#9998;
+                                                </button>
+                                                <button
+                                                    className="ed-suggestion-delete"
+                                                    onClick={() => onDismissSuggestions?.()}
+                                                    title="Remove suggestion"
+                                                >
+                                                    &#10005;
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {!isSuggesting && (
+                                    <div className="ed-suggestion-add-row">
+                                        <input
+                                            type="text"
+                                            value={newSuggestionText}
+                                            onChange={(e) => setNewSuggestionText(e.target.value)}
+                                            className="ed-suggestion-add-input"
+                                            placeholder="Add a custom suggestion..."
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleAddSuggestion();
+                                            }}
+                                        />
+                                        <button
+                                            className="ed-btn-regenerate"
+                                            onClick={handleAddSuggestion}
+                                            disabled={!newSuggestionText.trim()}
+                                            title="Add suggestion"
+                                        >
+                                            Add
+                                        </button>
+                                    </div>
+                                )}
+
+                                {!isSuggesting && suggestions.length > 0 && (
+                                    <div className="ed-apply-suggestions-row">
+                                        <button
+                                            className="ed-btn-primary ed-btn-apply"
+                                            onClick={onApplySuggestions}
+                                            disabled={isBusy || suggestions.filter(s => s.selected).length === 0}
+                                            title="Regenerate description using selected suggestions"
+                                        >
+                                            Apply Suggestions
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

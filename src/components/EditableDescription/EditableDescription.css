@@ -96,6 +96,187 @@
     background: var(--border);
 }
 
+/* ── Suggestion items ── */
+
+.ed-suggestion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.ed-suggestion-item:last-of-type {
+    border-bottom: none;
+}
+
+.ed-suggestion-checkbox {
+    margin-top: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+}
+
+.ed-suggestion-text-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.ed-suggestion-text {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    word-break: break-word;
+}
+
+.ed-suggestion-text.edited {
+    font-style: italic;
+    color: var(--text-tertiary);
+}
+
+.ed-suggestion-edit-btn {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 4px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.ed-suggestion-item:hover .ed-suggestion-edit-btn {
+    opacity: 1;
+}
+
+.ed-suggestion-edit-btn:hover {
+    color: var(--accent);
+}
+
+.ed-suggestion-delete {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 4px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.ed-suggestion-item:hover .ed-suggestion-delete {
+    opacity: 1;
+}
+
+.ed-suggestion-delete:hover {
+    color: #ef4444;
+}
+
+.ed-suggestion-edit-mode {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+}
+
+.ed-suggestion-text-input {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+    min-width: 0;
+}
+
+.ed-suggestion-text-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.ed-suggestion-edit-save {
+    background: none;
+    border: none;
+    color: #059669;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    flex-shrink: 0;
+}
+
+.ed-suggestion-edit-save:hover {
+    color: #047857;
+}
+
+.ed-suggestion-edit-cancel {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    flex-shrink: 0;
+}
+
+.ed-suggestion-edit-cancel:hover {
+    color: #dc2626;
+}
+
+.ed-suggestion-add-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+    margin-top: 4px;
+    border-top: 1px dashed var(--border);
+}
+
+.ed-suggestion-add-input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+}
+
+.ed-suggestion-add-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.ed-apply-suggestions-row {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 12px;
+    margin-top: 4px;
+    border-top: 1px solid var(--warning-border);
+}
+
+.ed-btn-apply {
+    background: var(--warning) !important;
+    color: white !important;
+    border-color: var(--warning) !important;
+    font-size: 13px;
+    padding: 8px 16px;
+}
+
+.ed-btn-apply:hover:not(:disabled) {
+    background: #b45309 !important;
+    border-color: #b45309 !important;
+}
+
 /* ── Suggestions panel ── */
 
 .ed-suggestions {

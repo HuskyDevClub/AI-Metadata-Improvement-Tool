@@ -116,3 +116,27 @@ export function appendPromptModifiers(
     }
     return prompt;
 }
+
+export interface SuggestionItem {
+    id: string;
+    text: string;
+    selected: boolean;
+    edited: boolean;
+}
+
+export function buildRegenerateWithSuggestionsPrompt(
+    originalPrompt: string,
+    suggestions: SuggestionItem[]
+): string {
+    const applied = suggestions.filter(s => s.selected);
+    const appliedTexts = applied.length > 0
+        ? applied.map(s => `- ${s.text}`).join('\n')
+        : suggestions.map(s => `- ${s.text}`).join('\n');
+
+    return `${originalPrompt}
+
+IMPORTANT: Apply the following improvement suggestions to the description:
+${appliedTexts}
+
+Generate an improved version of the description that incorporates all of these changes. Write only the new description — do not explain the changes.`;
+}

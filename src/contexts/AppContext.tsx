@@ -27,9 +27,11 @@ import {
     appendPromptModifiers,
     buildColumnImprovementPrompt,
     buildDatasetImprovementPrompt,
+    buildRegenerateWithSuggestionsPrompt,
     DEFAULT_COLUMN_PROMPT,
     DEFAULT_DATASET_PROMPT,
-    DEFAULT_SYSTEM_PROMPT
+    DEFAULT_SYSTEM_PROMPT,
+    type SuggestionItem,
 } from '../utils/prompts';
 import { EMPTY_TOKEN_USAGE } from '../utils/config';
 import type {
@@ -47,6 +49,27 @@ import type {
     Status,
     TokenUsage,
 } from '../types';
+
+function parseSuggestions(text: string): SuggestionItem[] {
+    // Split on lines starting with bullet points, dashes, or asterisks
+    const lines = text.split('\n').filter((line) => /^\s*[-*•]\s+/.test(line));
+    if (lines.length === 0) {
+        // If no bullet points found, split by sentences as fallback
+        const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 10);
+        return sentences.map((s, i) => ({
+            id: `suggestion-${i}-${Date.now()}`,
+            text: s.trim(),
+            selected: true,
+            edited: false,
+        }));
+    }
+    return lines.map((line, i) => ({
+        id: `suggestion-${i}-${Date.now()}`,
+        text: line.replace(/^\s*[-*•]\s+/, '').trim(),
+        selected: true,
+        edited: false,
+    }));
+}
 
 export type PageId = 'import' | 'data' | 'field' | 'compare' | 'settings';
 
@@ -81,9 +104,9 @@ interface AppContextType {
     regeneratingDataset: boolean;
     regeneratingColumns: Set<string>;
     suggestingDataset: boolean;
-    datasetSuggestions: string;
+    datasetSuggestions: SuggestionItem[];
     suggestingColumns: Set<string>;
-    columnSuggestions: Record<string, string>;
+    columnSuggestions: Record<string, SuggestionItem[]>;
     isGeneratingEmpty: boolean;
 
     // Token usage
@@ -130,8 +153,16 @@ interface AppContextType {
     handleGenerateSelectedDescriptions: (selectedColumns: string[]) => Promise<void>;
     handleSuggestDatasetImprovement: () => Promise<void>;
     handleDismissDatasetSuggestions: () => void;
+    handleToggleDatasetSuggestion: (id: string) => void;
+    handleEditDatasetSuggestion: (id: string, text: string) => void;
+    handleAddDatasetSuggestion: (text: string) => void;
+    handleApplyDatasetSuggestions: () => Promise<void>;
     handleSuggestColumnImprovement: (columnName: string) => Promise<void>;
     handleDismissColumnSuggestions: (columnName: string) => void;
+    handleToggleColumnSuggestion: (columnName: string, id: string) => void;
+    handleEditColumnSuggestion: (columnName: string, id: string, text: string) => void;
+    handleAddColumnSuggestion: (columnName: string, text: string) => void;
+    handleApplyColumnSuggestions: (columnName: string) => Promise<void>;
     handleEditDatasetDescription: (newDescription: string) => void;
     handleEditColumnDescription: (columnName: string, newDescription: string) => void;
     handleExport: () => void;
@@ -205,9 +236,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [regeneratingDataset, setRegeneratingDataset] = useState(false);
     const [regeneratingColumns, setRegeneratingColumns] = useState<Set<string>>(new Set());
     const [suggestingDataset, setSuggestingDataset] = useState(false);
-    const [datasetSuggestions, setDatasetSuggestions] = useState('');
+    const [datasetSuggestions, setDatasetSuggestions] = useState<SuggestionItem[]>([]);
     const [suggestingColumns, setSuggestingColumns] = useState<Set<string>>(new Set());
-    const [columnSuggestions, setColumnSuggestions] = useState<Record<string, string>>({});
+    const [columnSuggestions, setColumnSuggestions] = useState<Record<string, SuggestionItem[]>>({});
     const [tokenUsage, setTokenUsage] = useState<TokenUsage>({
         promptTokens: 0,
         completionTokens: 0,
@@ -996,13 +1027,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const currentDesc = generatedResults.datasetDescription;
         if (!currentDesc) return;
         setSuggestingDataset(true);
-        setDatasetSuggestions('');
+        setDatasetSuggestions([]);
         try {
             const prompt = buildDatasetImprovementPrompt(currentDesc);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                setDatasetSuggestions(fullContent);
+                setDatasetSuggestions(parseSuggestions(fullContent));
             });
             addTokenUsage(result.usage);
             setStatus({ message: 'Suggestions ready for dataset description.', type: 'success' });
@@ -1017,20 +1048,91 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, [generatedResults.datasetDescription, openaiConfig, promptTemplates.systemPrompt, callOpenAIStream, addTokenUsage]);
 
     const handleDismissDatasetSuggestions = useCallback(() => {
-        setDatasetSuggestions('');
+        setDatasetSuggestions([]);
     }, []);
+
+    const handleToggleDatasetSuggestion = useCallback((id: string) => {
+        setDatasetSuggestions((prev) =>
+            prev.map((s) => (s.id === id ? { ...s, selected: !s.selected } : s))
+        );
+    }, []);
+
+    const handleEditDatasetSuggestion = useCallback((id: string, text: string) => {
+        setDatasetSuggestions((prev) =>
+            prev.map((s) => (s.id === id ? { ...s, text, edited: true } : s))
+        );
+    }, []);
+
+    const handleAddDatasetSuggestion = useCallback((text: string) => {
+        setDatasetSuggestions((prev) => [
+            ...prev,
+            { id: `${Date.now()}-${Math.random()}`, text, selected: true, edited: false },
+        ]);
+    }, []);
+
+    const handleApplyDatasetSuggestions = useCallback(async () => {
+        const currentDesc = generatedResults.datasetDescription;
+        if (!currentDesc || !csvData) return;
+        setRegeneratingDataset(true);
+        setDatasetSuggestions([]);
+        try {
+            const rowCount = importedRowCount || csvData.length;
+            const columnInfo = Object.entries(columnStats)
+                .map(([name, stats]) => `  ${name} — ${stats.type}`)
+                .join('\n');
+            const sampleCount = Math.min(5, csvData.length);
+            const sampleRows = csvData.slice(0, sampleCount);
+            const originalPrompt = `Generate a Brief Description for this government dataset following Washington State metadata guidance. The description should be approximately 100 words.
+
+Dataset Name: ${fileName}
+Number of Rows: ${rowCount}
+Columns (name — type):
+${columnInfo}
+
+Sample Data (first ${sampleCount} rows):
+${JSON.stringify(sampleRows, null, 2)}
+
+Your description MUST cover these elements in order:
+1. CONTENT & SIGNIFICANCE (first 2 sentences): What data this dataset contains, what each row represents, and why this data matters to the public.
+2. KEY FIELDS: Highlight the most important columns and what kind of information they provide. Reference specific values from the sample data when helpful.
+3. SCOPE: The geographic and/or temporal coverage, if inferable from the data.
+4. POTENTIAL USERS: Briefly note who would use this data (residents, researchers, journalists, businesses, agencies, etc.) and for what purpose.
+
+FORMAT RULES:
+- Write as a single cohesive paragraph (no bullet points, no headers)
+- Do not start with "This dataset contains..." — vary your opening
+- Do not include row counts or technical statistics in the description
+- Expand all acronyms found in column names or data values`;
+
+            const prompt = buildRegenerateWithSuggestionsPrompt(originalPrompt, datasetSuggestions);
+            let fullContent = '';
+            const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
+                fullContent += chunk;
+                setGeneratedResults((prev) => ({ ...prev, datasetDescription: fullContent }));
+            });
+            addTokenUsage(result.usage);
+            setStatus({ message: 'Description updated with suggestions!', type: 'success' });
+        } catch (error) {
+            setStatus({
+                message: `Error applying suggestions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                type: 'error'
+            });
+        } finally {
+            setRegeneratingDataset(false);
+        }
+    }, [csvData, fileName, columnStats, generatedResults.datasetDescription, datasetSuggestions, importedRowCount, openaiConfig, promptTemplates.systemPrompt, callOpenAIStream, addTokenUsage]);
 
     const handleSuggestColumnImprovement = useCallback(async (columnName: string) => {
         const currentDesc = generatedResults.columnDescriptions[columnName];
         if (!currentDesc) return;
         setSuggestingColumns((prev) => new Set(prev).add(columnName));
-        setColumnSuggestions((prev) => ({ ...prev, [columnName]: '' }));
+        setColumnSuggestions((prev) => ({ ...prev, [columnName]: [] }));
         try {
             const prompt = buildColumnImprovementPrompt(columnName, currentDesc);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                setColumnSuggestions((prev) => ({ ...prev, [columnName]: fullContent }));
+                setColumnSuggestions((prev) => ({ ...prev, [columnName]: parseSuggestions(fullContent) }));
             });
             addTokenUsage(result.usage);
             setStatus({ message: `Suggestions ready for column "${columnName}".`, type: 'success' });
@@ -1052,6 +1154,72 @@ export function AppProvider({ children }: { children: ReactNode }) {
             return next;
         });
     }, []);
+
+    const handleToggleColumnSuggestion = useCallback((columnName: string, id: string) => {
+        setColumnSuggestions((prev) => ({
+            ...prev,
+            [columnName]: (prev[columnName] || []).map((s) =>
+                s.id === id ? { ...s, selected: !s.selected } : s
+            ),
+        }));
+    }, []);
+
+    const handleEditColumnSuggestion = useCallback((columnName: string, id: string, text: string) => {
+        setColumnSuggestions((prev) => ({
+            ...prev,
+            [columnName]: (prev[columnName] || []).map((s) =>
+                s.id === id ? { ...s, text, edited: true } : s
+            ),
+        }));
+    }, []);
+
+    const handleAddColumnSuggestion = useCallback((columnName: string, text: string) => {
+        setColumnSuggestions((prev) => ({
+            ...prev,
+            [columnName]: [
+                ...(prev[columnName] || []),
+                { id: `${Date.now()}-${Math.random()}`, text, selected: true, edited: false },
+            ],
+        }));
+    }, []);
+
+    const handleApplyColumnSuggestions = useCallback(async (columnName: string) => {
+        const currentDesc = generatedResults.columnDescriptions[columnName];
+        if (!currentDesc) return;
+        const info = columnStats[columnName];
+        const colValues = csvData?.map((row) => row[columnName]);
+        if (!info || colValues === undefined) return;
+        setRegeneratingColumns((prev) => new Set(prev).add(columnName));
+        setColumnSuggestions((prev) => {
+            const next = { ...prev };
+            delete next[columnName];
+            return next;
+        });
+        try {
+            const originalPrompt = buildColumnPrompt(
+                columnName, info, generatedResults.datasetDescription || '', colValues, '', undefined
+            );
+            const prompt = buildRegenerateWithSuggestionsPrompt(originalPrompt, columnSuggestions[columnName] || []);
+            let fullContent = '';
+            const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
+                fullContent += chunk;
+                setGeneratedResults((prev) => ({
+                    ...prev,
+                    columnDescriptions: { ...prev.columnDescriptions, [columnName]: fullContent },
+                }));
+            });
+            addTokenUsage(result.usage);
+            setStatus({ message: `Column "${columnName}" updated with suggestions!`, type: 'success' });
+        } catch (error) {
+            handleRegenerationError(error, setStatus);
+        } finally {
+            setRegeneratingColumns((prev) => {
+                const next = new Set(prev);
+                next.delete(columnName);
+                return next;
+            });
+        }
+    }, [csvData, columnStats, generatedResults, columnSuggestions, openaiConfig, promptTemplates.systemPrompt, buildColumnPrompt, callOpenAIStream, addTokenUsage]);
 
     const handleRegenerateComparisonDataset = useCallback(
         async (slotIndex: number, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
@@ -1691,8 +1859,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         handleGenerateSelectedDescriptions,
         handleSuggestDatasetImprovement,
         handleDismissDatasetSuggestions,
+        handleToggleDatasetSuggestion,
+        handleEditDatasetSuggestion,
+        handleAddDatasetSuggestion,
+        handleApplyDatasetSuggestions,
         handleSuggestColumnImprovement,
         handleDismissColumnSuggestions,
+        handleToggleColumnSuggestion,
+        handleEditColumnSuggestion,
+        handleAddColumnSuggestion,
+        handleApplyColumnSuggestions,
         handleEditDatasetDescription,
         handleEditColumnDescription,
         handleExport,

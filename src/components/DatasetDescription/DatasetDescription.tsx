@@ -1,3 +1,4 @@
+import type { SuggestionItem } from '../../utils/prompts';
 import { EditableDescription } from '../EditableDescription/EditableDescription';
 import './DatasetDescription.css';
 
@@ -10,9 +11,13 @@ interface DatasetDescriptionProps {
     onRegenerate: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => void;
     onSuggestImprovement: () => void;
     onDismissSuggestions: () => void;
-    suggestions: string;
+    suggestions: SuggestionItem[];
     isSuggesting: boolean;
     isRegenerating: boolean;
+    onToggleSuggestion: (id: string) => void;
+    onEditSuggestion: (id: string, text: string) => void;
+    onAddSuggestion: (text: string) => void;
+    onApplySuggestions: () => void;
 }
 
 export function DatasetDescription({
@@ -27,6 +32,10 @@ export function DatasetDescription({
                                        suggestions,
                                        isSuggesting,
                                        isRegenerating,
+                                       onToggleSuggestion,
+                                       onEditSuggestion,
+                                       onAddSuggestion,
+                                       onApplySuggestions,
                                    }: DatasetDescriptionProps) {
     return (
         <div className="dataset-desc-section">
@@ -45,6 +54,10 @@ export function DatasetDescription({
                     isRegenerating={isRegenerating}
                     suggestLabel="Suggest Improvement"
                     suggestionsTitle="Improvement Suggestions"
+                    onToggleSuggestion={onToggleSuggestion}
+                    onEditSuggestion={onEditSuggestion}
+                    onAddSuggestion={onAddSuggestion}
+                    onApplySuggestions={onApplySuggestions}
                 />
 
                 <p className="dataset-desc-meta">
