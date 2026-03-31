@@ -57,6 +57,9 @@ cd ..
    ```env
    # Socrata API token (required for Socrata open data portal access)
    SOCRATA_APP_TOKEN=your-socrata-app-token
+   # Socrata OAuth secret (required for "Sign in with data.wa.gov")
+   # Must match the Callback Prefix domain registered on data.wa.gov
+   SOCRATA_OAUTH_REDIRECT_URI=https://your-ngrok-url.ngrok-free.app/api/auth/socrata/callback
 
    # Default LLM endpoint (optional — can also be set via frontend UI)
    # Works with any OpenAI-compatible API (OpenAI, Azure, HuggingFace, etc.)

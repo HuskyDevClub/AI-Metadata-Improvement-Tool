@@ -1,7 +1,12 @@
 import asyncio
+import base64
+import hashlib
+import hmac
 import json
 import logging
 import os
+import secrets
+import time
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from enum import Enum
@@ -60,11 +65,15 @@ SOCRATA_OAUTH_REDIRECT_URI = os.getenv(
     "SOCRATA_OAUTH_REDIRECT_URI",
     "http://localhost:8000/api/auth/socrata/callback",
 )
-FRONTEND_URL = os.getenv("FRONTEND_URL", "")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "")
 AZURE_KEY = os.getenv("AZURE_KEY", "")
 AZURE_MODEL = os.getenv("AZURE_MODEL", "")
 CORS_ORIGIN = os.getenv("CORS_ORIGIN", "*")
+# Secret for signing OAuth state tokens (used to prevent CSRF)
+_OAUTH_STATE_SECRET = (
+    os.getenv("OAUTH_STATE_SECRET") or SOCRATA_SECRET_TOKEN or secrets.token_hex(32)
+)
 
 # For Databricks Apps, the port is typically provided via environment variable
 PORT = int(os.getenv("PORT", "8000"))
@@ -141,11 +150,23 @@ async def socrata_oauth_login() -> SocrataOAuthLoginResponse:
             status_code=400,
             detail="OAuth not configured. Set SOCRATA_APP_TOKEN in the environment.",
         )
+    # Signed state token: random_part.signature.timestamp (no cookies needed)
+    random_bytes = secrets.token_bytes(16)
+    timestamp = str(int(time.time()))
+    sig = hmac.new(
+        _OAUTH_STATE_SECRET.encode(),
+        random_bytes + timestamp.encode(),
+        hashlib.sha256,
+    ).digest()
+    random_b64 = base64.urlsafe_b64encode(random_bytes).rstrip(b"=").decode()
+    sig_b64 = base64.urlsafe_b64encode(sig).rstrip(b"=").decode()
+    state = f"{random_b64}.{sig_b64}.{timestamp}"
     params = urlencode(
         {
             "client_id": SOCRATA_APP_TOKEN,
             "response_type": "code",
             "redirect_uri": SOCRATA_OAUTH_REDIRECT_URI,
+            "state": state,
         }
     )
     auth_url = f"https://data.wa.gov/oauth/authorize?{params}"
@@ -153,7 +174,12 @@ async def socrata_oauth_login() -> SocrataOAuthLoginResponse:
 
 
 @app.get("/api/auth/socrata/callback")
-async def socrata_oauth_callback(code: str | None = None, error: str | None = None):
+async def socrata_oauth_callback(
+    request: Request,
+    code: str | None = None,
+    error: str | None = None,
+    state: str | None = None,
+):
     """OAuth callback — exchanges authorization code for access token, redirects to frontend."""
     base = FRONTEND_URL.rstrip("/") if FRONTEND_URL else ""
 
@@ -162,6 +188,38 @@ async def socrata_oauth_callback(code: str | None = None, error: str | None = No
 
     if not code:
         raise HTTPException(status_code=400, detail="Missing authorization code")
+
+    # Validate signed state token
+    if not state:
+        logger.warning("OAuth state missing: full_url=%s", str(request.url))
+        return RedirectResponse(url=f"{base}/#oauth_error=state_missing")
+
+    try:
+        parts = state.split(".")
+        if len(parts) != 3:
+            raise ValueError("wrong number of parts")
+        random_b64, sig_b64, timestamp_str = parts
+        timestamp = int(timestamp_str)
+    except (ValueError, OverflowError):
+        logger.warning("OAuth state parse failed: state=%s", state)
+        return RedirectResponse(url=f"{base}/#oauth_error=state_invalid")
+
+    # Check expiry (10 minutes)
+    if abs(int(time.time()) - timestamp) > 600:
+        logger.warning("OAuth state expired: timestamp=%s", timestamp)
+        return RedirectResponse(url=f"{base}/#oauth_error=state_expired")
+
+    # Verify HMAC signature
+    random_bytes = base64.urlsafe_b64decode(random_b64 + "==")
+    sig = base64.urlsafe_b64decode(sig_b64 + "==")
+    expected_sig = hmac.new(
+        _OAUTH_STATE_SECRET.encode(),
+        random_bytes + timestamp_str.encode(),
+        hashlib.sha256,
+    ).digest()
+    if not hmac.compare_digest(sig, expected_sig):
+        logger.warning("OAuth state signature mismatch: full_url=%s", str(request.url))
+        return RedirectResponse(url=f"{base}/#oauth_error=state_invalid")
 
     if not SOCRATA_APP_TOKEN or not SOCRATA_SECRET_TOKEN:
         raise HTTPException(status_code=500, detail="OAuth not configured on server")
