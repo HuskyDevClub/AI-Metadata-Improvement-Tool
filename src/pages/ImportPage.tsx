@@ -14,10 +14,6 @@ export function ImportPage() {
         isProcessing,
         showResults,
         navigate,
-        socrataOAuthUser,
-        isSocrataOAuthAuthenticating,
-        handleSocrataOAuthLogin,
-        handleSocrataOAuthLogout,
     } = useAppContext();
 
     const [expandedSource, setExpandedSource] = useState<SourceType>(null);
@@ -212,27 +208,6 @@ export function ImportPage() {
                         <span className="import-form-hint">
                             The identifier from the data.wa.gov URL
                         </span>
-                    </div>
-
-                    <div className="import-form-auth">
-                        {socrataOAuthUser ? (
-                            <div className="import-form-oauth-status">
-                                <span>Signed in as <strong>{socrataOAuthUser.displayName}</strong></span>
-                                <button type="button" className="import-form-link-btn"
-                                        onClick={handleSocrataOAuthLogout}>
-                                    Sign out
-                                </button>
-                            </div>
-                        ) : (
-                            <button
-                                type="button"
-                                className="import-form-oauth-btn"
-                                onClick={handleSocrataOAuthLogin}
-                                disabled={isSocrataOAuthAuthenticating}
-                            >
-                                {isSocrataOAuthAuthenticating ? 'Signing in...' : 'Sign in with data.wa.gov'}
-                            </button>
-                        )}
                     </div>
 
                     <button

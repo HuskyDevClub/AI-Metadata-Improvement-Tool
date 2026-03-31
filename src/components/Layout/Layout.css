@@ -1,4 +1,5 @@
 .layout-header {
+    position: relative;
     padding: 20px 32px 0;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
@@ -22,6 +23,60 @@
 .layout-header-subtitle {
     font-size: 13px;
     color: var(--text-tertiary);
+}
+
+.layout-header-actions {
+    position: absolute;
+    top: 20px;
+    right: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.layout-oauth-status {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.layout-oauth-signout {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.layout-oauth-signout:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.layout-oauth-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.layout-oauth-btn:hover {
+    opacity: 0.85;
+}
+
+.layout-oauth-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .layout-nav {
