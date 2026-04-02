@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useOpenAI } from '../hooks/useOpenAI';
 import { useComparisonGeneration } from '../hooks/useComparisonGeneration';
@@ -20,7 +20,6 @@ import {
     getSampleValues
 } from '../utils/columnAnalyzer';
 import { getEstimatedCost } from '../utils/pricing';
-import { validateAndParseImport } from '../utils/importValidator';
 import { getModelLabel, getVariantLabel } from '../utils/modelColors';
 import { handleJudgeError, handleRegenerationError } from '../utils/stateHelpers';
 import {
@@ -145,7 +144,6 @@ interface AppContextType {
     // Handlers
     handleAnalyze: (method: 'file' | 'url', file?: File, url?: string) => Promise<void>;
     handleSocrataImport: (datasetId: string) => Promise<void>;
-    handleImport: (file: File) => Promise<void>;
     handleStop: () => void;
     handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
     handleRegenerateColumn: (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
@@ -165,7 +163,6 @@ interface AppContextType {
     handleApplyColumnSuggestions: (columnName: string) => Promise<void>;
     handleEditDatasetDescription: (newDescription: string) => void;
     handleEditColumnDescription: (columnName: string, newDescription: string) => void;
-    handleExport: () => void;
     handlePushToSocrata: () => Promise<void>;
     handleComparisonConfigChange: (config: ComparisonConfig) => void;
     handleComparisonToggle: (enabled: boolean) => void;
@@ -208,10 +205,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [model, setModel] = useState<string>(import.meta.env.VITE_AZURE_MODEL || '');
 
     // Combined config for hooks that need the full OpenAIConfig
-    const openaiConfig: OpenAIConfigType = {
+    const openaiConfig: OpenAIConfigType = useMemo(() => ({
         ...apiConfig,
         model,
-    };
+    }), [apiConfig, model]);
 
     const [promptTemplates, setPromptTemplates] = useState<PromptTemplates>({
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
@@ -704,8 +701,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             try {
                 const context = `Column "${columnName}" (${info.type}): ${getColumnStatsText(info)}`;
                 await judgeColumnOutputs(columnName, context, outputs);
-            } catch (error) {
-                console.error(error);
+            } catch {
                 setColumnComparisons((prev) => ({
                     ...prev,
                     [columnName]: { ...prev[columnName], isJudging: false },
@@ -1425,58 +1421,6 @@ FORMAT RULES:
         }));
     }, []);
 
-    const handleImport = useCallback(async (file: File) => {
-        try {
-            const text = await file.text();
-            let json: unknown;
-            try {
-                json = JSON.parse(text);
-            } catch {
-                setStatus({ message: 'Invalid JSON file.', type: 'error' });
-                return;
-            }
-
-            const result = validateAndParseImport(json);
-            if (!result.ok) {
-                setStatus({ message: `Import failed: ${result.error}`, type: 'error' });
-                return;
-            }
-
-            const imported = result.data;
-            setCsvData(null);
-            setIsProcessing(false);
-            setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
-            setFileName(imported.fileName);
-            setColumnStats(imported.columnStats);
-            setIsImportedData(true);
-            setImportedRowCount(imported.rowCount);
-
-            if (imported.mode === 'standard') {
-                setComparisonEnabled(false);
-                setGeneratedResults(imported.generatedResults);
-                resetComparisonState();
-            } else {
-                setComparisonEnabled(true);
-                setGeneratedResults({ datasetDescription: '', columnDescriptions: {} });
-                setComparisonConfig(prev => ({
-                    ...prev,
-                    ...imported.comparisonConfig,
-                }));
-                setDatasetComparison(imported.datasetComparison);
-                setColumnComparisons(imported.columnComparisons);
-                setComparisonTokenUsage(imported.comparisonTokenUsage);
-            }
-
-            setShowResults(true);
-            setStatus({ message: `Successfully imported results from "${file.name}".`, type: 'success' });
-        } catch (error) {
-            setStatus({
-                message: `Import error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                type: 'error',
-            });
-        }
-    }, [resetComparisonState, setComparisonEnabled, setComparisonConfig, setDatasetComparison, setColumnComparisons, setComparisonTokenUsage]);
-
     const handleSocrataImport = useCallback(
         async (datasetId: string) => {
             setIsProcessing(true);
@@ -1561,7 +1505,6 @@ FORMAT RULES:
         setModel(newConfig.model);
     }, []);
 
-
     const handleScoringCategoriesChange = useCallback((categories: ScoringCategory[]) => {
         setComparisonConfig((prev) => {
             const slotCount = prev.subMode === 'models' ? prev.models.length : prev.promptVariants.length;
@@ -1572,107 +1515,7 @@ FORMAT RULES:
                 judgeSystemPrompt: generateJudgeSystemPrompt(categories, slotCount, labelPrefix),
             };
         });
-    }, []);
-
-    const handleExport = useCallback(() => {
-        if (!csvData) return;
-
-        const effectiveRowCount = importedRowCount || csvData.length;
-
-        if (comparisonEnabled) {
-            const isPromptExport = comparisonConfig.subMode === 'prompts';
-            const exportData = {
-                metadata: {
-                    fileName,
-                    rowCount: effectiveRowCount,
-                    columnCount: Object.keys(columnStats).length,
-                    exportDate: new Date().toISOString(),
-                    mode: 'comparison',
-                    subMode: comparisonConfig.subMode,
-                    ...(isPromptExport ? {
-                        model: comparisonConfig.promptModel,
-                        promptVariants: comparisonConfig.promptVariants.map((v, i) => ({
-                            index: i,
-                            label: v.label,
-                            systemPrompt: v.systemPrompt,
-                            datasetPrompt: v.datasetPrompt,
-                            columnPrompt: v.columnPrompt,
-                        })),
-                    } : {
-                        models: comparisonConfig.models.map((m, i) => ({
-                            index: i,
-                            name: m,
-                            label: getModelLabel(i, m || undefined),
-                        })),
-                    }),
-                    judgeModel: comparisonConfig.judgeModel,
-                },
-                datasetDescription: {
-                    outputs: datasetComparison.outputs.map((output, i) => ({
-                        slotIndex: i,
-                        slotName: isPromptExport
-                            ? comparisonConfig.promptVariants[i]?.label
-                            : comparisonConfig.models[i],
-                        output,
-                    })),
-                    judgeResult: datasetComparison.judgeResult,
-                },
-                columns: Object.entries(columnStats).map(([name, info]) => ({
-                    name,
-                    type: info.type,
-                    statistics: info.stats,
-                    outputs: (columnComparisons[name]?.outputs || []).map((output, i) => ({
-                        slotIndex: i,
-                        slotName: isPromptExport
-                            ? comparisonConfig.promptVariants[i]?.label
-                            : comparisonConfig.models[i],
-                        output,
-                    })),
-                    judgeResult: columnComparisons[name]?.judgeResult || null,
-                })),
-                tokenUsage: comparisonTokenUsage,
-            };
-
-            const suffix = isPromptExport ? '_prompt_comparison' : '_comparison';
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${fileName.replace('.csv', '')}${suffix}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } else {
-            const exportData = {
-                metadata: {
-                    fileName,
-                    rowCount: effectiveRowCount,
-                    columnCount: Object.keys(columnStats).length,
-                    exportDate: new Date().toISOString(),
-                },
-                datasetDescription: generatedResults.datasetDescription,
-                columns: Object.entries(columnStats).map(([name, info]) => ({
-                    name,
-                    type: info.type,
-                    statistics: info.stats,
-                    description: generatedResults.columnDescriptions[name] || '',
-                })),
-            };
-
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${fileName.replace('.csv', '')}_analysis.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        setStatus({ message: 'File downloaded successfully!', type: 'success' });
-    }, [csvData, fileName, columnStats, generatedResults, comparisonEnabled, comparisonConfig, datasetComparison, columnComparisons, comparisonTokenUsage, importedRowCount]);
+    }, [setComparisonConfig]);
 
     const handlePushToSocrata = useCallback(async () => {
         if (!socrataDatasetId) return;
@@ -1851,7 +1694,6 @@ FORMAT RULES:
         setComparisonConfig,
         handleAnalyze,
         handleSocrataImport,
-        handleImport,
         handleStop,
         handleRegenerateDataset,
         handleRegenerateColumn,
@@ -1871,7 +1713,6 @@ FORMAT RULES:
         handleApplyColumnSuggestions,
         handleEditDatasetDescription,
         handleEditColumnDescription,
-        handleExport,
         handlePushToSocrata,
         handleComparisonConfigChange,
         handleComparisonToggle,

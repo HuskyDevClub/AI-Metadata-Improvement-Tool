@@ -30,7 +30,6 @@ export function DataOverviewPage() {
         handleAddDatasetSuggestion,
         handleApplyDatasetSuggestions,
         handleGenerateSelectedDescriptions,
-        handleExport,
         handlePushToSocrata,
         renderTokenUsage,
     } = useAppContext();
@@ -219,7 +218,6 @@ export function DataOverviewPage() {
             {renderTokenUsage()}
 
             <ExportSection
-                onExport={handleExport}
                 onPushToSocrata={handlePushToSocrata}
                 isPushingSocrata={isPushingSocrata}
                 showSocrataPush={!!socrataDatasetId}

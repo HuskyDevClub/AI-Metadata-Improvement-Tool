@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAppContext } from '../contexts/AppContext';
 import { extractSocrataDatasetId } from '../utils/csvParser';
@@ -10,13 +10,13 @@ export function ImportPage() {
     const {
         handleAnalyze,
         handleSocrataImport,
-        handleImport,
         isProcessing,
         showResults,
         navigate,
     } = useAppContext();
 
     const [expandedSource, setExpandedSource] = useState<SourceType>(null);
+    const [dragging, setDragging] = useState(false);
 
     // URL form state
     const [url, setUrl] = useState('');
@@ -25,8 +25,8 @@ export function ImportPage() {
     const [datasetId, setDatasetId] = useState('');
 
     const csvFileRef = useRef<HTMLInputElement>(null);
-    const jsonFileRef = useRef<HTMLInputElement>(null);
     const prevShowResults = useRef(showResults);
+    const dragCounter = useRef(0);
 
     useEffect(() => {
         if (showResults && !prevShowResults.current) {
@@ -39,8 +39,6 @@ export function ImportPage() {
         if (isProcessing) return;
         if (source === 'csv-file') {
             csvFileRef.current?.click();
-        } else if (source === 'json') {
-            jsonFileRef.current?.click();
         } else {
             setExpandedSource(prev => prev === source ? null : source as SourceType);
         }
@@ -50,14 +48,6 @@ export function ImportPage() {
         const file = e.target.files?.[0];
         if (file) {
             handleAnalyze('file', file);
-            e.target.value = '';
-        }
-    };
-
-    const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            handleImport(file);
             e.target.value = '';
         }
     };
@@ -77,6 +67,41 @@ export function ImportPage() {
         handleSocrataImport(datasetId.trim());
     };
 
+    const handleDragEnter = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter.current++;
+        if (e.dataTransfer.types.includes('Files')) {
+            setDragging(true);
+        }
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter.current--;
+        if (dragCounter.current === 0) {
+            setDragging(false);
+        }
+    }, []);
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(false);
+        dragCounter.current = 0;
+
+        const file = e.dataTransfer.files?.[0];
+        if (file && file.name.endsWith('.csv')) {
+            handleAnalyze('file', file);
+        }
+    }, [handleAnalyze]);
+
     return (
         <div className="import-page">
             <h2 className="import-page-title">Import Data</h2>
@@ -85,12 +110,16 @@ export function ImportPage() {
             <div className="import-source-grid">
                 {/* Upload CSV */}
                 <button
-                    className="import-source-card"
+                    className={`import-source-card drop-zone${dragging ? ' dragging' : ''}`}
                     onClick={() => handleCardClick('csv-file')}
                     disabled={isProcessing}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
                 >
                     <div className="import-source-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
@@ -99,7 +128,7 @@ export function ImportPage() {
                         </svg>
                     </div>
                     <div className="import-source-title">Upload CSV</div>
-                    <div className="import-source-desc">Select a local file</div>
+                    <div className="import-source-desc">Click to browse or drag & drop</div>
                 </button>
 
                 {/* From URL */}
@@ -109,7 +138,7 @@ export function ImportPage() {
                     disabled={isProcessing}
                 >
                     <div className="import-source-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="2" y1="12" x2="22" y2="12"/>
@@ -128,7 +157,7 @@ export function ImportPage() {
                     disabled={isProcessing}
                 >
                     <div className="import-source-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                             <ellipse cx="12" cy="5" rx="9" ry="3"/>
                             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
@@ -139,43 +168,40 @@ export function ImportPage() {
                     <div className="import-source-desc">Import from Socrata</div>
                 </button>
 
-                {/* Import JSON */}
-                <button
-                    className="import-source-card"
-                    onClick={() => handleCardClick('json')}
-                    disabled={isProcessing}
-                >
-                    <div className="import-source-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="16" y1="13" x2="8" y2="13"/>
-                            <line x1="16" y1="17" x2="8" y2="17"/>
-                        </svg>
-                    </div>
-                    <div className="import-source-title">Import JSON</div>
-                    <div className="import-source-desc">Load exported results</div>
-                </button>
             </div>
 
             {/* Hidden file inputs */}
             <input ref={csvFileRef} type="file" accept=".csv" onChange={handleCsvFileChange}
-                   style={{ display: 'none' }}/>
-            <input ref={jsonFileRef} type="file" accept=".json" onChange={handleJsonFileChange}
                    style={{ display: 'none' }}/>
 
             {/* URL form panel */}
             {expandedSource === 'url' && (
                 <div className="import-form-panel">
                     <div className="import-form-group">
-                        <label htmlFor="csvUrl">CSV URL</label>
+                        <label htmlFor="csvUrl">
+                            CSV URL
+                            <span className="import-form-info-wrapper">
+                                <svg className="import-form-info-icon" width="14" height="14" viewBox="0 0 24 24"
+                                     fill="none" stroke="currentColor"
+                                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="16" x2="12" y2="12"/>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                </svg>
+                                <span className="import-form-tooltip">
+                                    Non-Socrata URLs load the entire file in the browser. Very large CSV files may cause performance issues or fail to load.
+                                </span>
+                            </span>
+                        </label>
                         <input
                             id="csvUrl"
                             type="text"
                             placeholder="https://example.com/data.csv"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleUrlSubmit();
+                            }}
                             autoFocus
                         />
                         <span className="import-form-hint">
@@ -203,6 +229,9 @@ export function ImportPage() {
                             placeholder="e.g. 6fex-3r7d"
                             value={datasetId}
                             onChange={(e) => setDatasetId(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSocrataSubmit();
+                            }}
                             autoFocus
                         />
                         <span className="import-form-hint">

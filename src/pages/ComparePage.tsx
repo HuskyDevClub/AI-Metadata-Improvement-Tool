@@ -37,7 +37,6 @@ export function ComparePage() {
         handleRegenerateComparisonColumn,
         getColumnGeneratingModels,
         getColumnRegeneratingModels,
-        handleExport,
         handlePushToSocrata,
         renderTokenUsage,
     } = useAppContext();
@@ -138,7 +137,6 @@ export function ComparePage() {
                     {renderTokenUsage()}
 
                     <ExportSection
-                        onExport={handleExport}
                         onPushToSocrata={handlePushToSocrata}
                         isPushingSocrata={isPushingSocrata}
                         showSocrataPush={!!socrataDatasetId}
