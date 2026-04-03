@@ -50,6 +50,7 @@ export function ColumnComparison({
                 winnerIndex={result.judgeResult ? result.judgeResult.winnerIndex : undefined}
                 onRegenerate={onRegenerate}
                 isJudging={result.isJudging}
+                validationResults={result.validationResults}
             />
 
             <JudgeScoreCard

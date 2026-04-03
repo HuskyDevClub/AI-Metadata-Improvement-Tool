@@ -37,6 +37,12 @@ export function JudgeScoreCard({
         return null;
     }
 
+    const getConfidenceLevel = (score: number) => {
+        if (score >= 0.8) return 'high';
+        if (score >= 0.6) return 'medium';
+        return 'low';
+    };
+
     const getWinnerDisplay = () => {
         if (result.winnerIndex === null || result.winnerIndex === undefined) {
             return { text: 'Tie', className: 'tie', style: {} };
@@ -108,6 +114,93 @@ export function JudgeScoreCard({
                     );
                 })}
             </div>
+
+            {result.confidenceMetrics && (
+                <div className="confidence-metrics">
+                    <div className="confidence-header">
+                        <span className="confidence-title">Confidence Score</span>
+                        <div className={`confidence-badge ${getConfidenceLevel(result.confidenceMetrics.composite_confidence_score)}`}>
+                            {Math.round(result.confidenceMetrics.composite_confidence_score * 100)}%
+                        </div>
+                    </div>
+                    <div className="confidence-bars">
+                        <div className="confidence-bar">
+                            <span className="confidence-label">Judge Certainty</span>
+                            <div className="confidence-progress">
+                                <div
+                                    className="confidence-fill"
+                                    style={{ width: `${result.confidenceMetrics.judge_certainty * 100}%` }}
+                                />
+                            </div>
+                            <span className="confidence-value">{Math.round(result.confidenceMetrics.judge_certainty * 100)}%</span>
+                        </div>
+                        <div className="confidence-bar">
+                            <span className="confidence-label">Model Agreement</span>
+                            <div className="confidence-progress">
+                                <div
+                                    className="confidence-fill"
+                                    style={{ width: `${result.confidenceMetrics.inter_model_agreement * 100}%` }}
+                                />
+                            </div>
+                            <span className="confidence-value">{Math.round(result.confidenceMetrics.inter_model_agreement * 100)}%</span>
+                        </div>
+                        <div className="confidence-bar">
+                            <span className="confidence-label">Statistical Plausibility</span>
+                            <div className="confidence-progress">
+                                <div
+                                    className="confidence-fill"
+                                    style={{ width: `${result.confidenceMetrics.statistical_plausibility * 100}%` }}
+                                />
+                            </div>
+                            <span className="confidence-value">{Math.round(result.confidenceMetrics.statistical_plausibility * 100)}%</span>
+                        </div>
+                        <div className="confidence-bar">
+                            <span className="confidence-label">Validation Strength</span>
+                            <div className="confidence-progress">
+                                <div
+                                    className="confidence-fill"
+                                    style={{ width: `${result.confidenceMetrics.rule_validation_strength * 100}%` }}
+                                />
+                            </div>
+                            <span className="confidence-value">{Math.round(result.confidenceMetrics.rule_validation_strength * 100)}%</span>
+                        </div>
+                        <div className="confidence-bar">
+                            <span className="confidence-label">Outlier Ratio</span>
+                            <div className="confidence-progress">
+                                <div
+                                    className="confidence-fill"
+                                    style={{ width: `${(1 - result.confidenceMetrics.outlier_ratio) * 100}%` }}
+                                />
+                            </div>
+                            <span className="confidence-value">{Math.round(result.confidenceMetrics.outlier_ratio * 100)}%</span>
+                        </div>
+                        <div className="confidence-bar">
+                            <span className="confidence-label">Likelihood Ratio</span>
+                            <div className="confidence-progress">
+                                <div
+                                    className="confidence-fill"
+                                    style={{ width: `${Math.min(result.confidenceMetrics.likelihood_ratio * 10, 100)}%` }}
+                                />
+                            </div>
+                            <span className="confidence-value">{result.confidenceMetrics.likelihood_ratio.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div className="confidence-intervals">
+                        <div className="confidence-interval">
+                            <span className="interval-label">Agreement CI:</span>
+                            <span className="interval-value">
+                                [{Math.round(result.confidenceMetrics.agreement_ci_lower * 100)}%, {Math.round(result.confidenceMetrics.agreement_ci_upper * 100)}%]
+                            </span>
+                        </div>
+                        <div className="confidence-interval">
+                            <span className="interval-label">Score CI:</span>
+                            <span className="interval-value">
+                                [{result.confidenceMetrics.score_ci_lower.toFixed(1)}, {result.confidenceMetrics.score_ci_upper.toFixed(1)}]
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="judge-reasoning">
                 <strong>Reasoning:</strong> {result.winnerReasoning}

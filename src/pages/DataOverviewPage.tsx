@@ -97,6 +97,7 @@ export function DataOverviewPage() {
                     fileName={fileName}
                     rowCount={rowCount}
                     columnCount={columnNames.length}
+                    validationResult={generatedResults.datasetValidationResult}
                     onEdit={handleEditDatasetDescription}
                     onRegenerate={handleRegenerateDataset}
                     onSuggestImprovement={handleSuggestDatasetImprovement}

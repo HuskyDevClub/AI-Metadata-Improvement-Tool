@@ -1,5 +1,7 @@
 import type { SuggestionItem } from '../../utils/prompts';
+import type { ValidationResult } from '../../types';
 import { EditableDescription } from '../EditableDescription/EditableDescription';
+import ValidationResults from '../ValidationResults/ValidationResults';
 import './DatasetDescription.css';
 
 interface DatasetDescriptionProps {
@@ -7,6 +9,7 @@ interface DatasetDescriptionProps {
     fileName: string;
     rowCount: number;
     columnCount: number;
+    validationResult?: ValidationResult;
     onEdit: (newDescription: string) => void;
     onRegenerate: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => void;
     onSuggestImprovement: () => void;
@@ -25,6 +28,7 @@ export function DatasetDescription({
                                        fileName,
                                        rowCount,
                                        columnCount,
+                                       validationResult,
                                        onEdit,
                                        onRegenerate,
                                        onSuggestImprovement,
@@ -59,6 +63,15 @@ export function DatasetDescription({
                     onAddSuggestion={onAddSuggestion}
                     onApplySuggestions={onApplySuggestions}
                 />
+
+                {validationResult && (
+                    <div className="dataset-validation-section">
+                        <ValidationResults
+                            result={validationResult}
+                            onApplyFix={() => {}} // TODO: Implement fix application
+                        />
+                    </div>
+                )}
 
                 <p className="dataset-desc-meta">
                     <strong>File:</strong> {fileName} | <strong>Rows:</strong> {rowCount} |{' '}

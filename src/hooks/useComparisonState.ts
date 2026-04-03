@@ -86,7 +86,8 @@ You must respond with valid JSON in exactly this format:
 {
 ${modelBlocks},
     "winner": "<${winnerOptions}, or tie>",
-    "winnerReasoning": "<1-2 sentence explanation of why this candidate is better or why it's a tie>"
+    "winnerReasoning": "<1-2 sentence explanation of why this candidate is better or why it's a tie>",
+    "confidence": <0.0-1.0 number indicating your certainty in this evaluation>
 }`;
 }
 

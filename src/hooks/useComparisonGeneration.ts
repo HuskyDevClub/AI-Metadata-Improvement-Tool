@@ -79,6 +79,7 @@ export function useComparisonGeneration() {
                     models: data.models,
                     winnerIndex: data.winnerIndex,
                     winnerReasoning: data.winnerReasoning,
+                    confidenceMetrics: data.confidence_metrics,
                 },
                 usage: {
                     promptTokens: data.usage.promptTokens,

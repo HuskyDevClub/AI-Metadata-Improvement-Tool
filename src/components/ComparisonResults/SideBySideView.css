@@ -36,6 +36,22 @@
     color: var(--text);
 }
 
+.panel-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.validation-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 8px;
+    min-width: 28px;
+    text-align: center;
+    cursor: help;
+}
+
 .winner-badge {
     font-size: 11px;
     font-weight: 600;

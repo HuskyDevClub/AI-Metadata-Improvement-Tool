@@ -39,6 +39,7 @@ from .models import (
     DEFAULT_SCORING_CATEGORIES,
     ChatRequest,
     ColumnStats,
+    DatasetValidationRequest,
     FetchCsvRequest,
     FetchCsvResponse,
     HealthResponse,
@@ -53,7 +54,9 @@ from .models import (
     SocrataImportResponse,
     SocrataOAuthLoginResponse,
     SocrataOAuthUserInfo,
+    ValidationResult,
 )
+from .validation import ValidationEngine, ValidationResult
 
 # Load environment variables from .env file
 load_dotenv()
@@ -919,6 +922,8 @@ def build_judge_schema(
     required.append("winner")
     properties["winnerReasoning"] = {"type": "string"}
     required.append("winnerReasoning")
+    properties["confidence"] = {"type": "number", "minimum": 0.0, "maximum": 1.0}
+    required.append("confidence")
 
     return {
         "name": "judge_response",
@@ -929,6 +934,126 @@ def build_judge_schema(
             "required": required,
         },
         "strict": True,
+    }
+
+
+def calculate_confidence_metrics(
+    models_metrics: list[JudgeMetrics],
+    judge_certainty: float,
+    outputs: list[str]
+) -> dict[str, float]:
+    """Calculate advanced composite confidence score with statistical analysis."""
+    import math
+    import statistics
+
+    # 1. Judge certainty (already provided by judge, 0-1)
+    judge_certainty_norm = judge_certainty
+
+    # 2. Inter-model agreement with advanced metrics
+    if len(models_metrics) > 1:
+        agreements = []
+        score_differences = []
+
+        for i in range(len(models_metrics)):
+            for j in range(i + 1, len(models_metrics)):
+                scores1 = list(models_metrics[i].scores.values())
+                scores2 = list(models_metrics[j].scores.values())
+
+                # Calculate various agreement metrics
+                avg_diff = sum(abs(a - b) for a, b in zip(scores1, scores2)) / len(scores1)
+                agreement = 1 - (avg_diff / 10)  # Normalize to 0-1
+                agreements.append(agreement)
+                score_differences.extend([abs(a - b) for a, b in zip(scores1, scores2)])
+
+        inter_model_agreement = sum(agreements) / len(agreements) if agreements else 0.5
+
+        # Calculate confidence interval for agreement
+        if len(agreements) > 1:
+            agreement_std = statistics.stdev(agreements) if len(agreements) > 1 else 0
+            agreement_ci_lower = max(0, inter_model_agreement - 1.96 * agreement_std / math.sqrt(len(agreements)))
+            agreement_ci_upper = min(1, inter_model_agreement + 1.96 * agreement_std / math.sqrt(len(agreements)))
+        else:
+            agreement_ci_lower = agreement_ci_upper = inter_model_agreement
+
+    else:
+        inter_model_agreement = 0.5
+        agreement_ci_lower = agreement_ci_upper = 0.5
+
+    # 3. Statistical plausibility with outlier detection and Z-scores
+    all_scores = [score for metrics in models_metrics for score in metrics.scores.values()]
+    if all_scores:
+        mean_score = statistics.mean(all_scores)
+        stdev_score = statistics.stdev(all_scores) if len(all_scores) > 1 else 0
+
+        # Z-score normalization and outlier detection
+        z_scores = [(score - mean_score) / stdev_score if stdev_score > 0 else 0 for score in all_scores]
+        outliers = sum(1 for z in z_scores if abs(z) > 2.5)  # Z-score > 2.5 is outlier
+        outlier_ratio = outliers / len(all_scores)
+
+        # Statistical plausibility considers variance and outliers
+        variance = statistics.variance(all_scores) if len(all_scores) > 1 else 0
+        variance_penalty = min(1, variance / 25)  # Normalize variance penalty
+        outlier_penalty = outlier_ratio  # Direct penalty for outliers
+
+        statistical_plausibility = max(0, 1 - variance_penalty - outlier_penalty)
+
+        # Confidence interval for mean score
+        if len(all_scores) > 1:
+            score_ci_margin = 1.96 * stdev_score / math.sqrt(len(all_scores))
+            score_ci_lower = mean_score - score_ci_margin
+            score_ci_upper = mean_score + score_ci_margin
+        else:
+            score_ci_lower = score_ci_upper = mean_score
+
+    else:
+        statistical_plausibility = 0.5
+        score_ci_lower = score_ci_upper = 0
+
+    # 4. Rule validation strength with Bayesian updating
+    # Use validation results if available (placeholder for now)
+    avg_scores = [sum(m.scores.values()) / len(m.scores) for m in models_metrics]
+    score_range = max(avg_scores) - min(avg_scores) if avg_scores else 0
+
+    # Bayesian updating: prior belief + evidence
+    prior_confidence = 0.5  # Neutral prior
+    evidence_strength = max(0, 1 - score_range / 20)  # Evidence from score consistency
+
+    # Simple Bayesian update
+    likelihood_ratio = evidence_strength / (1 - evidence_strength) if evidence_strength < 1 else 10
+    posterior_odds = prior_confidence / (1 - prior_confidence) * likelihood_ratio
+    rule_validation_strength = posterior_odds / (1 + posterior_odds)
+
+    # Credence calibration: adjust confidence based on historical accuracy
+    # For now, use a simple calibration based on score distribution
+    if stdev_score > 0:
+        calibration_factor = 1 / (1 + stdev_score / 5)  # Penalize high variance
+        calibrated_confidence = rule_validation_strength * calibration_factor
+    else:
+        calibrated_confidence = rule_validation_strength
+
+    # 5. Composite confidence score with weighted components
+    composite_confidence_score = (
+        0.35 * judge_certainty_norm +
+        0.25 * inter_model_agreement +
+        0.20 * statistical_plausibility +
+        0.20 * calibrated_confidence
+    )
+
+    # Likelihood ratio for final confidence assessment
+    confidence_likelihood_ratio = composite_confidence_score / (1 - composite_confidence_score) if composite_confidence_score < 1 else 10
+
+    return {
+        "judge_certainty": judge_certainty_norm,
+        "inter_model_agreement": inter_model_agreement,
+        "agreement_ci_lower": agreement_ci_lower,
+        "agreement_ci_upper": agreement_ci_upper,
+        "statistical_plausibility": statistical_plausibility,
+        "score_ci_lower": score_ci_lower,
+        "score_ci_upper": score_ci_upper,
+        "outlier_ratio": outlier_ratio if 'outlier_ratio' in locals() else 0,
+        "rule_validation_strength": calibrated_confidence,
+        "likelihood_ratio": confidence_likelihood_ratio,
+        "composite_confidence_score": composite_confidence_score,
     }
 
 
@@ -1036,11 +1161,18 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
         winner_str = result["winner"]
         winner_index = None if winner_str == "tie" else int(winner_str) - 1
 
+        # Calculate confidence metrics
+        confidence = result.get("confidence", 0.5)  # Default to 0.5 if not provided
+        confidence_metrics = calculate_confidence_metrics(
+            models_metrics, confidence, request.outputs
+        )
+
         return JudgeResponse(
             models=models_metrics,
             winnerIndex=winner_index,
             winnerReasoning=result["winnerReasoning"],
             usage=usage,
+            confidence_metrics=confidence_metrics,
         )
 
     except json.JSONDecodeError as e:
@@ -1058,6 +1190,22 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
         logger.exception("Judge evaluation failed")
         raise HTTPException(
             status_code=500, detail=f"Judge evaluation failed: {str(e)}"
+        )
+
+
+# Validation endpoint
+@app.post("/api/validation/dataset", response_model=ValidationResult)
+async def validate_dataset(request: DatasetValidationRequest) -> ValidationResult:
+    """Validate dataset metadata against WA standards."""
+    try:
+        engine = ValidationEngine()
+        dataset_data = request.dict(exclude_unset=True)
+        result = engine.validate_dataset(dataset_data)
+        return result
+    except Exception as e:
+        logger.exception("Validation failed")
+        raise HTTPException(
+            status_code=500, detail=f"Validation failed: {str(e)}"
         )
 
 

@@ -15,7 +15,14 @@ ACCURACY RULES:
 - Be specific and factual — describe what the data actually contains based on the provided column names, types, statistics, and sample values
 - Never fabricate data values, column meanings, agency names, or statistical claims that cannot be directly inferred from the provided information
 - If you are uncertain about a column's meaning, describe what the data shows rather than guessing the intent
-- Include Washington State context where relevant (agency names, geographic scope, programs)`;
+- Include Washington State context where relevant (agency names, geographic scope, programs)
+
+VALIDATION REQUIREMENTS:
+- Dataset descriptions must be 80-120 words
+- Column descriptions must be 30-60 words
+- Use snake_case for all field names (lowercase with underscores)
+- Include data type information in column descriptions
+- Ensure all required fields are present and properly formatted`;
 
 export const DEFAULT_DATASET_PROMPT = `Generate a Brief Description for this government dataset following Washington State metadata guidance. The description should be approximately 100 words.
 

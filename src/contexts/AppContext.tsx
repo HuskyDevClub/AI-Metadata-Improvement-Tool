@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { flushSync } from 'react-dom';
 import { useOpenAI } from '../hooks/useOpenAI';
 import { useComparisonGeneration } from '../hooks/useComparisonGeneration';
+import { useValidation } from '../hooks/useValidation';
 import { generateJudgeSystemPrompt, useComparisonState } from '../hooks/useComparisonState';
 import {
     fetchSocrataImport,
@@ -42,12 +43,14 @@ import type {
     ComparisonTokenUsage,
     CsvRow,
     DatasetComparisonResult,
+    DatasetValidationRequest,
     GeneratedResults,
     OpenAIConfig as OpenAIConfigType,
     PromptTemplates,
     ScoringCategory,
     Status,
     TokenUsage,
+    ValidationResult,
 } from '../types';
 
 function parseSuggestions(text: string): SuggestionItem[] {
@@ -391,6 +394,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, [setComparisonEnabled, setComparisonTokenUsage, comparisonSlotCount]);
 
     const { generateParallel, callJudge } = useComparisonGeneration();
+    const { validateDataset } = useValidation();
 
     const addTokenUsage = useCallback((usage: TokenUsage) => {
         setTokenUsage((prev) => ({
@@ -624,7 +628,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
             if (result.aborted) return { aborted: true };
 
-            setDatasetComparison((prev) => ({ ...prev, isJudging: true }));
+            // Run validation on each generated output
+            const validationResults: ValidationResult[] = [];
+            for (let i = 0; i < outputs.length; i++) {
+                try {
+                    const validationRequest: DatasetValidationRequest = {
+                        name: name,
+                        description: outputs[i],
+                        columns: Object.entries(stats).map(([colName, colInfo]) => ({
+                            name: colName,
+                            type: colInfo.type,
+                            ...colInfo.stats
+                        })),
+                        data_source: 'comparison_generation'
+                    };
+                    const validationResult = await validateDataset(validationRequest);
+                    validationResults.push(validationResult);
+                } catch (error) {
+                    console.warn(`Validation failed for output ${i}:`, error);
+                    // Add empty validation result on failure
+                    validationResults.push({
+                        is_valid: true,
+                        score: 1.0,
+                        issues: [],
+                        total_issues: 0,
+                        critical_count: 0,
+                        warning_count: 0,
+                        info_count: 0
+                    });
+                }
+            }
+
+            setDatasetComparison((prev) => ({
+                ...prev,
+                validationResults,
+                isJudging: true
+            }));
+
             try {
                 const effectiveRows = importedRowCount || data.length;
                 const context = `File: ${name}, Rows: ${effectiveRows}, Columns: ${Object.keys(stats).join(', ')}`;
@@ -639,7 +679,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
             return { aborted: false };
         },
-        [buildDatasetPrompt, buildDatasetPromptFromTemplate, comparisonSlotCount, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, generateParallel, promptTemplates.systemPrompt, addComparisonTokenUsage, setGeneratingDatasetModel, setDatasetComparison, judgeDatasetOutputs, importedRowCount]
+        [buildDatasetPrompt, buildDatasetPromptFromTemplate, comparisonSlotCount, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, generateParallel, promptTemplates.systemPrompt, addComparisonTokenUsage, setGeneratingDatasetModel, setDatasetComparison, judgeDatasetOutputs, importedRowCount, validateDataset]
     );
 
     const generateColumnComparisonDescription = useCallback(
@@ -696,9 +736,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
             if (result.aborted) return { aborted: true };
 
+            // Run validation on each generated output
+            const validationResults: ValidationResult[] = [];
+            for (let i = 0; i < outputs.length; i++) {
+                try {
+                    const validationRequest: DatasetValidationRequest = {
+                        name: columnName,
+                        description: outputs[i],
+                        columns: [{
+                            name: columnName,
+                            type: info.type,
+                            ...info.stats
+                        }],
+                        data_source: 'column_comparison_generation'
+                    };
+                    const validationResult = await validateDataset(validationRequest);
+                    validationResults.push(validationResult);
+                } catch (error) {
+                    console.warn(`Validation failed for column output ${i}:`, error);
+                    // Add empty validation result on failure
+                    validationResults.push({
+                        is_valid: true,
+                        score: 1.0,
+                        issues: [],
+                        total_issues: 0,
+                        critical_count: 0,
+                        warning_count: 0,
+                        info_count: 0
+                    });
+                }
+            }
+
             setColumnComparisons((prev) => ({
                 ...prev,
-                [columnName]: { ...prev[columnName], isJudging: true },
+                [columnName]: {
+                    ...prev[columnName],
+                    validationResults,
+                    isJudging: true
+                },
             }));
 
             try {
@@ -714,7 +789,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
             return { aborted: false };
         },
-        [buildColumnPrompt, buildColumnPromptFromTemplate, comparisonSlotCount, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, generateParallel, promptTemplates.systemPrompt, addComparisonTokenUsage, setGeneratingColumnModel, setColumnComparisons, judgeColumnOutputs]
+        [buildColumnPrompt, buildColumnPromptFromTemplate, comparisonSlotCount, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, generateParallel, promptTemplates.systemPrompt, addComparisonTokenUsage, setGeneratingColumnModel, setColumnComparisons, judgeColumnOutputs, validateDataset]
     );
 
     const handleAnalyze = useCallback(
@@ -891,7 +966,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setRegeneratingDataset(true);
             try {
                 const result = await generateDatasetDescription(csvData, fileName, columnStats, modifier, customInstruction);
-                setGeneratedResults((prev) => ({ ...prev, datasetDescription: result.content }));
+                const newDescription = result.content;
+                setGeneratedResults((prev) => ({ ...prev, datasetDescription: newDescription }));
+
+                // Run validation on the new description
+                try {
+                    const validationRequest: DatasetValidationRequest = {
+                        name: fileName,
+                        description: newDescription,
+                        columns: Object.entries(columnStats).map(([colName, colInfo]) => ({
+                            name: colName,
+                            type: colInfo.type,
+                            ...colInfo.stats
+                        })),
+                        data_source: 'single_dataset_generation'
+                    };
+                    const validationResult = await validateDataset(validationRequest);
+                    setGeneratedResults((prev) => ({ ...prev, datasetValidationResult: validationResult }));
+                } catch (validationError) {
+                    console.warn('Validation failed for dataset description:', validationError);
+                    // Don't fail the whole operation if validation fails
+                }
+
                 setStatus({ message: 'Successfully regenerated dataset description!', type: 'success' });
             } catch (error) {
                 setStatus({
@@ -902,7 +998,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 setRegeneratingDataset(false);
             }
         },
-        [csvData, fileName, columnStats, generateDatasetDescription]
+        [csvData, fileName, columnStats, generateDatasetDescription, validateDataset]
     );
 
     const handleRegenerateColumn = useCallback(

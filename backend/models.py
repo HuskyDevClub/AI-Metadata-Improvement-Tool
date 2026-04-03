@@ -1,6 +1,27 @@
 from typing import Any
+from enum import Enum
 
 from pydantic import BaseModel
+
+# ============================================================================
+# Validation Enums
+# ============================================================================
+
+
+class ValidationSeverity(str, Enum):
+    """Severity levels for validation issues."""
+    CRITICAL = "critical"
+    WARNING = "warning"
+    INFO = "info"
+
+
+class ValidationCategory(str, Enum):
+    """Categories of validation rules."""
+    PLAIN_LANGUAGE = "plain_language"
+    CONTENT = "content"
+    FORMAT = "format"
+    REQUIRED = "required"
+
 
 # ============================================================================
 # CSV Fetch Models
@@ -119,6 +140,17 @@ class JudgeResponse(BaseModel):
     winnerIndex: int | None  # 0-based index of winner, None = tie
     winnerReasoning: str
     usage: dict[str, int]  # Token usage stats
+    confidence_metrics: dict[str, float] | None = None  # Composite confidence score components
+
+
+class ConfidenceMetrics(BaseModel):
+    """Confidence metrics for judge evaluation."""
+
+    judge_certainty: float
+    inter_model_agreement: float
+    statistical_plausibility: float
+    rule_validation_strength: float
+    composite_confidence_score: float
 
 
 # ============================================================================
@@ -221,3 +253,41 @@ class SocrataOAuthUserInfo(BaseModel):
     id: str
     displayName: str
     email: str | None = None
+
+
+# ============================================================================
+# Validation Models
+# ============================================================================
+
+
+class ValidationIssue(BaseModel):
+    """Represents a single validation issue."""
+
+    rule_id: str
+    category: ValidationCategory
+    severity: ValidationSeverity
+    field: str | None = None
+    message: str
+    suggestion: str | None = None
+    line_number: int | None = None
+
+
+class ValidationResult(BaseModel):
+    """Result of running validation on a dataset."""
+
+    is_valid: bool
+    score: float
+    issues: list[ValidationIssue]
+    total_issues: int
+    critical_count: int
+    warning_count: int
+    info_count: int
+
+
+class DatasetValidationRequest(BaseModel):
+    """Request to validate dataset metadata."""
+
+    name: str | None = None
+    description: str | None = None
+    columns: list[dict[str, Any]] | None = None
+    data_source: str | None = None

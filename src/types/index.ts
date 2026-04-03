@@ -42,6 +42,7 @@ export interface ColumnInfo {
 export interface GeneratedResults {
     datasetDescription: string;
     columnDescriptions: Record<string, string>;
+    datasetValidationResult?: ValidationResult;
 }
 
 export type StatusType = 'info' | 'success' | 'error' | 'warning';
@@ -104,12 +105,28 @@ export interface JudgeResult {
     models: JudgeMetrics[];
     winnerIndex: number | null; // null = tie
     winnerReasoning: string;
+    confidenceMetrics?: ConfidenceMetrics;
+}
+
+export interface ConfidenceMetrics {
+    judge_certainty: number;
+    inter_model_agreement: number;
+    agreement_ci_lower: number;
+    agreement_ci_upper: number;
+    statistical_plausibility: number;
+    score_ci_lower: number;
+    score_ci_upper: number;
+    outlier_ratio: number;
+    rule_validation_strength: number;
+    likelihood_ratio: number;
+    composite_confidence_score: number;
 }
 
 export interface ComparisonResult {
     outputs: string[];
     judgeResult: JudgeResult | null;
     isJudging: boolean;
+    validationResults?: ValidationResult[];
 }
 
 export type DatasetComparisonResult = ComparisonResult;
@@ -119,4 +136,36 @@ export interface ComparisonTokenUsage {
     models: TokenUsage[];
     judge: TokenUsage;
     total: TokenUsage;
+}
+
+// Validation Types
+
+export type ValidationSeverity = 'critical' | 'warning' | 'info';
+export type ValidationCategory = 'plain_language' | 'content' | 'format' | 'required';
+
+export interface ValidationIssue {
+    rule_id: string;
+    category: ValidationCategory;
+    severity: ValidationSeverity;
+    field?: string;
+    message: string;
+    suggestion?: string;
+    line_number?: number;
+}
+
+export interface ValidationResult {
+    is_valid: boolean;
+    score: number;
+    issues: ValidationIssue[];
+    total_issues: number;
+    critical_count: number;
+    warning_count: number;
+    info_count: number;
+}
+
+export interface DatasetValidationRequest {
+    name?: string;
+    description?: string;
+    columns?: Record<string, any>[];
+    data_source?: string;
 }

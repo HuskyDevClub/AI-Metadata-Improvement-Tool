@@ -1,0 +1,300 @@
+.validation-results {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+  padding: 24px;
+  margin: 16px 0;
+}
+
+.validation-results.compact {
+  padding: 16px;
+  margin: 8px 0;
+}
+
+.validation-results.compact .validation-header {
+  margin-bottom: 16px;
+}
+
+.validation-results.compact .validation-header h3 {
+  font-size: 16px;
+}
+
+.validation-results.compact .score-circle {
+  width: 60px;
+  height: 60px;
+}
+
+.validation-results.compact .score-number {
+  font-size: 18px;
+}
+
+.validation-results.compact .issues-list {
+  max-height: 200px;
+}
+
+.validation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.validation-header h3 {
+  margin: 0;
+  color: #1a1a1a;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.validation-header p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.validation-score {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.score-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+}
+
+.score-number {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 12px;
+  margin-top: 2px;
+  opacity: 0.9;
+}
+
+.score-text h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  color: #1a1a1a;
+}
+
+.score-text p {
+  margin: 0;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.validation-summary {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.summary-count {
+  font-size: 24px;
+  font-weight: 600;
+  min-width: 32px;
+  text-align: center;
+}
+
+.summary-count.critical {
+  color: #dc3545;
+}
+
+.summary-count.warning {
+  color: #ffc107;
+}
+
+.summary-count.info {
+  color: #17a2b8;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.validation-issues h4 {
+  margin: 0 0 16px 0;
+  color: #1a1a1a;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.issue-item {
+  border: 1px solid #e1e5e9;
+  border-radius: 6px;
+  padding: 16px;
+  background: #fafbfc;
+}
+
+.issue-item.severity-critical {
+  border-left: 4px solid #dc3545;
+  background: #fff5f5;
+}
+
+.issue-item.severity-warning {
+  border-left: 4px solid #ffc107;
+  background: #fffbf0;
+}
+
+.issue-item.severity-info {
+  border-left: 4px solid #17a2b8;
+  background: #f0f8ff;
+}
+
+.issue-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.severity-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.issue-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.issue-category {
+  font-weight: 600;
+}
+
+.issue-field {
+  font-weight: 500;
+}
+
+.issue-content {
+  color: #1a1a1a;
+}
+
+.issue-message {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.issue-suggestion {
+  background: white;
+  padding: 12px;
+  border-radius: 4px;
+  border: 1px solid #e1e5e9;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.issue-suggestion strong {
+  color: #495057;
+}
+
+.apply-fix-btn {
+  margin-left: 12px;
+  padding: 4px 8px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.apply-fix-btn:hover {
+  background: #0056b3;
+}
+
+.validation-success {
+  text-align: center;
+  padding: 32px;
+  background: #f8fff8;
+  border: 1px solid #d4edda;
+  border-radius: 6px;
+  color: #155724;
+}
+
+.success-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.validation-success h4 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.validation-success p {
+  margin: 0;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .validation-results {
+    padding: 16px;
+  }
+
+  .validation-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .validation-summary {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .summary-item {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .issues-list {
+    gap: 8px;
+  }
+
+  .issue-item {
+    padding: 12px;
+  }
+}
