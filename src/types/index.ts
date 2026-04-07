@@ -42,6 +42,7 @@ export interface ColumnInfo {
 export interface GeneratedResults {
     datasetDescription: string;
     rowLabel: string;
+    notes: string[];
     columnDescriptions: Record<string, string>;
 }
 

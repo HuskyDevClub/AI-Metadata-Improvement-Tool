@@ -29,6 +29,7 @@ import {
     buildRegenerateWithSuggestionsPrompt,
     DEFAULT_COLUMN_PROMPT,
     DEFAULT_DATASET_PROMPT,
+    DEFAULT_NOTES_PROMPT,
     DEFAULT_ROW_LABEL_PROMPT,
     DEFAULT_SYSTEM_PROMPT,
     type SuggestionItem,
@@ -109,6 +110,8 @@ interface AppContextType {
     columnSuggestions: Record<string, SuggestionItem[]>;
     isGeneratingEmpty: boolean;
     generatingRowLabel: boolean;
+    generatingNotes: boolean;
+    pendingNote: string;
 
     // Token usage
     tokenUsage: TokenUsage;
@@ -173,6 +176,10 @@ interface AppContextType {
     handleEditColumnDescription: (columnName: string, newDescription: string) => void;
     handleEditRowLabel: (newLabel: string) => void;
     handleGenerateRowLabel: () => Promise<void>;
+    handleEditNote: (index: number, text: string) => void;
+    handleDeleteNote: (index: number) => void;
+    handleAddNote: (text: string) => void;
+    handleGenerateNote: () => Promise<void>;
     handlePushToSocrata: () => Promise<void>;
     handleComparisonConfigChange: (config: ComparisonConfig) => void;
     handleComparisonToggle: (enabled: boolean) => void;
@@ -232,6 +239,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [generatedResults, setGeneratedResults] = useState<GeneratedResults>({
         datasetDescription: '',
         rowLabel: '',
+        notes: [],
         columnDescriptions: {},
     });
 
@@ -266,6 +274,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [socrataApiKeySecret, setSocrataApiKeySecret] = useState(() => localStorage.getItem('socrata_api_key_secret') || '');
     const [isGeneratingEmpty, setIsGeneratingEmpty] = useState(false);
     const [generatingRowLabel, setGeneratingRowLabel] = useState(false);
+    const [generatingNotes, setGeneratingNotes] = useState(false);
+    const [pendingNote, setPendingNote] = useState('');
 
     // Socrata OAuth: detect token in URL fragment on mount, or restore from localStorage
     useEffect(() => {
@@ -473,6 +483,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return buildDatasetPromptFromTemplate(data, name, stats, DEFAULT_ROW_LABEL_PROMPT, '', undefined, rowCountOverride);
     }, [buildDatasetPromptFromTemplate]);
 
+    const buildNotesPrompt = useCallback((
+        data: CsvRow[],
+        name: string,
+        stats: Record<string, ColumnInfo>,
+        rowCountOverride?: number,
+    ): string => {
+        return buildDatasetPromptFromTemplate(data, name, stats, DEFAULT_NOTES_PROMPT, '', undefined, rowCountOverride);
+    }, [buildDatasetPromptFromTemplate]);
+
     const buildColumnPromptFromTemplate = useCallback((
         columnName: string,
         info: ColumnInfo,
@@ -581,6 +600,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
             return { content: fullContent.trim() };
         },
         [openaiConfig, promptTemplates.systemPrompt, buildRowLabelPrompt, callOpenAIStream, addTokenUsage]
+    );
+
+    const generateNotes = useCallback(
+        async (
+            data: CsvRow[],
+            name: string,
+            stats: Record<string, ColumnInfo>,
+            rowCountOverride?: number,
+        ): Promise<{ content: string }> => {
+            const prompt = buildNotesPrompt(data, name, stats, rowCountOverride);
+            let fullContent = '';
+            setPendingNote('');
+            const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
+                fullContent += chunk;
+                setPendingNote(fullContent.trim());
+            });
+            addTokenUsage(result.usage);
+            return { content: fullContent.trim() };
+        },
+        [openaiConfig, promptTemplates.systemPrompt, buildNotesPrompt, callOpenAIStream, addTokenUsage]
     );
 
     const getComparisonModelConfig = useCallback((modelName: string): OpenAIConfigType => ({
@@ -781,7 +820,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setShowResults(false);
             setIsImportedData(false);
             setImportedRowCount(0);
-            setGeneratedResults({ datasetDescription: '', rowLabel: '', columnDescriptions: {} });
+            setGeneratedResults({ datasetDescription: '', rowLabel: '', notes: [], columnDescriptions: {} });
             setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
             setSocrataDatasetId('');
             setSocrataFieldNameMap({});
@@ -1500,13 +1539,64 @@ FORMAT RULES:
         }
     }, [csvData, fileName, columnStats, importedRowCount, generateRowLabel]);
 
+    const handleEditNote = useCallback((index: number, text: string) => {
+        setGeneratedResults((prev) => {
+            const notes = [...prev.notes];
+            notes[index] = text;
+            return { ...prev, notes };
+        });
+    }, []);
+
+    const handleDeleteNote = useCallback((index: number) => {
+        setGeneratedResults((prev) => ({
+            ...prev,
+            notes: prev.notes.filter((_, i) => i !== index),
+        }));
+    }, []);
+
+    const handleAddNote = useCallback((text: string) => {
+        setGeneratedResults((prev) => ({
+            ...prev,
+            notes: [...prev.notes, text],
+        }));
+    }, []);
+
+    const handleGenerateNote = useCallback(async () => {
+        if (!csvData) return;
+        setGeneratingNotes(true);
+        try {
+            const result = await generateNotes(csvData, fileName, columnStats, importedRowCount || undefined);
+            // Parse bulleted list into individual notes
+            const parsed = result.content
+                .split('\n')
+                .map((line) => line.replace(/^\s*[-*•]\s+/, '').trim())
+                .filter((line) => line.length > 0 && line.toLowerCase() !== 'no additional notes.');
+            const newNotes = parsed.length > 0 ? parsed : [result.content];
+            setGeneratedResults((prev) => ({
+                ...prev,
+                notes: [...prev.notes, ...newNotes],
+            }));
+            setPendingNote('');
+            const count = newNotes.length;
+            setStatus({ message: `Successfully generated ${count} note${count !== 1 ? 's' : ''}!`, type: 'success' });
+        } catch (error) {
+            setPendingNote('');
+            setStatus({
+                message: `Error generating notes: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                type: 'error',
+            });
+        } finally {
+            setGeneratingNotes(false);
+        }
+    }, [csvData, fileName, columnStats, importedRowCount, generateNotes]);
+
     const handleSocrataImport = useCallback(
         async (datasetId: string) => {
             setIsProcessing(true);
             setShowResults(false);
             setIsImportedData(false);
             setImportedRowCount(0);
-            setGeneratedResults({ datasetDescription: '', rowLabel: '', columnDescriptions: {} });
+            setGeneratedResults({ datasetDescription: '', rowLabel: '', notes: [], columnDescriptions: {} });
             setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
             setSocrataDatasetId(datasetId);
 
@@ -1564,6 +1654,7 @@ FORMAT RULES:
                 setGeneratedResults({
                     datasetDescription: result.datasetDescription || '',
                     rowLabel: result.rowLabel || '',
+                    notes: result.notes || [],
                     columnDescriptions,
                 });
 
@@ -1616,6 +1707,7 @@ FORMAT RULES:
                 socrataDatasetId,
                 generatedResults.datasetDescription || undefined,
                 generatedResults.rowLabel || undefined,
+                generatedResults.notes.length > 0 ? generatedResults.notes : undefined,
                 columnUpdates,
                 socrataOAuthToken || undefined,
                 socrataApiKeyId || undefined,
@@ -1753,6 +1845,8 @@ FORMAT RULES:
         columnSuggestions,
         isGeneratingEmpty,
         generatingRowLabel,
+        generatingNotes,
+        pendingNote,
         tokenUsage,
         socrataDatasetId,
         socrataFieldNameMap,
@@ -1805,6 +1899,10 @@ FORMAT RULES:
         handleEditColumnDescription,
         handleEditRowLabel,
         handleGenerateRowLabel,
+        handleEditNote,
+        handleDeleteNote,
+        handleAddNote,
+        handleGenerateNote,
         handlePushToSocrata,
         handleComparisonConfigChange,
         handleComparisonToggle,

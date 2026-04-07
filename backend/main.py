@@ -593,6 +593,17 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
                 or metadata.get("rowLabel", "")
                 or ""
             )
+            # Read Notes — stored as a group "Notes" with numbered keys ("1. ", "2. ", …)
+            custom_fields = metadata.get("metadata", {}).get("custom_fields", {})
+            notes_group = custom_fields.get("Notes", {})
+            if isinstance(notes_group, dict) and notes_group:
+                # Sort by key to preserve order ("1. ", "2. ", …)
+                sorted_notes = [
+                    v for _, v in sorted(notes_group.items()) if v and str(v).strip()
+                ]
+                notes = "\n".join(sorted_notes)
+            else:
+                notes = ""
 
             total_rows = int(count_rows[0]["total"]) if count_rows else 0
 
@@ -648,6 +659,7 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
                 datasetName=dataset_name,
                 datasetDescription=dataset_description,
                 rowLabel=row_label,
+                notes=notes,
                 columns=columns,
                 columnStats=column_stats,
             )
@@ -693,15 +705,35 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
                 )
             current_metadata = meta_resp.json()
 
-            # 2. Build update payload — only touch description fields
+            # 2. Build update payload — merge into existing metadata to avoid overwriting
             update_payload: dict[str, Any] = {}
+            existing_metadata: dict[str, Any] = current_metadata.get("metadata", {})
 
             if request.datasetDescription is not None:
                 update_payload["description"] = request.datasetDescription
 
+            metadata_changed = False
+
             if request.rowLabel is not None:
-                update_payload.setdefault("metadata", {})
-                update_payload["metadata"]["rowLabel"] = request.rowLabel
+                existing_metadata["rowLabel"] = request.rowLabel
+                metadata_changed = True
+
+            if request.notes is not None:
+                custom_fields = existing_metadata.setdefault("custom_fields", {})
+                # Notes are stored as a group with numbered keys ("1. ", "2. ", …)
+                notes_lines = [
+                    line.strip()
+                    for line in request.notes.split("\n")
+                    if line.strip()
+                ]
+                notes_group: dict[str, str] = {}
+                for i, line in enumerate(notes_lines, start=1):
+                    notes_group[f"{i}. "] = line
+                custom_fields["Notes"] = notes_group
+                metadata_changed = True
+
+            if metadata_changed:
+                update_payload["metadata"] = existing_metadata
 
             # Merge column description updates into existing columns
             updated_col_count = 0
@@ -744,6 +776,8 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
                 parts.append("dataset description")
             if request.rowLabel is not None:
                 parts.append("row label")
+            if request.notes is not None:
+                parts.append("notes")
             if updated_col_count > 0:
                 parts.append(
                     f"{updated_col_count} column description{'s' if updated_col_count != 1 else ''}"

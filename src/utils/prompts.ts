@@ -87,6 +87,34 @@ Rules:
 
 Return ONLY the row label text — nothing else.`;
 
+export const DEFAULT_NOTES_PROMPT = `Generate concise, informative Notes for this government dataset on data.wa.gov. Each Note provides one piece of supplementary context that does not belong in the Brief Description — such as a data limitation, update frequency detail, methodology note, known caveat, or usage guidance.
+
+Dataset Name: {fileName}
+Number of Rows: {rowCount}
+Columns (name — type):
+{columnInfo}
+
+Sample Data (first {sampleCount} rows):
+{sampleRows}
+
+Generate as many notes as are relevant from these categories (skip any that cannot be reasonably inferred):
+- DATA LIMITATION: Known gaps, exclusions, or caveats (e.g., "Does not include records prior to 2015").
+- UPDATE FREQUENCY: How often the data is refreshed (e.g., "Updated quarterly").
+- METHODOLOGY: How the data was collected or compiled, if inferable.
+- USAGE GUIDANCE: Important notes for data consumers (e.g., "Dollar amounts are not adjusted for inflation").
+- DATA QUALITY: Known quality issues (e.g., "Some addresses may be incomplete or outdated").
+
+FORMAT RULES:
+- Return each note as a bullet point starting with "- ".
+- Each note should be 1-2 sentences.
+- Use plain language per Washington State Executive Order 23-02.
+- Expand all acronyms on first use.
+- Do not repeat information already covered in a typical Brief Description.
+- Only include notes that can be reasonably inferred from the data — do not fabricate.
+- If no meaningful notes can be inferred, return a single bullet: "- No additional notes."
+
+Return ONLY the bulleted list — nothing else.`;
+
 export function buildDatasetImprovementPrompt(currentDescription: string): string {
     return `You are a metadata quality reviewer for data.wa.gov. Analyze the following dataset description and provide specific, actionable suggestions to improve it.
 
