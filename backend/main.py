@@ -55,8 +55,9 @@ from .models import (
     SocrataOAuthUserInfo,
 )
 
-# Load environment variables from .env file
+# Load environment variables from .env file (local dev) and .env.databricks (Databricks deployment)
 load_dotenv()
+load_dotenv(Path(__file__).resolve().parent.parent / ".env.databricks", override=True)
 
 # Configuration
 SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")

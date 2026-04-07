@@ -88,32 +88,42 @@ npm run dev              # Terminal 2: frontend
 ```
 ├── src/                              # Frontend (React + Vite)
 │   ├── components/
-│   │   ├── Header/                   # App header with project info
-│   │   ├── HowItWorks/              # User instructions
+│   │   ├── ColumnCard/              # Column cards with stats and descriptions
+│   │   ├── ColumnComparison/        # Column-level comparison results
+│   │   ├── ComparisonMode/          # N-model comparison toggle (2–5 models)
+│   │   ├── ComparisonResults/       # Judge scoring visualization
+│   │   │   ├── JudgeScoreCard/      # Individual model score card
+│   │   │   ├── MetricBar/           # Score metric bar
+│   │   │   ├── SideBySideView/      # N-column side-by-side layout
+│   │   │   └── RegenerationControls/# Regenerate/edit controls
+│   │   ├── DatasetComparison/       # Dataset-level comparison results
+│   │   ├── DatasetDescription/      # Dataset overview with edit/regenerate
+│   │   ├── EditableDescription/     # Inline-editable text fields
+│   │   ├── FloatingActions/         # Floating action buttons
+│   │   ├── Layout/                  # App shell layout (header, nav, footer)
 │   │   ├── OpenAIConfig/            # API configuration (endpoint, key, model)
 │   │   ├── PromptEditor/            # Customizable prompt templates + scoring category editor
-│   │   ├── CsvInput/                # File upload / URL input
-│   │   ├── StatusMessage/           # Status and error alerts
-│   │   ├── DatasetDescription/      # Dataset overview with edit/regenerate
-│   │   ├── ColumnCard/              # Column cards with stats and descriptions
-│   │   ├── ExportSection/           # JSON export functionality
-│   │   ├── ComparisonMode/          # N-model comparison toggle (2–5 models)
-│   │   ├── DatasetComparison/       # Dataset-level comparison results
-│   │   ├── ColumnComparison/        # Column-level comparison results
-│   │   └── ComparisonResults/       # Judge scoring visualization
-│   │       ├── JudgeScoreCard/      # Individual model score card
-│   │       ├── MetricBar/           # Score metric bar
-│   │       ├── SideBySideView/      # N-column side-by-side layout
-│   │       └── RegenerationControls/# Regenerate/edit controls
+│   │   └── StatusMessage/           # Status and error alerts
+│   ├── contexts/
+│   │   └── AppContext.tsx           # Global application context
 │   ├── hooks/
 │   │   ├── useOpenAI.ts             # OpenAI API integration with streaming
 │   │   ├── useComparisonState.ts    # Comparison config & prompt generation
 │   │   └── useComparisonGeneration.ts # Parallel generation & judge API calls
+│   ├── pages/
+│   │   ├── ImportPage/              # CSV upload / Socrata URL import
+│   │   ├── DataOverviewPage/        # Dataset-level overview and description
+│   │   ├── FieldOverviewPage/       # Column-level details and editing
+│   │   ├── ComparePage/             # N-model comparison workflow
+│   │   └── SettingsPage/            # Prompt and API settings
 │   ├── utils/
+│   │   ├── api.ts                   # Backend API client
 │   │   ├── columnAnalyzer.ts        # Column type detection & statistics
+│   │   ├── config.ts               # App configuration constants
 │   │   ├── csvParser.ts             # CSV parsing (PapaParse wrapper)
 │   │   ├── modelColors.ts           # Model color palette (5 colors)
 │   │   ├── pricing.ts              # Token cost estimation
+│   │   ├── prompts.ts              # Prompt template defaults
 │   │   └── stateHelpers.ts         # State management helpers
 │   ├── types/
 │   │   └── index.ts                 # TypeScript type definitions

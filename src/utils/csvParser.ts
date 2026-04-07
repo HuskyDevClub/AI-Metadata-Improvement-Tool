@@ -3,19 +3,19 @@ import type { ColumnInfo, CsvRow } from '../types';
 import { API_BASE_URL } from './config';
 import { assertResponseOk } from './api';
 
-export interface ParseResult {
+interface ParseResult {
     data: CsvRow[];
     fileName: string;
 }
 
-export interface SocrataColumnMeta {
+interface SocrataColumnMeta {
     fieldName: string;
     name: string;
     description: string;
     dataTypeName: string;
 }
 
-export interface SocrataImportResult {
+interface SocrataImportResult {
     sampleRows: CsvRow[];
     totalRowCount: number;
     fileName: string;
@@ -27,11 +27,6 @@ export interface SocrataImportResult {
     columnStats: Record<string, ColumnInfo>;
 }
 
-/**
- * Extract a Socrata dataset ID from a URL if it matches known Socrata URL patterns.
- * Dataset IDs follow the format: xxxx-xxxx (4 alphanumeric chars, hyphen, 4 alphanumeric chars).
- * Returns the dataset ID if found, or null if the URL is not a recognized Socrata URL.
- */
 /**
  * Parse a notes string (from Socrata) into an array of individual notes.
  * Splits on double-newlines (paragraphs) or bullet-style lines.
@@ -134,7 +129,7 @@ export async function parseUrl(url: string): Promise<ParseResult> {
     });
 }
 
-export interface SocrataExportResult {
+interface SocrataExportResult {
     success: boolean;
     message: string;
     updatedColumns: number;

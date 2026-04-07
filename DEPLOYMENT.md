@@ -167,42 +167,189 @@ npm run build:databricks
 
 This project is designed for deployment to **Databricks Apps**.
 
+### How It Works
+
+The deployment is driven by `app.yaml` at the project root. On startup, Databricks Apps runs the command defined there, which:
+
+1. Installs Python dependencies (`pip install -r backend/requirements.txt`)
+2. Installs Node dependencies and builds the frontend (`npm install && npm run build:databricks`)
+3. Starts the FastAPI server via uvicorn on port 8000
+
+The built frontend is output to `backend/static/` and served by FastAPI as static files (SPA with catch-all routing).
+
+#### `app.yaml`
+
+```yaml
+command:
+  - "sh"
+  - "-c"
+  - |
+    pip install -r backend/requirements.txt && \
+    npm install && \
+    npm run build:databricks && \
+    uvicorn backend.main:app --host 0.0.0.0 --port 8000
+
+# Environment variables are loaded from .env.databricks by the backend at runtime.
+# No env section needed here.
+```
+
+> **Note:** Building on startup means cold starts take longer (npm install + vite build). For faster startups, pre-build locally and commit `backend/static/` — then remove the `npm install && npm run build:databricks &&` portion from the command.
+
+### Environment Variables (`.env.databricks`)
+
+All environment variables for Databricks deployment are stored in `.env.databricks` at the project root. This single file serves both:
+
+- **Vite (frontend, build time):** `VITE_*` variables are baked into the JavaScript during `npm run build:databricks`. Vite automatically loads `.env.databricks` when using `--mode databricks` (a [Vite convention](https://vite.dev/guide/env-and-mode.html#modes)).
+- **Python backend (runtime):** The FastAPI backend loads `.env.databricks` via `load_dotenv()` on startup, making all variables available as `os.getenv()`.
+
+To set up:
+
+```bash
+cp .env.databricks.example .env.databricks
+# Edit .env.databricks with your actual values
+```
+
+Example `.env.databricks`:
+
+```env
+# Frontend: set to your Databricks app URL, or leave empty for relative URLs
+VITE_API_BASE_URL=
+
+# Required
+SOCRATA_APP_TOKEN=your-socrata-app-token
+
+# LLM Configuration (optional - can also be set via app UI)
+AZURE_ENDPOINT=https://your-endpoint.com/v1
+AZURE_KEY=your-api-key
+AZURE_MODEL=your-model-name
+
+# HuggingFace (optional)
+HF_API_KEY=
+HF_API_URL=https://router.huggingface.co/v1
+
+# Socrata OAuth (optional - for "Sign in with data.wa.gov")
+SOCRATA_SECRET_TOKEN=your-socrata-secret-token
+SOCRATA_OAUTH_REDIRECT_URI=https://your-databricks-app-url/api/auth/socrata/callback
+FRONTEND_URL=https://your-databricks-app-url
+```
+
+> **Important:** `.env.databricks` contains secrets and is gitignored. Only `.env.databricks.example` (with placeholder values) is committed. Do not commit `.env.databricks` to the repository.
+
+> **CORS note:** If `VITE_API_BASE_URL` is not set in `.env.databricks`, it defaults to `http://localhost:8000` (see `src/utils/config.ts`), which will cause CORS errors on Databricks. Set it to empty or your app URL.
+
+### Project Structure for Deployment
+
+When syncing to Databricks, these files/directories are required:
+
+```
+app.yaml                  # Databricks Apps entry point
+.env.databricks           # All Databricks env vars (frontend + backend)
+backend/                  # Python backend (FastAPI)
+  __init__.py
+  main.py                 # FastAPI application & endpoints
+  models.py               # Pydantic data models
+  local_providers.py      # Multi-provider discovery & management
+  requirements.txt
+  static/                 # Built frontend (created by npm run build:databricks)
+src/                      # Frontend source (needed if building on startup)
+  components/             # React components
+  contexts/               # React context providers
+  hooks/                  # Custom hooks (API, comparison, state)
+  pages/                  # Page components (Import, DataOverview, FieldOverview, etc.)
+  utils/                  # Utilities (CSV parsing, column analysis, pricing, etc.)
+  types/                  # TypeScript type definitions
+package.json
+tsconfig*.json
+vite.config.ts
+index.html
+```
+
+These should **not** be synced (excluded by `.gitignore`):
+
+```
+node_modules/             # Reinstalled on startup
+venv/ / .venv/            # Not needed — Databricks provides Python
+dist/                     # Local dev build output
+.env                      # Local dev env (secrets)
+.env.databricks           # Databricks env (secrets) — only .env.databricks.example is committed
+.claude/
+__pycache__/
+```
+
 ### Deploy to Databricks
 
-1. **Build the frontend** (optional — `app.yaml` builds on startup, but useful for validation):
-   ```bash
-   npm install
-   npm run build:databricks
-   ```
+#### Prerequisites
 
-2. **Configure environment variables** in your Databricks workspace (optional):
+- **Databricks CLI** — install from https://docs.databricks.com/en/dev-tools/cli/install.html
+- **Authentication** — configure a connection profile in `~/.databrickscfg`:
+  ```ini
+  [DEFAULT]
+  host  = https://your-workspace.cloud.databricks.com
+  token = dapi...your-personal-access-token
+  ```
+  Or authenticate via `databricks auth login --host https://your-workspace.cloud.databricks.com`. Use `--profile <name>` on any CLI command to select a non-default profile.
 
-   - `SOCRATA_APP_TOKEN`: Your Socrata API token
-   - `AZURE_ENDPOINT`: LLM API endpoint URL (any OpenAI-compatible endpoint)
-   - `AZURE_KEY`: LLM API key
-   - `AZURE_MODEL`: Model name (e.g., `gpt5-mini`, `Qwen3-4B-Instruct-2507`, `mistralai/Ministral-3-8B-Instruct-2512`)
-   - `HF_API_KEY`: HuggingFace API key
-   - `HF_API_URL`: HuggingFace Router URL
+> **Node.js runtime:** Databricks Apps containers include Node.js. If the `app.yaml` startup command runs `npm install && npm run build:databricks`, it will work without additional setup. However, building on startup increases cold-start time — pre-building locally (step 1 below) is recommended.
 
-   For OAuth support, also set:
-   - `SOCRATA_SECRET_TOKEN`: Your Socrata Secret Token (from the same App Token registration)
-   - `SOCRATA_OAUTH_REDIRECT_URI`: `https://your-databricks-app-url/api/auth/socrata/callback`
+#### 1. Pre-build the frontend (recommended)
 
-3. **Deploy using Databricks CLI**:
-   ```bash
-   # Create the app (first time only)
-   databricks apps create ai-metadata-tool
+Building locally avoids slow cold starts and catches build errors early:
 
-   # Sync source code to workspace
-   databricks sync . /Workspace/Users/<your-email>/ai-metadata-tool
+```bash
+npm install
+npm run build:databricks
+```
 
-   # Deploy the app
-   databricks apps deploy ai-metadata-tool \
-     --source-code-path /Workspace/Users/<your-email>/ai-metadata-tool
-   ```
+This outputs the production frontend to `backend/static/`.
 
-4. **Or deploy via Databricks UI**:
-   - Go to your Databricks workspace
-   - Navigate to **Compute** > **Apps**
-   - Click **Create App**, configure the app name and settings
-   - Upload the project files or connect to a Git repository
+#### 2. Configure environment variables
+
+```bash
+cp .env.databricks.example .env.databricks
+# Edit .env.databricks with your actual values
+```
+
+See the [Environment Variables (`.env.databricks`)](#environment-variables-envdatabricks) section above for the full list of variables.
+
+> **Finding your Databricks app URL:** After creating the app (step 3), run `databricks apps get ai-metadata-tool` — the output includes the app's public URL. Use this URL for `VITE_API_BASE_URL`, `SOCRATA_OAUTH_REDIRECT_URI`, `FRONTEND_URL`, and the **Callback Prefix** in your data.wa.gov app registration.
+
+> **Important — Update Socrata Callback Prefix:** If you previously used a different URL (e.g., ngrok for local dev), you **must** update the Callback Prefix in your data.wa.gov app registration to match the Databricks app URL. Go to data.wa.gov > Profile > Developer Settings > edit your app token, and set the Callback Prefix to `https://your-databricks-app-url/api/auth/socrata/`. If this doesn't match, OAuth will fail with `"Redirection URI outside the registered scope"`.
+
+#### 3. Deploy using Databricks CLI
+
+```bash
+# Create the app (first time only)
+databricks apps create ai-metadata-tool
+
+# Sync source code to workspace
+databricks sync . /Workspace/Users/<your-email>/ai-metadata-tool
+
+# Deploy the app
+databricks apps deploy ai-metadata-tool \
+  --source-code-path /Workspace/Users/<your-email>/ai-metadata-tool
+
+# Optional: use AUTO_SYNC mode to auto-redeploy on workspace file changes
+databricks apps deploy ai-metadata-tool \
+  --source-code-path /Workspace/Users/<your-email>/ai-metadata-tool \
+  --mode AUTO_SYNC
+```
+
+#### 4. Or deploy via Databricks UI
+
+- Go to your Databricks workspace
+- Navigate to **Compute** > **Apps**
+- Click **Create App**, configure the app name and settings
+- Upload the project files or connect to a Git repository
+
+### Port Configuration
+
+Databricks Apps routes external traffic to your app container on a platform-assigned port. However, the current `app.yaml` starts uvicorn on `--port 8000`, which works because Databricks Apps forwards to that port by default. If the platform requires a different port (indicated via the `PORT` environment variable), the backend's `main.py` reads `PORT` from the environment and falls back to `8000`. Ensure the `app.yaml` uvicorn `--port` value matches what `main.py` expects, or remove `--port 8000` from `app.yaml` and let the backend use `PORT` dynamically:
+
+```yaml
+command:
+  - "sh"
+  - "-c"
+  - |
+    pip install -r backend/requirements.txt && \
+    uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
+```

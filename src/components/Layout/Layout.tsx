@@ -47,6 +47,7 @@ export function Layout() {
         isProcessing,
         showResults,
         fileName,
+        currentPage,
         handleStop,
         socrataOAuthUser,
         isSocrataOAuthAuthenticating,
@@ -90,7 +91,7 @@ export function Layout() {
                     <NavTab page="settings" label="Settings"/>
                 </nav>
             </div>
-            {showResults && fileName && (
+            {showResults && fileName && currentPage === 'data' && (
                 <div className="layout-dataset-bar">
                     <span className="layout-dataset-name">{fileName}</span>
                     {socrataDatasetId && (
