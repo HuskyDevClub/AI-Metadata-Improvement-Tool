@@ -36,3 +36,111 @@
     color: var(--text-tertiary);
     font-style: italic;
 }
+
+/* Row Label */
+.dataset-row-label {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.dataset-row-label-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.dataset-row-label-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+}
+
+.dataset-row-label-value {
+    font-size: 14px;
+    color: var(--text);
+}
+
+.dataset-row-label-empty {
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+.dataset-row-label-generating {
+    color: var(--text-secondary);
+}
+
+.dataset-row-label-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.dataset-row-label-btn {
+    padding: 3px 8px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 4px);
+    background: var(--surface-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.dataset-row-label-btn:hover {
+    background: var(--surface-hover, #f0f0f0);
+    color: var(--text);
+}
+
+.dataset-row-label-btn.edit {
+    padding: 3px 6px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+}
+
+.dataset-row-label-btn.generate {
+    background: var(--accent-subtle, #e8f0fe);
+    color: var(--accent, #1a73e8);
+    border-color: var(--accent-border, #c6dafc);
+}
+
+.dataset-row-label-btn.generate:hover {
+    background: var(--accent, #1a73e8);
+    color: white;
+}
+
+.dataset-row-label-btn.save {
+    background: var(--accent, #1a73e8);
+    color: white;
+    border-color: var(--accent, #1a73e8);
+}
+
+.dataset-row-label-btn.save:hover {
+    opacity: 0.9;
+}
+
+.dataset-row-label-btn.cancel {
+    background: transparent;
+}
+
+.dataset-row-label-edit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dataset-row-label-input {
+    flex: 1;
+    padding: 5px 10px;
+    font-size: 14px;
+    border: 1px solid var(--accent, #1a73e8);
+    border-radius: var(--radius-sm, 4px);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    max-width: 400px;
+}

@@ -21,6 +21,7 @@ export interface SocrataImportResult {
     fileName: string;
     datasetName: string;
     datasetDescription: string;
+    rowLabel: string;
     columns: SocrataColumnMeta[];
     columnStats: Record<string, ColumnInfo>;
 }
@@ -118,6 +119,7 @@ export interface SocrataExportResult {
 export async function pushSocrataMetadata(
     datasetId: string,
     datasetDescription: string | undefined,
+    rowLabel: string | undefined,
     columns: { fieldName: string; description: string }[],
     oauthToken?: string,
     apiKeyId?: string,
@@ -126,7 +128,7 @@ export async function pushSocrataMetadata(
     const response = await fetch(`${API_BASE_URL}/api/socrata/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datasetId, oauthToken, apiKeyId, apiKeySecret, datasetDescription, columns }),
+        body: JSON.stringify({ datasetId, oauthToken, apiKeyId, apiKeySecret, datasetDescription, rowLabel, columns }),
     });
 
     await assertResponseOk(response, 'Failed to push metadata');
@@ -156,6 +158,7 @@ export async function fetchSocrataImport(
         fileName: result.fileName,
         datasetName: result.datasetName,
         datasetDescription: result.datasetDescription,
+        rowLabel: result.rowLabel || '',
         columns: result.columns,
         columnStats: result.columnStats,
     };

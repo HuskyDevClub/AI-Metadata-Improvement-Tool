@@ -31,6 +31,9 @@ export function DataOverviewPage() {
         handleApplyDatasetSuggestions,
         handleGenerateSelectedDescriptions,
         handlePushToSocrata,
+        handleEditRowLabel,
+        handleGenerateRowLabel,
+        generatingRowLabel,
         renderTokenUsage,
     } = useAppContext();
 
@@ -107,6 +110,10 @@ export function DataOverviewPage() {
                     onEditSuggestion={handleEditDatasetSuggestion}
                     onAddSuggestion={handleAddDatasetSuggestion}
                     onApplySuggestions={handleApplyDatasetSuggestions}
+                    rowLabel={generatedResults.rowLabel}
+                    onEditRowLabel={handleEditRowLabel}
+                    onGenerateRowLabel={handleGenerateRowLabel}
+                    isGeneratingRowLabel={generatingRowLabel}
                 />
             )}
 

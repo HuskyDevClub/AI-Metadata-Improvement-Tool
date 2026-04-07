@@ -67,6 +67,26 @@ Address ALL of the following elements that apply to this column:
 
 Write 2-5 sentences. Be specific to this column's actual data — do not write generic descriptions that could apply to any column.`;
 
+export const DEFAULT_ROW_LABEL_PROMPT = `Determine the most accurate and concise Row Label for this government dataset on data.wa.gov. The Row Label should describe what a single row represents in plain language.
+
+Dataset Name: {fileName}
+Number of Rows: {rowCount}
+Columns (name — type):
+{columnInfo}
+
+Sample Data (first {sampleCount} rows):
+{sampleRows}
+
+Rules:
+- The Row Label should be a short noun phrase (1-4 words) that describes what ONE row in the dataset represents.
+- Use plain language — no jargon, no acronyms unless universally understood.
+- Examples of good row labels: "license record", "traffic incident", "employee", "inspection result", "school enrollment record", "water quality sample"
+- Do NOT include the dataset name or agency name in the row label.
+- Do NOT use articles ("a", "an", "the").
+- Do NOT add punctuation or capitalization beyond the first word.
+
+Return ONLY the row label text — nothing else.`;
+
 export function buildDatasetImprovementPrompt(currentDescription: string): string {
     return `You are a metadata quality reviewer for data.wa.gov. Analyze the following dataset description and provide specific, actionable suggestions to improve it.
 

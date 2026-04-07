@@ -588,6 +588,11 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
             metadata = metadata_resp.json()
             dataset_name = metadata.get("name") or dataset_id
             dataset_description = metadata.get("description") or ""
+            row_label = (
+                metadata.get("metadata", {}).get("rowLabel", "")
+                or metadata.get("rowLabel", "")
+                or ""
+            )
 
             total_rows = int(count_rows[0]["total"]) if count_rows else 0
 
@@ -642,6 +647,7 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
                 fileName=f"{dataset_name}.csv",
                 datasetName=dataset_name,
                 datasetDescription=dataset_description,
+                rowLabel=row_label,
                 columns=columns,
                 columnStats=column_stats,
             )
@@ -693,6 +699,10 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
             if request.datasetDescription is not None:
                 update_payload["description"] = request.datasetDescription
 
+            if request.rowLabel is not None:
+                update_payload.setdefault("metadata", {})
+                update_payload["metadata"]["rowLabel"] = request.rowLabel
+
             # Merge column description updates into existing columns
             updated_col_count = 0
             if request.columns:
@@ -732,6 +742,8 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
             parts = []
             if request.datasetDescription is not None:
                 parts.append("dataset description")
+            if request.rowLabel is not None:
+                parts.append("row label")
             if updated_col_count > 0:
                 parts.append(
                     f"{updated_col_count} column description{'s' if updated_col_count != 1 else ''}"

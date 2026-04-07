@@ -173,6 +173,7 @@ class SocrataImportResponse(BaseModel):
     fileName: str
     datasetName: str
     datasetDescription: str
+    rowLabel: str
     columns: list[SocrataColumnMetadata]
     columnStats: dict[str, ColumnStats]
 
@@ -197,6 +198,7 @@ class SocrataExportRequest(BaseModel):
     apiKeyId: str | None = None
     apiKeySecret: str | None = None
     datasetDescription: str | None = None
+    rowLabel: str | None = None
     columns: list[SocrataColumnUpdate] = []
 
 
