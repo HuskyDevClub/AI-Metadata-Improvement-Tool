@@ -123,6 +123,12 @@ interface AppContextType {
     handleSocrataOAuthLogin: () => Promise<void>;
     handleSocrataOAuthLogout: () => void;
 
+    // Socrata API Key
+    socrataApiKeyId: string;
+    socrataApiKeySecret: string;
+    handleSocrataApiKeySave: (keyId: string, keySecret: string) => void;
+    handleSocrataApiKeyClear: () => void;
+
     // Comparison state
     comparisonEnabled: boolean;
     comparisonConfig: ComparisonConfig;
@@ -251,6 +257,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         id: string; displayName: string; email?: string;
     } | null>(null);
     const [isSocrataOAuthAuthenticating, setIsSocrataOAuthAuthenticating] = useState(false);
+    const [socrataApiKeyId, setSocrataApiKeyId] = useState(() => localStorage.getItem('socrata_api_key_id') || '');
+    const [socrataApiKeySecret, setSocrataApiKeySecret] = useState(() => localStorage.getItem('socrata_api_key_secret') || '');
     const [isGeneratingEmpty, setIsGeneratingEmpty] = useState(false);
 
     // Socrata OAuth: detect token in URL fragment on mount, or restore from localStorage
@@ -319,6 +327,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setStatus({ message: `OAuth error: ${detail}`, type: 'error' });
             setIsSocrataOAuthAuthenticating(false);
         }
+    }, []);
+
+    const handleSocrataApiKeySave = useCallback((keyId: string, keySecret: string) => {
+        setSocrataApiKeyId(keyId);
+        setSocrataApiKeySecret(keySecret);
+        localStorage.setItem('socrata_api_key_id', keyId);
+        localStorage.setItem('socrata_api_key_secret', keySecret);
+    }, []);
+
+    const handleSocrataApiKeyClear = useCallback(() => {
+        setSocrataApiKeyId('');
+        setSocrataApiKeySecret('');
+        localStorage.removeItem('socrata_api_key_id');
+        localStorage.removeItem('socrata_api_key_secret');
     }, []);
 
     const handleSocrataOAuthLogout = useCallback(() => {
@@ -1440,6 +1462,8 @@ FORMAT RULES:
                 const result = await fetchSocrataImport(
                     datasetId,
                     socrataOAuthToken || undefined,
+                    socrataApiKeyId || undefined,
+                    socrataApiKeySecret || undefined,
                 );
 
                 if (!result.sampleRows || result.sampleRows.length === 0) {
@@ -1497,7 +1521,7 @@ FORMAT RULES:
                 setIsProcessing(false);
             }
         },
-        [comparisonEnabled, resetComparisonState, socrataOAuthToken]
+        [comparisonEnabled, resetComparisonState, socrataOAuthToken, socrataApiKeyId, socrataApiKeySecret]
     );
 
     const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
@@ -1535,6 +1559,8 @@ FORMAT RULES:
                 generatedResults.datasetDescription || undefined,
                 columnUpdates,
                 socrataOAuthToken || undefined,
+                socrataApiKeyId || undefined,
+                socrataApiKeySecret || undefined,
             );
 
             setStatus({ message: result.message, type: 'success' });
@@ -1544,7 +1570,7 @@ FORMAT RULES:
         } finally {
             setIsPushingSocrata(false);
         }
-    }, [socrataDatasetId, generatedResults, socrataFieldNameMap, socrataOAuthToken]);
+    }, [socrataDatasetId, generatedResults, socrataFieldNameMap, socrataOAuthToken, socrataApiKeyId, socrataApiKeySecret]);
 
     const getColumnGeneratingModels = useCallback((columnName: string): Set<number> => {
         const result = new Set<number>();
@@ -1676,6 +1702,10 @@ FORMAT RULES:
         isSocrataOAuthAuthenticating,
         handleSocrataOAuthLogin,
         handleSocrataOAuthLogout,
+        socrataApiKeyId,
+        socrataApiKeySecret,
+        handleSocrataApiKeySave,
+        handleSocrataApiKeyClear,
         comparisonEnabled,
         comparisonConfig,
         datasetComparison,

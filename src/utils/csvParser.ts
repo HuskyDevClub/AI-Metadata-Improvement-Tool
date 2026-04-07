@@ -120,11 +120,13 @@ export async function pushSocrataMetadata(
     datasetDescription: string | undefined,
     columns: { fieldName: string; description: string }[],
     oauthToken?: string,
+    apiKeyId?: string,
+    apiKeySecret?: string,
 ): Promise<SocrataExportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datasetId, oauthToken, datasetDescription, columns }),
+        body: JSON.stringify({ datasetId, oauthToken, apiKeyId, apiKeySecret, datasetDescription, columns }),
     });
 
     await assertResponseOk(response, 'Failed to push metadata');
@@ -135,11 +137,13 @@ export async function pushSocrataMetadata(
 export async function fetchSocrataImport(
     datasetId: string,
     oauthToken?: string,
+    apiKeyId?: string,
+    apiKeySecret?: string,
 ): Promise<SocrataImportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datasetId, oauthToken }),
+        body: JSON.stringify({ datasetId, oauthToken, apiKeyId, apiKeySecret }),
     });
 
     await assertResponseOk(response, 'Failed to import dataset');

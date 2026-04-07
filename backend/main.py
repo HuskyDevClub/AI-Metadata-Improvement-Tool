@@ -306,9 +306,12 @@ _soda_semaphore = asyncio.Semaphore(10)
 
 
 def build_socrata_auth(
-    request: SocrataImportRequest,
+    request: SocrataImportRequest | SocrataExportRequest,
 ) -> dict[str, str]:
-    """Build auth headers from import request."""
+    """Build auth headers from import/export request.
+
+    Priority: OAuth token > API Key (Basic Auth) > app token only.
+    """
     if not SOCRATA_APP_TOKEN:
         raise HTTPException(
             status_code=500,
@@ -319,6 +322,11 @@ def build_socrata_auth(
 
     if request.oauthToken:
         headers["Authorization"] = f"OAuth {request.oauthToken}"
+    elif request.apiKeyId and request.apiKeySecret:
+        credentials = base64.b64encode(
+            f"{request.apiKeyId}:{request.apiKeySecret}".encode()
+        ).decode()
+        headers["Authorization"] = f"Basic {credentials}"
 
     return headers
 
@@ -655,24 +663,16 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
 
     dataset_id = request.datasetId.strip()
 
-    # Build auth — write operations require OAuth login
-    headers: dict[str, str] = {"Content-Type": "application/json"}
-
-    if request.oauthToken:
-        headers["Authorization"] = f"OAuth {request.oauthToken}"
-    else:
+    # Build auth — write operations require authentication (OAuth or API Key)
+    if not request.oauthToken and not (request.apiKeyId and request.apiKeySecret):
         raise HTTPException(
             status_code=400,
             detail="Authentication required to update metadata on data.wa.gov. "
-            "Please sign in with OAuth.",
+            "Please sign in with OAuth or provide API Key credentials.",
         )
 
-    if not SOCRATA_APP_TOKEN:
-        raise HTTPException(
-            status_code=500,
-            detail="SOCRATA_APP_TOKEN is not configured on the server.",
-        )
-    headers["X-App-Token"] = SOCRATA_APP_TOKEN
+    headers = build_socrata_auth(request)
+    headers["Content-Type"] = "application/json"
 
     metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
 
