@@ -1,5 +1,6 @@
 import type { PageId } from '../../contexts/AppContext';
 import { useAppContext } from '../../contexts/AppContext';
+import { FloatingActions } from '../FloatingActions/FloatingActions';
 import { StatusMessage } from '../StatusMessage/StatusMessage';
 import { ImportPage } from '../../pages/ImportPage';
 import { DataOverviewPage } from '../../pages/DataOverviewPage';
@@ -45,11 +46,15 @@ export function Layout() {
         status,
         isProcessing,
         showResults,
+        fileName,
         handleStop,
         socrataOAuthUser,
         isSocrataOAuthAuthenticating,
         handleSocrataOAuthLogin,
-        handleSocrataOAuthLogout
+        handleSocrataOAuthLogout,
+        isPushingSocrata,
+        socrataDatasetId,
+        handlePushToSocrata,
     } = useAppContext();
 
     return (
@@ -85,10 +90,25 @@ export function Layout() {
                     <NavTab page="settings" label="Settings"/>
                 </nav>
             </div>
+            {showResults && fileName && (
+                <div className="layout-dataset-bar">
+                    <span className="layout-dataset-name">{fileName}</span>
+                    {socrataDatasetId && (
+                        <button
+                            className="layout-dataset-push-btn"
+                            onClick={handlePushToSocrata}
+                            disabled={isPushingSocrata}
+                        >
+                            {isPushingSocrata ? 'Pushing...' : 'Push to data.wa.gov'}
+                        </button>
+                    )}
+                </div>
+            )}
             <div className="content">
                 <StatusMessage status={status} isProcessing={isProcessing} onStop={handleStop}/>
                 <CurrentPage/>
             </div>
+            <FloatingActions/>
         </div>
     );
 }

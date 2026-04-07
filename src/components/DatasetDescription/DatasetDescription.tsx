@@ -134,8 +134,10 @@ export function DatasetDescription({
                                         if (e.key === 'Escape') handleRowLabelCancel();
                                     }}
                                 />
-                                <button className="dataset-row-label-btn save" onClick={handleRowLabelSave}>Save</button>
-                                <button className="dataset-row-label-btn cancel" onClick={handleRowLabelCancel}>Cancel</button>
+                                <button className="dataset-row-label-btn save" onClick={handleRowLabelSave}>Save
+                                </button>
+                                <button className="dataset-row-label-btn cancel" onClick={handleRowLabelCancel}>Cancel
+                                </button>
                             </div>
                         ) : (
                             <div className="dataset-row-label-display">
@@ -182,7 +184,10 @@ export function DatasetDescription({
                             <span className="dataset-notes-header-actions">
                                 <button
                                     className="dataset-row-label-btn"
-                                    onClick={() => { setNewNoteValue(''); setIsAddingNote(true); }}
+                                    onClick={() => {
+                                        setNewNoteValue('');
+                                        setIsAddingNote(true);
+                                    }}
                                     disabled={isGeneratingNote}
                                 >
                                     + Add
@@ -220,8 +225,12 @@ export function DatasetDescription({
                                                 }}
                                             />
                                             <div className="dataset-notes-edit-actions">
-                                                <button className="dataset-row-label-btn save" onClick={() => handleNoteSave(index)}>Save</button>
-                                                <button className="dataset-row-label-btn cancel" onClick={handleNoteCancel}>Cancel</button>
+                                                <button className="dataset-row-label-btn save"
+                                                        onClick={() => handleNoteSave(index)}>Save
+                                                </button>
+                                                <button className="dataset-row-label-btn cancel"
+                                                        onClick={handleNoteCancel}>Cancel
+                                                </button>
                                             </div>
                                         </div>
                                     ) : (
@@ -284,8 +293,12 @@ export function DatasetDescription({
                                             }}
                                         />
                                         <div className="dataset-notes-edit-actions">
-                                            <button className="dataset-row-label-btn save" onClick={handleAddNoteSave}>Add</button>
-                                            <button className="dataset-row-label-btn cancel" onClick={() => setIsAddingNote(false)}>Cancel</button>
+                                            <button className="dataset-row-label-btn save"
+                                                    onClick={handleAddNoteSave}>Add
+                                            </button>
+                                            <button className="dataset-row-label-btn cancel"
+                                                    onClick={() => setIsAddingNote(false)}>Cancel
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

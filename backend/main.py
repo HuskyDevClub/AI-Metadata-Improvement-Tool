@@ -722,9 +722,7 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
                 custom_fields = existing_metadata.setdefault("custom_fields", {})
                 # Notes are stored as a group with numbered keys ("1. ", "2. ", …)
                 notes_lines = [
-                    line.strip()
-                    for line in request.notes.split("\n")
-                    if line.strip()
+                    line.strip() for line in request.notes.split("\n") if line.strip()
                 ]
                 notes_group: dict[str, str] = {}
                 for i, line in enumerate(notes_lines, start=1):

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { DatasetDescription } from '../components/DatasetDescription/DatasetDescription';
-import { ExportSection } from '../components/ExportSection/ExportSection';
 import { useAppContext } from '../contexts/AppContext';
 import './DataOverviewPage.css';
 
@@ -18,8 +17,6 @@ export function DataOverviewPage() {
         suggestingDataset,
         datasetSuggestions,
         isGeneratingEmpty,
-        isPushingSocrata,
-        socrataDatasetId,
         navigate,
         handleEditDatasetDescription,
         handleRegenerateDataset,
@@ -30,7 +27,6 @@ export function DataOverviewPage() {
         handleAddDatasetSuggestion,
         handleApplyDatasetSuggestions,
         handleGenerateSelectedDescriptions,
-        handlePushToSocrata,
         handleEditRowLabel,
         handleGenerateRowLabel,
         generatingRowLabel,
@@ -236,12 +232,6 @@ export function DataOverviewPage() {
             </div>
 
             {renderTokenUsage()}
-
-            <ExportSection
-                onPushToSocrata={handlePushToSocrata}
-                isPushingSocrata={isPushingSocrata}
-                showSocrataPush={!!socrataDatasetId}
-            />
         </div>
     );
 }

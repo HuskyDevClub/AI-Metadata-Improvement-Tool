@@ -51,6 +51,7 @@ export type StatusType = 'info' | 'success' | 'error' | 'warning';
 export interface Status {
     message: string;
     type: StatusType;
+    autoHide?: number;
 }
 
 export interface PromptTemplates {

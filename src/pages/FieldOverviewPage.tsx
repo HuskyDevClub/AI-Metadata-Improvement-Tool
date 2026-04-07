@@ -57,23 +57,29 @@ export function FieldOverviewPage() {
                     Back to Data Overview
                 </button>
                 <div className="field-overview-pager">
-                    {prevField ? (
-                        <button onClick={() => navigate('field', prevField)} className="field-overview-pager-btn">
-                            Prev
-                        </button>
-                    ) : (
-                        <span className="field-overview-pager-btn disabled">Prev</span>
-                    )}
+                    <div className="field-overview-pager-group">
+                        {prevField && <span className="field-overview-pager-label" title={prevField}>{prevField}</span>}
+                        {prevField ? (
+                            <button onClick={() => navigate('field', prevField)} className="field-overview-pager-btn">
+                                Prev
+                            </button>
+                        ) : (
+                            <span className="field-overview-pager-btn disabled">Prev</span>
+                        )}
+                    </div>
                     <span className="field-overview-pager-info">
                         {currentIndex + 1} / {columnNames.length}
                     </span>
-                    {nextField ? (
-                        <button onClick={() => navigate('field', nextField)} className="field-overview-pager-btn">
-                            Next
-                        </button>
-                    ) : (
-                        <span className="field-overview-pager-btn disabled">Next</span>
-                    )}
+                    <div className="field-overview-pager-group">
+                        {nextField ? (
+                            <button onClick={() => navigate('field', nextField)} className="field-overview-pager-btn">
+                                Next
+                            </button>
+                        ) : (
+                            <span className="field-overview-pager-btn disabled">Next</span>
+                        )}
+                        {nextField && <span className="field-overview-pager-label" title={nextField}>{nextField}</span>}
+                    </div>
                 </div>
             </div>
 

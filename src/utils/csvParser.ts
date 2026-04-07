@@ -153,7 +153,16 @@ export async function pushSocrataMetadata(
     const response = await fetch(`${API_BASE_URL}/api/socrata/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datasetId, oauthToken, apiKeyId, apiKeySecret, datasetDescription, rowLabel, notes: notes ? serializeNotes(notes) : undefined, columns }),
+        body: JSON.stringify({
+            datasetId,
+            oauthToken,
+            apiKeyId,
+            apiKeySecret,
+            datasetDescription,
+            rowLabel,
+            notes: notes ? serializeNotes(notes) : undefined,
+            columns
+        }),
     });
 
     await assertResponseOk(response, 'Failed to push metadata');

@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { ComparisonMode } from '../components/ComparisonMode/ComparisonMode';
 import { DatasetComparison } from '../components/DatasetComparison/DatasetComparison';
 import { ColumnComparison } from '../components/ColumnComparison/ColumnComparison';
-import { ExportSection } from '../components/ExportSection/ExportSection';
 import { useAppContext } from '../contexts/AppContext';
 import './ComparePage.css';
 
@@ -13,8 +12,6 @@ export function ComparePage() {
         columnStats,
         isImportedData,
         importedRowCount,
-        isPushingSocrata,
-        socrataDatasetId,
         comparisonEnabled,
         comparisonConfig,
         datasetComparison,
@@ -37,7 +34,6 @@ export function ComparePage() {
         handleRegenerateComparisonColumn,
         getColumnGeneratingModels,
         getColumnRegeneratingModels,
-        handlePushToSocrata,
         renderTokenUsage,
     } = useAppContext();
 
@@ -135,12 +131,6 @@ export function ComparePage() {
                     )}
 
                     {renderTokenUsage()}
-
-                    <ExportSection
-                        onPushToSocrata={handlePushToSocrata}
-                        isPushingSocrata={isPushingSocrata}
-                        showSocrataPush={!!socrataDatasetId}
-                    />
                 </>
             )}
         </div>

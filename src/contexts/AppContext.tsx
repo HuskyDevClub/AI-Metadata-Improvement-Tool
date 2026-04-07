@@ -1662,6 +1662,7 @@ FORMAT RULES:
                 setStatus({
                     message: `Imported "${result.datasetName}" with ${columns.length} columns (${result.totalRowCount.toLocaleString()} rows). Existing descriptions pre-populated — edit or improve with AI.`,
                     type: 'success',
+                    autoHide: 5000,
                 });
             } catch (error) {
                 const detail = error instanceof Error ? error.message : 'Unknown error';

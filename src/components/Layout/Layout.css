@@ -119,3 +119,45 @@
 .layout-nav-link.disabled:hover {
     color: var(--text-secondary);
 }
+
+.layout-dataset-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    background: var(--surface-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.layout-dataset-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.layout-dataset-push-btn {
+    background: #0066cc;
+    color: white;
+    padding: 6px 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.layout-dataset-push-btn:hover {
+    background: #0052a3;
+}
+
+.layout-dataset-push-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
