@@ -28,7 +28,9 @@ import {
     buildDatasetImprovementPrompt,
     buildRegenerateWithSuggestionsPrompt,
     DEFAULT_COLUMN_PROMPT,
+    DEFAULT_COLUMN_SUGGESTION_PROMPT,
     DEFAULT_DATASET_PROMPT,
+    DEFAULT_DATASET_SUGGESTION_PROMPT,
     DEFAULT_NOTES_PROMPT,
     DEFAULT_ROW_LABEL_PROMPT,
     DEFAULT_SYSTEM_PROMPT,
@@ -231,6 +233,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         dataset: DEFAULT_DATASET_PROMPT,
         column: DEFAULT_COLUMN_PROMPT,
+        rowLabel: DEFAULT_ROW_LABEL_PROMPT,
+        notes: DEFAULT_NOTES_PROMPT,
+        datasetSuggestion: DEFAULT_DATASET_SUGGESTION_PROMPT,
+        columnSuggestion: DEFAULT_COLUMN_SUGGESTION_PROMPT,
     });
 
     const [csvData, setCsvData] = useState<CsvRow[] | null>(null);
@@ -480,8 +486,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         stats: Record<string, ColumnInfo>,
         rowCountOverride?: number,
     ): string => {
-        return buildDatasetPromptFromTemplate(data, name, stats, DEFAULT_ROW_LABEL_PROMPT, '', undefined, rowCountOverride);
-    }, [buildDatasetPromptFromTemplate]);
+        return buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.rowLabel, '', undefined, rowCountOverride);
+    }, [promptTemplates.rowLabel, buildDatasetPromptFromTemplate]);
 
     const buildNotesPrompt = useCallback((
         data: CsvRow[],
@@ -489,8 +495,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         stats: Record<string, ColumnInfo>,
         rowCountOverride?: number,
     ): string => {
-        return buildDatasetPromptFromTemplate(data, name, stats, DEFAULT_NOTES_PROMPT, '', undefined, rowCountOverride);
-    }, [buildDatasetPromptFromTemplate]);
+        return buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.notes, '', undefined, rowCountOverride);
+    }, [promptTemplates.notes, buildDatasetPromptFromTemplate]);
 
     const buildColumnPromptFromTemplate = useCallback((
         columnName: string,
@@ -1123,7 +1129,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setSuggestingDataset(true);
         setDatasetSuggestions([]);
         try {
-            const prompt = buildDatasetImprovementPrompt(currentDesc);
+            const prompt = buildDatasetImprovementPrompt(currentDesc, promptTemplates.datasetSuggestion);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
@@ -1139,7 +1145,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } finally {
             setSuggestingDataset(false);
         }
-    }, [generatedResults.datasetDescription, openaiConfig, promptTemplates.systemPrompt, callOpenAIStream, addTokenUsage]);
+    }, [generatedResults.datasetDescription, openaiConfig, promptTemplates.systemPrompt, promptTemplates.datasetSuggestion, callOpenAIStream, addTokenUsage]);
 
     const handleDismissDatasetSuggestions = useCallback(() => {
         setDatasetSuggestions([]);
@@ -1222,7 +1228,7 @@ FORMAT RULES:
         setSuggestingColumns((prev) => new Set(prev).add(columnName));
         setColumnSuggestions((prev) => ({ ...prev, [columnName]: [] }));
         try {
-            const prompt = buildColumnImprovementPrompt(columnName, currentDesc);
+            const prompt = buildColumnImprovementPrompt(columnName, currentDesc, promptTemplates.columnSuggestion);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
@@ -1239,7 +1245,7 @@ FORMAT RULES:
                 return next;
             });
         }
-    }, [generatedResults.columnDescriptions, openaiConfig, promptTemplates.systemPrompt, callOpenAIStream, addTokenUsage]);
+    }, [generatedResults.columnDescriptions, openaiConfig, promptTemplates.systemPrompt, promptTemplates.columnSuggestion, callOpenAIStream, addTokenUsage]);
 
     const handleDismissColumnSuggestions = useCallback((columnName: string) => {
         setColumnSuggestions((prev) => {

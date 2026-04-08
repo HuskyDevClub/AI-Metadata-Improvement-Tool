@@ -1,6 +1,56 @@
 import type { ComparisonSubMode, PromptTemplates, ScoringCategory } from '../../types';
 import './PromptEditor.css';
 
+const PROMPT_INFO: Record<string, { description: string; placeholders?: string }> = {
+    systemPrompt: {
+        description: 'Sets the AI\'s persona and rules for all generation tasks (tone, style, language guidelines). Applied as the system message in every request.',
+    },
+    dataset: {
+        description: 'Template for generating a Brief Description of the entire dataset.',
+        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+    },
+    column: {
+        description: 'Template for generating a description for a single column.',
+        placeholders: '{columnName}, {datasetDescription}, {columnStats}, {dataType}, {nonNullCount}, {rowCount}, {completenessPercent}, {sampleValues}, {nullCount}',
+    },
+    rowLabel: {
+        description: 'Template for determining a short noun phrase (e.g. "license record") that describes what one row represents.',
+        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+    },
+    notes: {
+        description: 'Template for generating supplementary notes (limitations, update frequency, methodology, usage guidance).',
+        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+    },
+    datasetSuggestion: {
+        description: 'Template for reviewing an existing dataset description and returning actionable improvement suggestions.',
+        placeholders: '{currentDescription}',
+    },
+    columnSuggestion: {
+        description: 'Template for reviewing an existing column description and returning actionable improvement suggestions.',
+        placeholders: '{columnName}, {currentDescription}',
+    },
+    judgeSystem: {
+        description: 'System prompt that controls how the judge model evaluates and scores candidate descriptions in comparison mode.',
+    },
+    judgeEvaluation: {
+        description: 'Template for the evaluation request sent to the judge model.',
+        placeholders: '{context}, {output_N}',
+    },
+};
+
+function InfoIcon({ promptKey }: { promptKey: string }) {
+    const info = PROMPT_INFO[promptKey];
+    if (!info) return null;
+    const tooltip = info.placeholders
+        ? `${info.description}\n\nPlaceholders: ${info.placeholders}`
+        : info.description;
+    return (
+        <span className="prompt-info-icon" data-tooltip={tooltip}>
+            i
+        </span>
+    );
+}
+
 interface PromptEditorProps {
     templates: PromptTemplates;
     onChange: (templates: PromptTemplates) => void;
@@ -67,20 +117,15 @@ export function PromptEditor({
                 {!hideGlobalPrompts && (
                     <>
                         <div className="prompt-editor-box">
-                            <h4>System Prompt</h4>
+                            <h4>System Prompt <InfoIcon promptKey="systemPrompt" /></h4>
                             <textarea
                                 value={templates.systemPrompt}
                                 onChange={(e) => onChange({ ...templates, systemPrompt: e.target.value })}
                             />
-                            <p className="prompt-editor-field-help">
-                                Instructs the AI how to generate descriptions (e.g., tone, style, focus areas). A
-                                default prompt
-                                optimized for government open data is provided.
-                            </p>
                         </div>
 
                         <div className="prompt-editor-box">
-                            <h4>Dataset Description Prompt Template</h4>
+                            <h4>Dataset Description Prompt <InfoIcon promptKey="dataset" /></h4>
                             <textarea
                                 value={templates.dataset}
                                 onChange={(e) => onChange({ ...templates, dataset: e.target.value })}
@@ -88,19 +133,44 @@ export function PromptEditor({
                         </div>
 
                         <div className="prompt-editor-box">
-                            <h4>Column Description Prompt Template</h4>
+                            <h4>Column Description Prompt <InfoIcon promptKey="column" /></h4>
                             <textarea
                                 value={templates.column}
                                 onChange={(e) => onChange({ ...templates, column: e.target.value })}
                             />
                         </div>
-                        <p className="prompt-editor-help-text">
-                            <strong>Dataset prompt placeholders: </strong>
-                            {'{fileName}'}, {'{rowCount}'}, {'{columnInfo}'}, {'{sampleRows}'}, {'{sampleCount}'}
-                            <br/>
-                            <strong>Column prompt placeholders: </strong>
-                            {'{columnName}'}, {'{datasetDescription}'}, {'{columnStats}'}, {'{dataType}'}, {'{nonNullCount}'}, {'{rowCount}'}, {'{completenessPercent}'}, {'{sampleValues}'}, {'{nullCount}'}
-                        </p>
+
+                        <div className="prompt-editor-box">
+                            <h4>Row Label Prompt <InfoIcon promptKey="rowLabel" /></h4>
+                            <textarea
+                                value={templates.rowLabel}
+                                onChange={(e) => onChange({ ...templates, rowLabel: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="prompt-editor-box">
+                            <h4>Notes Prompt <InfoIcon promptKey="notes" /></h4>
+                            <textarea
+                                value={templates.notes}
+                                onChange={(e) => onChange({ ...templates, notes: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="prompt-editor-box">
+                            <h4>Dataset Description Suggestion Prompt <InfoIcon promptKey="datasetSuggestion" /></h4>
+                            <textarea
+                                value={templates.datasetSuggestion}
+                                onChange={(e) => onChange({ ...templates, datasetSuggestion: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="prompt-editor-box">
+                            <h4>Column Description Suggestion Prompt <InfoIcon promptKey="columnSuggestion" /></h4>
+                            <textarea
+                                value={templates.columnSuggestion}
+                                onChange={(e) => onChange({ ...templates, columnSuggestion: e.target.value })}
+                            />
+                        </div>
                     </>
                 )}
 
@@ -114,26 +184,19 @@ export function PromptEditor({
                 {showJudgeSection && (
                     <>
                         <div className="prompt-editor-box judge-prompt-box">
-                            <h4>Judge System Prompt</h4>
+                            <h4>Judge System Prompt <InfoIcon promptKey="judgeSystem" /></h4>
                             <textarea
                                 value={judgeSystemPrompt || ''}
                                 onChange={(e) => onJudgeSystemPromptChange?.(e.target.value)}
                             />
-                            <p className="prompt-editor-field-help">
-                                Controls how the judge evaluates and scores candidate descriptions.
-                            </p>
                         </div>
 
                         <div className="prompt-editor-box judge-prompt-box">
-                            <h4>Judge Evaluation Prompt</h4>
+                            <h4>Judge Evaluation Prompt <InfoIcon promptKey="judgeEvaluation" /></h4>
                             <textarea
                                 value={judgeEvaluationPrompt || ''}
                                 onChange={(e) => onJudgeEvaluationPromptChange?.(e.target.value)}
                             />
-                            <p className="prompt-editor-field-help">
-                                Template for the evaluation request sent to the judge.
-                                Use {'{context}'} and {'{output_N}'} placeholders.
-                            </p>
                         </div>
 
                         {scoringCategories && onScoringCategoriesChange && (

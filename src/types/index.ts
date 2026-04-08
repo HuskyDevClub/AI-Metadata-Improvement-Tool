@@ -58,6 +58,10 @@ export interface PromptTemplates {
     systemPrompt: string;
     dataset: string;
     column: string;
+    rowLabel: string;
+    notes: string;
+    datasetSuggestion: string;
+    columnSuggestion: string;
 }
 
 export interface TokenUsage {
