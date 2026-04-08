@@ -115,6 +115,63 @@
     font-weight: 600;
 }
 
+.pairwise-comparisons {
+    margin-bottom: 12px;
+    padding: 12px;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+}
+
+.pairwise-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.pairwise-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.pairwise-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.pairwise-card {
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+}
+
+.pairwise-label {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.pairwise-score,
+.pairwise-winner,
+.pairwise-confidence,
+.pairwise-reasoning {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.pairwise-winner {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.pairwise-reasoning {
+    color: var(--text);
+}
+
 .confidence-metrics {
     margin-bottom: 12px;
     padding: 12px;

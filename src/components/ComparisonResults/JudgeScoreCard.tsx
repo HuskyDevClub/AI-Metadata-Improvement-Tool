@@ -115,6 +115,48 @@ export function JudgeScoreCard({
                 })}
             </div>
 
+            {result.pairwiseComparisons && result.pairwiseComparisons.length > 0 && (
+                <div className="pairwise-comparisons">
+                    <div className="pairwise-header">
+                        <span className="pairwise-title">Pairwise comparison results</span>
+                    </div>
+                    <div className="pairwise-grid">
+                        {result.pairwiseComparisons.map((pair, idx) => {
+                            const modelAName = modelNames?.[pair.modelAIndex] || `Slot ${pair.modelAIndex + 1}`;
+                            const modelBName = modelNames?.[pair.modelBIndex] || `Slot ${pair.modelBIndex + 1}`;
+                            const totalA = categoryKeys.reduce((sum, c) => sum + (pair.models[0]?.scores[c.key] || 0), 0);
+                            const totalB = categoryKeys.reduce((sum, c) => sum + (pair.models[1]?.scores[c.key] || 0), 0);
+                            const winnerText = pair.winnerIndex === null
+                                ? 'Tie'
+                                : pair.winnerIndex === pair.modelAIndex
+                                    ? `${modelAName} wins`
+                                    : `${modelBName} wins`;
+                            const confidence = pair.confidenceMetrics?.composite_confidence_score;
+
+                            return (
+                                <div key={idx} className="pairwise-card">
+                                    <div className="pairwise-label">
+                                        {modelAName} vs {modelBName}
+                                    </div>
+                                    <div className="pairwise-score">
+                                        {modelAName}: {totalA}/{maxTotal}, {modelBName}: {totalB}/{maxTotal}
+                                    </div>
+                                    <div className="pairwise-winner">{winnerText}</div>
+                                    {confidence !== undefined && (
+                                        <div className="pairwise-confidence">
+                                            Confidence: {Math.round(confidence * 100)}%
+                                        </div>
+                                    )}
+                                    <div className="pairwise-reasoning">
+                                        {pair.winnerReasoning}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {result.confidenceMetrics && (
                 <div className="confidence-metrics">
                     <div className="confidence-header">

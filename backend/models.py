@@ -133,6 +133,17 @@ class JudgeMetrics(BaseModel):
         return cls(scores=scores, reasoning=data["reasoning"])
 
 
+class PairwiseComparison(BaseModel):
+    """Pairwise judge results for a pair of outputs."""
+
+    modelAIndex: int
+    modelBIndex: int
+    models: list[JudgeMetrics]
+    winnerIndex: int | None  # Original 0-based winner index, None = tie
+    winnerReasoning: str
+    confidence_metrics: dict[str, float] | None = None
+
+
 class JudgeResponse(BaseModel):
     """Response containing evaluation results for N candidates."""
 
@@ -141,6 +152,7 @@ class JudgeResponse(BaseModel):
     winnerReasoning: str
     usage: dict[str, int]  # Token usage stats
     confidence_metrics: dict[str, float] | None = None  # Composite confidence score components
+    pairwiseComparisons: list[PairwiseComparison] | None = None  # Optional pairwise results
 
 
 class ConfidenceMetrics(BaseModel):

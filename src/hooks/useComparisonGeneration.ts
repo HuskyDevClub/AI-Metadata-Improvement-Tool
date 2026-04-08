@@ -80,6 +80,10 @@ export function useComparisonGeneration() {
                     winnerIndex: data.winnerIndex,
                     winnerReasoning: data.winnerReasoning,
                     confidenceMetrics: data.confidence_metrics,
+                    pairwiseComparisons: data.pairwiseComparisons?.map((pair: any) => ({
+                        ...pair,
+                        confidenceMetrics: pair.confidence_metrics,
+                    })),
                 },
                 usage: {
                     promptTokens: data.usage.promptTokens,

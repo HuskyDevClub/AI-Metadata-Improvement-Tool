@@ -46,6 +46,7 @@ from .models import (
     JudgeMetrics,
     JudgeRequest,
     JudgeResponse,
+    PairwiseComparison,
     ScoringCategory,
     SocrataColumnMetadata,
     SocrataExportRequest,
@@ -1057,6 +1058,97 @@ def calculate_confidence_metrics(
     }
 
 
+def _aggregate_usage(
+    first: dict[str, int],
+    second: dict[str, int],
+) -> dict[str, int]:
+    return {
+        "promptTokens": first.get("promptTokens", 0) + second.get("promptTokens", 0),
+        "completionTokens": first.get("completionTokens", 0) + second.get("completionTokens", 0),
+        "totalTokens": first.get("totalTokens", 0) + second.get("totalTokens", 0),
+    }
+
+
+async def _run_judge_request(
+    client: AsyncOpenAI,
+    model: str,
+    messages: list[ChatCompletionMessageParam],
+    schema: JSONSchema,
+) -> tuple[dict[str, Any], dict[str, int]]:
+    response = await client.chat.completions.create(
+        model=model,
+        messages=messages,
+        response_format={
+            "type": "json_schema",
+            "json_schema": schema,
+        },
+    )
+
+    content = response.choices[0].message.content
+    if not content:
+        raise ValueError("Empty response from judge model")
+
+    result = json.loads(content)
+    usage = {
+        "promptTokens": response.usage.prompt_tokens if response.usage else 0,
+        "completionTokens": response.usage.completion_tokens if response.usage else 0,
+        "totalTokens": response.usage.total_tokens if response.usage else 0,
+    }
+    return result, usage
+
+
+async def _evaluate_pairwise_judgements(
+    client: AsyncOpenAI,
+    resolved_model: str,
+    request: JudgeRequest,
+    original_outputs: list[str],
+    categories: list[ScoringCategory],
+    category_keys: list[str],
+) -> tuple[list[PairwiseComparison], dict[str, int]]:
+    pairwise_results: list[PairwiseComparison] = []
+    aggregated_usage = {"promptTokens": 0, "completionTokens": 0, "totalTokens": 0}
+
+    for i in range(len(original_outputs)):
+        for j in range(i + 1, len(original_outputs)):
+            pair_prompt = request.judgeEvaluationPrompt.replace("{context}", request.context)
+            for k, output in enumerate(original_outputs):
+                replacement = output if k == i else (original_outputs[j] if k == j else "")
+                pair_prompt = pair_prompt.replace(f"{{output_{k}}}", replacement)
+
+            messages: list[ChatCompletionMessageParam] = []
+            if request.judgeSystemPrompt and request.judgeSystemPrompt.strip():
+                messages.append({"role": "system", "content": request.judgeSystemPrompt})
+            messages.append({"role": "user", "content": pair_prompt})
+
+            pair_schema = build_judge_schema(categories, 2)
+            pair_result, usage = await _run_judge_request(client, resolved_model, messages, pair_schema)
+            aggregated_usage = _aggregate_usage(aggregated_usage, usage)
+
+            models_metrics = [
+                JudgeMetrics.from_dict(pair_result[f"model{n + 1}"], category_keys)
+                for n in range(2)
+            ]
+
+            winner_str = pair_result["winner"]
+            winner_index = None if winner_str == "tie" else (i if winner_str == "1" else j)
+            pairwise_results.append(
+                PairwiseComparison(
+                    modelAIndex=i,
+                    modelBIndex=j,
+                    models=models_metrics,
+                    winnerIndex=winner_index,
+                    winnerReasoning=pair_result["winnerReasoning"],
+                    confidence_metrics=calculate_confidence_metrics(
+                        models_metrics,
+                        pair_result.get("confidence", 0.5),
+                        [original_outputs[i], original_outputs[j]],
+                    ),
+                )
+            )
+
+    return pairwise_results, aggregated_usage
+
+
 @app.post("/api/openai/judge", response_model=JudgeResponse)
 async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
     """Evaluate N model outputs and return structured metrics."""
@@ -1126,30 +1218,7 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
             api_key=api_key,
         )
 
-        response = await client.chat.completions.create(
-            model=resolved_model,
-            messages=messages,
-            response_format={
-                "type": "json_schema",
-                "json_schema": judge_schema,
-            },
-        )
-
-        content = response.choices[0].message.content
-        if not content:
-            raise HTTPException(
-                status_code=500, detail="Empty response from judge model"
-            )
-
-        result = json.loads(content)
-
-        usage = {
-            "promptTokens": response.usage.prompt_tokens if response.usage else 0,
-            "completionTokens": (
-                response.usage.completion_tokens if response.usage else 0
-            ),
-            "totalTokens": response.usage.total_tokens if response.usage else 0,
-        }
+        result, usage = await _run_judge_request(client, resolved_model, messages, judge_schema)
 
         # Parse N model results (shared for all providers)
         models_metrics: list[JudgeMetrics] = [
@@ -1167,12 +1236,24 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
             models_metrics, confidence, request.outputs
         )
 
+        pairwise_comparisons, pairwise_usage = await _evaluate_pairwise_judgements(
+            client,
+            resolved_model,
+            request,
+            request.outputs,
+            categories,
+            category_keys,
+        )
+
+        total_usage = _aggregate_usage(usage, pairwise_usage)
+
         return JudgeResponse(
             models=models_metrics,
             winnerIndex=winner_index,
             winnerReasoning=result["winnerReasoning"],
-            usage=usage,
+            usage=total_usage,
             confidence_metrics=confidence_metrics,
+            pairwiseComparisons=pairwise_comparisons,
         )
 
     except json.JSONDecodeError as e:

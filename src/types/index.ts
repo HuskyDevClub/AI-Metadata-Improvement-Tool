@@ -101,11 +101,21 @@ export interface JudgeMetrics {
     reasoning: string;
 }
 
+export interface PairwiseComparison {
+    modelAIndex: number;
+    modelBIndex: number;
+    models: JudgeMetrics[];
+    winnerIndex: number | null; // null = tie
+    winnerReasoning: string;
+    confidenceMetrics?: ConfidenceMetrics;
+}
+
 export interface JudgeResult {
     models: JudgeMetrics[];
     winnerIndex: number | null; // null = tie
     winnerReasoning: string;
     confidenceMetrics?: ConfidenceMetrics;
+    pairwiseComparisons?: PairwiseComparison[];
 }
 
 export interface ConfidenceMetrics {
