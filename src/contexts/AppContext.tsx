@@ -155,6 +155,7 @@ interface AppContextType {
     handleAddNote: (text: string) => void;
     handleGenerateNote: () => Promise<void>;
     handlePushToSocrata: () => Promise<void>;
+    handleCloseDataset: () => void;
     renderTokenUsage: () => React.ReactNode;
 }
 
@@ -638,6 +639,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
             abortControllerRef.current.abort();
         }
     }, []);
+
+    const handleCloseDataset = useCallback(() => {
+        setCsvData(null);
+        setFileName('');
+        setColumnStats({});
+        setGeneratedResults({ datasetDescription: '', rowLabel: '', notes: [], columnDescriptions: {} });
+        setShowResults(false);
+        setIsImportedData(false);
+        setImportedRowCount(0);
+        setGeneratingColumns(new Set());
+        setRegeneratingDataset(false);
+        setRegeneratingColumns(new Set());
+        setSuggestingDataset(false);
+        setDatasetSuggestions([]);
+        setSuggestingColumns(new Set());
+        setColumnSuggestions({});
+        setIsGeneratingEmpty(false);
+        setGeneratingRowLabel(false);
+        setGeneratingNotes(false);
+        setPendingNote('');
+        setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
+        setSocrataDatasetId('');
+        setSocrataFieldNameMap({});
+        setStatus(null);
+        navigate('import');
+    }, [navigate]);
 
     const handleRegenerateDataset = useCallback(
         async (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
@@ -1273,6 +1300,7 @@ FORMAT RULES:
         handleAddNote,
         handleGenerateNote,
         handlePushToSocrata,
+        handleCloseDataset,
         renderTokenUsage,
     };
 
