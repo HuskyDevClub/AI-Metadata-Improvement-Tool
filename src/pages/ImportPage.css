@@ -3,118 +3,161 @@
     margin: 0 auto;
 }
 
-.import-page-title {
-    font-size: 26px;
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 6px;
-    letter-spacing: -0.025em;
-}
-
-.import-page-subtitle {
-    font-size: 14px;
-    color: var(--text-tertiary);
-    margin-bottom: 32px;
-}
-
-/* Source card grid */
-.import-source-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 14px;
-}
-
-.import-source-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 28px 20px;
+/* Primary card — data.wa.gov */
+.import-primary {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: var(--surface);
     box-shadow: var(--shadow-sm);
-    cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.2s, background 0.15s, transform 0.15s;
-    text-align: center;
+    overflow: hidden;
 }
 
-.import-source-card:hover:not(:disabled) {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08), var(--shadow-md);
-    background: var(--accent-light);
-    transform: translateY(-1px);
+.import-primary-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
 }
 
-.import-source-card.active {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-    background: var(--accent-light);
-}
-
-.import-source-card:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.import-source-icon {
-    width: 52px;
-    height: 52px;
+.import-primary-icon {
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--accent-light);
-    border-radius: 50%;
+    border-radius: 10px;
     color: var(--accent);
-    margin-bottom: 2px;
+    flex-shrink: 0;
 }
 
-.import-source-title {
-    font-size: 15px;
+.import-primary-title {
+    font-size: 16px;
     font-weight: 600;
     color: var(--text);
 }
 
-.import-source-desc {
+.import-primary-desc {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+
+.import-primary-form {
+    padding: 20px 24px;
+}
+
+/* Inline dataset ID input + button row */
+.import-form-row {
+    display: flex;
+    gap: 10px;
+}
+
+.import-form-input {
+    flex: 1;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.import-form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.import-form-submit {
+    padding: 9px 20px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--accent);
+    color: white;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+
+.import-form-submit:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.import-form-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.import-form-hint {
     font-size: 12px;
     color: var(--text-tertiary);
-    line-height: 1.4;
+    margin-top: 6px;
+    display: block;
 }
 
-/* Drag-and-drop zone */
-.import-source-card.drop-zone {
-    border-style: dashed;
-    border-width: 2px;
+/* Or divider */
+.import-or-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 20px 0;
+    color: var(--text-tertiary);
+    font-size: 13px;
 }
 
-.import-source-card.drop-zone.dragging {
-    border-color: var(--accent);
-    background: var(--accent-light);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+.import-or-divider::before,
+.import-or-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
 }
 
-/* Expandable form panel */
-.import-form-panel {
-    margin-top: 16px;
-    padding: 20px;
-    border: 1px solid var(--border);
+/* Secondary CSV upload button */
+.import-csv-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 20px;
+    border: 1px dashed var(--border);
     border-radius: var(--radius-md);
     background: var(--surface);
     box-shadow: var(--shadow-sm);
-    animation: import-form-slide 0.15s ease-out;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.2s, background 0.15s;
 }
 
-@keyframes import-form-slide {
-    from {
-        opacity: 0;
-        transform: translateY(-6px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.import-csv-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+    background: var(--accent-light);
+    color: var(--accent);
 }
 
+.import-csv-btn.dragging {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.import-csv-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* API key section */
 .import-form-group {
     display: flex;
     flex-direction: column;
@@ -129,56 +172,6 @@
     display: flex;
     align-items: center;
     gap: 4px;
-}
-
-/* Info icon tooltip */
-.import-form-info-wrapper {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-}
-
-.import-form-info-icon {
-    color: var(--text-tertiary);
-    cursor: help;
-    transition: color 0.15s;
-}
-
-.import-form-info-wrapper:hover .import-form-info-icon {
-    color: var(--warning);
-}
-
-.import-form-tooltip {
-    display: none;
-    position: absolute;
-    left: 50%;
-    bottom: calc(100% + 8px);
-    transform: translateX(-50%);
-    width: 240px;
-    padding: 8px 12px;
-    background: var(--text);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 1.5;
-    border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-md);
-    z-index: 10;
-    pointer-events: none;
-}
-
-.import-form-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: var(--text);
-}
-
-.import-form-info-wrapper:hover .import-form-tooltip {
-    display: block;
 }
 
 .import-form-group input {
@@ -197,86 +190,11 @@
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-.import-form-hint {
-    font-size: 12px;
-    color: var(--text-tertiary);
-    margin-top: 5px;
-}
-
-.import-form-submit {
-    width: 100%;
-    padding: 10px 24px;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    background: var(--accent);
-    color: white;
-    transition: background 0.15s;
-    margin-top: 4px;
-}
-
-.import-form-submit:hover:not(:disabled) {
-    background: var(--accent-hover);
-}
-
-.import-form-submit:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Socrata auth section */
-.import-form-auth {
-    margin-bottom: 14px;
-}
-
-.import-form-oauth-btn {
-    width: 100%;
-    padding: 10px 20px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    background: white;
-    color: var(--text);
-    transition: background 0.15s, border-color 0.15s;
-}
-
-.import-form-oauth-btn:hover:not(:disabled) {
-    background: var(--surface-secondary);
-    border-color: var(--accent);
-}
-
-.import-form-oauth-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.import-form-oauth-status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    color: var(--text);
-}
-
-.import-form-link-btn {
-    font-size: 13px;
-    color: var(--accent);
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-decoration: underline;
-    padding: 0;
-}
-
 .import-form-divider {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: 14px 0;
+    margin: 16px 0;
     color: var(--text-tertiary);
     font-size: 12px;
 }
@@ -310,6 +228,16 @@
 
 .import-form-credentials .import-form-group:last-child {
     margin-bottom: 0;
+}
+
+.import-form-link-btn {
+    font-size: 13px;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
 }
 
 .import-form-saved-badge {
@@ -373,10 +301,4 @@
 
 .import-page-goto-btn:hover {
     background: #047857;
-}
-
-@media (max-width: 600px) {
-    .import-source-grid {
-        grid-template-columns: 1fr;
-    }
 }

@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAppContext } from '../contexts/AppContext';
-import { extractSocrataDatasetId } from '../utils/csvParser';
 import './ImportPage.css';
-
-type SourceType = 'url' | 'socrata' | null;
 
 export function ImportPage() {
     const {
@@ -19,11 +16,7 @@ export function ImportPage() {
         handleSocrataApiKeyClear,
     } = useAppContext();
 
-    const [expandedSource, setExpandedSource] = useState<SourceType>(null);
     const [dragging, setDragging] = useState(false);
-
-    // URL form state
-    const [url, setUrl] = useState('');
 
     // Socrata form state
     const [datasetId, setDatasetId] = useState('');
@@ -43,13 +36,9 @@ export function ImportPage() {
         prevShowResults.current = showResults;
     }, [showResults, navigate]);
 
-    const handleCardClick = (source: string) => {
+    const handleCsvClick = () => {
         if (isProcessing) return;
-        if (source === 'csv-file') {
-            csvFileRef.current?.click();
-        } else {
-            setExpandedSource(prev => prev === source ? null : source as SourceType);
-        }
+        csvFileRef.current?.click();
     };
 
     const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,16 +46,6 @@ export function ImportPage() {
         if (file) {
             handleAnalyze('file', file);
             e.target.value = '';
-        }
-    };
-
-    const handleUrlSubmit = () => {
-        if (!url) return;
-        const detectedId = extractSocrataDatasetId(url);
-        if (detectedId) {
-            handleSocrataImport(detectedId);
-        } else {
-            handleAnalyze('url', undefined, url);
         }
     };
 
@@ -112,140 +91,47 @@ export function ImportPage() {
 
     return (
         <div className="import-page">
-            <h2 className="import-page-title">Import Data</h2>
-            <p className="import-page-subtitle">Choose a source to get started</p>
-
-            <div className="import-source-grid">
-                {/* Upload CSV */}
-                <button
-                    className={`import-source-card drop-zone${dragging ? ' dragging' : ''}`}
-                    onClick={() => handleCardClick('csv-file')}
-                    disabled={isProcessing}
-                    onDragEnter={handleDragEnter}
-                    onDragLeave={handleDragLeave}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
-                >
-                    <div className="import-source-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="12" y1="18" x2="12" y2="12"/>
-                            <polyline points="9 15 12 12 15 15"/>
-                        </svg>
-                    </div>
-                    <div className="import-source-title">Upload CSV</div>
-                    <div className="import-source-desc">Click to browse or drag & drop</div>
-                </button>
-
-                {/* From URL */}
-                <button
-                    className={`import-source-card${expandedSource === 'url' ? ' active' : ''}`}
-                    onClick={() => handleCardClick('url')}
-                    disabled={isProcessing}
-                >
-                    <div className="import-source-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="2" y1="12" x2="22" y2="12"/>
-                            <path
-                                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                        </svg>
-                    </div>
-                    <div className="import-source-title">From URL</div>
-                    <div className="import-source-desc">Load CSV from a web link</div>
-                </button>
-
-                {/* data.wa.gov */}
-                <button
-                    className={`import-source-card${expandedSource === 'socrata' ? ' active' : ''}`}
-                    onClick={() => handleCardClick('socrata')}
-                    disabled={isProcessing}
-                >
-                    <div className="import-source-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            {/* Primary: data.wa.gov — always visible */}
+            <div className="import-primary">
+                <div className="import-primary-header">
+                    <div className="import-primary-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                             <ellipse cx="12" cy="5" rx="9" ry="3"/>
                             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
                             <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
                         </svg>
                     </div>
-                    <div className="import-source-title">data.wa.gov</div>
-                    <div className="import-source-desc">Import from Socrata</div>
-                </button>
-
-            </div>
-
-            {/* Hidden file inputs */}
-            <input ref={csvFileRef} type="file" accept=".csv" onChange={handleCsvFileChange}
-                   style={{ display: 'none' }}/>
-
-            {/* URL form panel */}
-            {expandedSource === 'url' && (
-                <div className="import-form-panel">
-                    <div className="import-form-group">
-                        <label htmlFor="csvUrl">
-                            CSV URL
-                            <span className="import-form-info-wrapper">
-                                <svg className="import-form-info-icon" width="14" height="14" viewBox="0 0 24 24"
-                                     fill="none" stroke="currentColor"
-                                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="12" y1="16" x2="12" y2="12"/>
-                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
-                                </svg>
-                                <span className="import-form-tooltip">
-                                    Non-Socrata URLs load the entire file in the browser. Very large CSV files may cause performance issues or fail to load.
-                                </span>
-                            </span>
-                        </label>
-                        <input
-                            id="csvUrl"
-                            type="text"
-                            placeholder="https://example.com/data.csv"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleUrlSubmit();
-                            }}
-                            autoFocus
-                        />
-                        <span className="import-form-hint">
-                            Socrata URLs (data.wa.gov) will auto-detect and fetch via API
-                        </span>
+                    <div>
+                        <div className="import-primary-title">Import from data.wa.gov</div>
+                        <div className="import-primary-desc">Enter a Socrata dataset ID to get started</div>
                     </div>
-                    <button
-                        className="import-form-submit"
-                        onClick={handleUrlSubmit}
-                        disabled={!url || isProcessing}
-                    >
-                        {isProcessing ? 'Processing...' : 'Load'}
-                    </button>
                 </div>
-            )}
 
-            {/* Socrata form panel */}
-            {expandedSource === 'socrata' && (
-                <div className="import-form-panel">
-                    <div className="import-form-group">
-                        <label htmlFor="socrataDatasetId">Dataset ID</label>
+                <div className="import-primary-form">
+                    <div className="import-form-row">
                         <input
                             id="socrataDatasetId"
                             type="text"
+                            className="import-form-input"
                             placeholder="e.g. 6fex-3r7d"
                             value={datasetId}
                             onChange={(e) => setDatasetId(e.target.value)}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleSocrataSubmit();
                             }}
-                            autoFocus
                         />
-                        <span className="import-form-hint">
-                            The identifier from the data.wa.gov URL
-                        </span>
+                        <button
+                            className="import-form-submit"
+                            onClick={handleSocrataSubmit}
+                            disabled={!datasetId.trim() || isProcessing}
+                        >
+                            {isProcessing ? 'Importing...' : 'Import'}
+                        </button>
                     </div>
+                    <span className="import-form-hint">
+                        The identifier from the data.wa.gov URL
+                    </span>
 
                     <div className="import-form-divider">or authenticate for private datasets</div>
 
@@ -314,16 +200,35 @@ export function ImportPage() {
                             </span>
                         </div>
                     )}
-
-                    <button
-                        className="import-form-submit"
-                        onClick={handleSocrataSubmit}
-                        disabled={!datasetId.trim() || isProcessing}
-                    >
-                        {isProcessing ? 'Importing...' : 'Import'}
-                    </button>
                 </div>
-            )}
+            </div>
+
+            {/* Divider */}
+            <div className="import-or-divider">or</div>
+
+            {/* Secondary: Upload CSV */}
+            <button
+                className={`import-csv-btn${dragging ? ' dragging' : ''}`}
+                onClick={handleCsvClick}
+                disabled={isProcessing}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+            >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="12" y1="18" x2="12" y2="12"/>
+                    <polyline points="9 15 12 12 15 15"/>
+                </svg>
+                Upload CSV file
+            </button>
+
+            {/* Hidden file input */}
+            <input ref={csvFileRef} type="file" accept=".csv" onChange={handleCsvFileChange}
+                   style={{ display: 'none' }}/>
 
             {isProcessing && (
                 <div className="import-processing">
