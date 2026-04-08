@@ -6,7 +6,6 @@ import {
     fetchSocrataOAuthLoginUrl,
     fetchSocrataOAuthUserInfo,
     parseFile,
-    parseUrl,
     pushSocrataMetadata,
 } from '../utils/csvParser';
 import {
@@ -127,7 +126,7 @@ interface AppContextType {
     handleSocrataApiKeyClear: () => void;
 
     // Handlers
-    handleAnalyze: (method: 'file' | 'url', file?: File, url?: string) => Promise<void>;
+    handleAnalyze: (file: File) => Promise<void>;
     handleSocrataImport: (datasetId: string) => Promise<void>;
     handleStop: () => void;
     handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
@@ -537,7 +536,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
 
     const handleAnalyze = useCallback(
-        async (method: 'file' | 'url', file?: File, url?: string) => {
+        async (file: File) => {
             abortControllerRef.current = new AbortController();
             const abortSignal = abortControllerRef.current.signal;
 
@@ -553,11 +552,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             let currentStep = 'loading CSV';
             try {
                 setStatus({
-                    message: method === 'file' ? 'Reading CSV file...' : 'Fetching CSV from URL...',
+                    message: 'Reading CSV file...',
                     type: 'info'
                 });
 
-                const result = method === 'file' && file ? await parseFile(file) : await parseUrl(url!);
+                const result = await parseFile(file);
 
                 if (!result.data || result.data.length === 0) {
                     setStatus({ message: 'No data found in CSV file', type: 'error' });

@@ -44,7 +44,7 @@ export function ImportPage() {
     const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            handleAnalyze('file', file);
+            handleAnalyze(file);
             e.target.value = '';
         }
     };
@@ -85,7 +85,7 @@ export function ImportPage() {
 
         const file = e.dataTransfer.files?.[0];
         if (file && file.name.endsWith('.csv')) {
-            handleAnalyze('file', file);
+            handleAnalyze(file);
         }
     }, [handleAnalyze]);
 

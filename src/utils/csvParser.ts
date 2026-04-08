@@ -50,35 +50,6 @@ function serializeNotes(notes: string[]): string {
     return notes.filter(n => n.trim()).join('\n\n');
 }
 
-export function extractSocrataDatasetId(url: string): string | null {
-    try {
-        const path = new URL(url).pathname;
-
-        // /api/views/{id}/... or /api/v3/views/{id}/...
-        const viewsMatch = path.match(/\/api\/(?:v\d+\/)?views\/([a-z0-9]{4}-[a-z0-9]{4})/);
-        if (viewsMatch) return viewsMatch[1];
-
-        // /resource/{id}.{ext} (SODA API)
-        const resourceMatch = path.match(/\/resource\/([a-z0-9]{4}-[a-z0-9]{4})\./);
-        if (resourceMatch) return resourceMatch[1];
-
-        // /d/{id} (short URL)
-        const shortMatch = path.match(/\/d\/([a-z0-9]{4}-[a-z0-9]{4})/);
-        if (shortMatch) return shortMatch[1];
-
-        // /{category}/{name}/{id} — dataset ID as last path segment
-        const segments = path.split('/').filter(Boolean);
-        if (segments.length >= 1) {
-            const last = segments[segments.length - 1];
-            if (/^[a-z0-9]{4}-[a-z0-9]{4}$/.test(last)) return last;
-        }
-    } catch {
-        // Not a valid URL
-    }
-
-    return null;
-}
-
 export function parseFile(file: File): Promise<ParseResult> {
     return new Promise((resolve, reject) => {
         Papa.parse<CsvRow>(file, {
@@ -88,38 +59,6 @@ export function parseFile(file: File): Promise<ParseResult> {
                 resolve({
                     data: results.data,
                     fileName: file.name,
-                });
-            },
-            error: (error) => {
-                reject(new Error(`Error parsing CSV: ${error.message}`));
-            },
-        });
-    });
-}
-
-export async function parseUrl(url: string): Promise<ParseResult> {
-    // Fetch raw CSV from the backend
-    const response = await fetch(`${API_BASE_URL}/api/csv/fetch`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-    });
-
-    await assertResponseOk(response, 'Failed to fetch CSV');
-
-    const result = await response.json();
-
-    // Parse CSV on the frontend
-    return new Promise((resolve, reject) => {
-        Papa.parse<CsvRow>(result.csvText, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (parseResult) => {
-                resolve({
-                    data: parseResult.data,
-                    fileName: result.fileName,
                 });
             },
             error: (error) => {

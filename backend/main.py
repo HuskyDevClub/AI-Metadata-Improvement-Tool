@@ -28,8 +28,6 @@ from openai.types.chat import ChatCompletionMessageParam
 from .models import (
     ChatRequest,
     ColumnStats,
-    FetchCsvRequest,
-    FetchCsvResponse,
     HealthResponse,
     SocrataColumnMetadata,
     SocrataExportRequest,
@@ -55,7 +53,6 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
-CORS_ORIGIN = os.getenv("CORS_ORIGIN", "*")
 # Secret for signing OAuth state tokens (used to prevent CSRF)
 _OAUTH_STATE_SECRET = (
     os.getenv("OAUTH_STATE_SECRET") or SOCRATA_SECRET_TOKEN or secrets.token_hex(32)
@@ -88,43 +85,6 @@ async def health_check() -> HealthResponse:
         status="ok",
         timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     )
-
-
-# CSV fetch endpoint
-@app.post("/api/csv/fetch", response_model=FetchCsvResponse)
-async def fetch_csv(request: FetchCsvRequest) -> FetchCsvResponse:
-    if not request.url:
-        raise HTTPException(status_code=400, detail="URL is required")
-
-    if not SOCRATA_APP_TOKEN:
-        raise HTTPException(
-            status_code=500,
-            detail="SOCRATA_APP_TOKEN is not configured on the server.",
-        )
-
-    headers: dict[str, str] = {
-        "Accept": "text/csv",
-        "X-App-Token": SOCRATA_APP_TOKEN,
-    }
-
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.get(request.url, headers=headers)
-
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"Failed to fetch CSV: {response.reason_phrase}",
-                )
-
-            csv_text = response.text
-            file_name = request.url.split("/")[-1] or "remote-data.csv"
-
-            return FetchCsvResponse(csvText=csv_text, fileName=file_name)
-
-    except httpx.RequestError as e:
-        logger.exception("CSV fetch request error: %s, reason: %s", request.url, str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to fetch CSV: {str(e)}")
 
 
 # Socrata OAuth endpoints

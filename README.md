@@ -27,21 +27,23 @@ metadata automatically.
 
 ## Features
 
-- **CSV Input**: Upload local files or load directly from Socrata Open Data API URLs (with frontend Socrata token
-  input)
+- **Socrata Import**: Import datasets directly from data.wa.gov by dataset ID, with automatic metadata and statistics
+  retrieval via the Socrata Open Data API
+- **CSV Upload**: Upload local CSV files or drag-and-drop for quick analysis
 - **Automatic Column Analysis**: Detects numeric, categorical, and text columns with statistical summaries
-- **AI-Powered Descriptions**: Generates dataset overviews and column descriptions using any OpenAI-compatible API
-- **Multi-Provider Support**: Works with Azure OpenAI, OpenAI, Ollama, LM Studio, and HuggingFace — configure any
-  OpenAI-compatible endpoint
-- **N-Model Comparison**: Compare outputs from 2–5 models side-by-side with an AI judge that scores and ranks them
-- **Dynamic Scoring Categories**: Customize the scoring criteria (clarity, completeness, accuracy, etc.) used by the
-  judge model, with real-time prompt regeneration
+- **AI-Powered Descriptions**: Generates dataset descriptions, column descriptions, row labels, and notes using any
+  OpenAI-compatible API
+- **Multi-Provider Support**: Works with Databricks AI Gateway, Azure OpenAI, OpenAI, Ollama, LM Studio, and
+  HuggingFace — configure any OpenAI-compatible endpoint
 - **Streaming Responses**: Real-time streaming of AI-generated content with token usage tracking and cost estimation
 - **Human-in-the-Loop Workflow**: Accept, reject, or regenerate suggestions with custom instructions (e.g., "make this
   more concise")
-- **Customizable Prompts**: Edit system, dataset, column, and judge prompt templates to align with metadata guidelines
+- **Customizable Prompts**: Edit system, dataset, column, row label, and notes prompt templates to align with metadata
+  guidelines
 - **Regeneration Options**: Regenerate with different styles (concise, detailed, or custom instructions)
-- **JSON Export**: Download results in structured format for integration with data portals
+- **Socrata Export**: Push updated metadata (descriptions, row labels, notes, column descriptions) back to data.wa.gov
+  with OAuth or API Key authentication
+- **Sign in with data.wa.gov**: OAuth integration for seamless authentication with the Socrata platform
 - **Secure Backend**: API keys handled server-side for enhanced security
 
 ## Getting Started
@@ -59,7 +61,8 @@ cd backend && python3 -m venv venv && source venv/bin/activate && pip install -r
 cp .env.example .env
 cp backend/.env.example backend/.env
 
-# Start the app
+# Start the app (activate the venv first)
+source backend/venv/bin/activate
 python -m backend.main   # Terminal 1: backend
 npm run dev              # Terminal 2: frontend
 ```
@@ -71,17 +74,15 @@ npm run dev              # Terminal 2: frontend
 
 1. **Configure LLM Provider**: Enter your API base URL, API key, and model name (or pre-configure via environment
    variables).
-2. **Load CSV Data**:
-   - Upload a local CSV file, or
-   - Provide a Socrata API URL (e.g., `https://data.wa.gov/api/v3/views/{dataset-id}/query.csv`)
-3. **Analyze**: Click "Analyze CSV" to start the analysis
-4. **Review Results**: View the generated dataset description and individual column descriptions with real-time streaming
-5. **Iterate**:
+2. **Import Data**:
+   - Enter a Socrata dataset ID (e.g., `6fex-3r7d`) to import from data.wa.gov, or
+   - Upload a local CSV file
+3. **Review Results**: View the generated dataset description, row label, notes, and individual column descriptions with
+   real-time streaming
+4. **Iterate**:
    - Edit descriptions inline
    - Regenerate with "More Concise", "More Detailed", or custom instructions
-6. **Compare** (optional): Enable comparison mode to evaluate 2–5 models side-by-side with AI judge scoring across
-   customizable categories
-7. **Export**: Download results as JSON for documentation or data portal integration
+5. **Export**: Push updated metadata back to data.wa.gov (requires OAuth or API Key authentication)
 
 ## Project Structure
 
@@ -89,39 +90,27 @@ npm run dev              # Terminal 2: frontend
 ├── src/                              # Frontend (React + Vite)
 │   ├── components/
 │   │   ├── ColumnCard/              # Column cards with stats and descriptions
-│   │   ├── ColumnComparison/        # Column-level comparison results
-│   │   ├── ComparisonMode/          # N-model comparison toggle (2–5 models)
-│   │   ├── ComparisonResults/       # Judge scoring visualization
-│   │   │   ├── JudgeScoreCard/      # Individual model score card
-│   │   │   ├── MetricBar/           # Score metric bar
-│   │   │   ├── SideBySideView/      # N-column side-by-side layout
-│   │   │   └── RegenerationControls/# Regenerate/edit controls
-│   │   ├── DatasetComparison/       # Dataset-level comparison results
 │   │   ├── DatasetDescription/      # Dataset overview with edit/regenerate
 │   │   ├── EditableDescription/     # Inline-editable text fields
 │   │   ├── FloatingActions/         # Floating action buttons
 │   │   ├── Layout/                  # App shell layout (header, nav, footer)
 │   │   ├── OpenAIConfig/            # API configuration (endpoint, key, model)
-│   │   ├── PromptEditor/            # Customizable prompt templates + scoring category editor
+│   │   ├── PromptEditor/            # Customizable prompt templates
 │   │   └── StatusMessage/           # Status and error alerts
 │   ├── contexts/
 │   │   └── AppContext.tsx           # Global application context
 │   ├── hooks/
-│   │   ├── useOpenAI.ts             # OpenAI API integration with streaming
-│   │   ├── useComparisonState.ts    # Comparison config & prompt generation
-│   │   └── useComparisonGeneration.ts # Parallel generation & judge API calls
+│   │   └── useOpenAI.ts             # OpenAI API integration with streaming
 │   ├── pages/
-│   │   ├── ImportPage/              # CSV upload / Socrata URL import
-│   │   ├── DataOverviewPage/        # Dataset-level overview and description
-│   │   ├── FieldOverviewPage/       # Column-level details and editing
-│   │   ├── ComparePage/             # N-model comparison workflow
-│   │   └── SettingsPage/            # Prompt and API settings
+│   │   ├── ImportPage.tsx           # Socrata dataset ID import / CSV upload
+│   │   ├── DataOverviewPage.tsx     # Dataset-level overview and description
+│   │   ├── FieldOverviewPage.tsx    # Column-level details and editing
+│   │   └── SettingsPage.tsx         # Prompt and API settings
 │   ├── utils/
 │   │   ├── api.ts                   # Backend API client
 │   │   ├── columnAnalyzer.ts        # Column type detection & statistics
 │   │   ├── config.ts               # App configuration constants
 │   │   ├── csvParser.ts             # CSV parsing (PapaParse wrapper)
-│   │   ├── modelColors.ts           # Model color palette (5 colors)
 │   │   ├── pricing.ts              # Token cost estimation
 │   │   ├── prompts.ts              # Prompt template defaults
 │   │   └── stateHelpers.ts         # State management helpers
@@ -177,8 +166,8 @@ a compatible `/v1/chat/completions` endpoint will work out of the box.
 
 | Model | Provider | Notes |
 |-------|----------|-------|
-| `gpt5-mini` | OpenAI / Azure | Fast and cost-effective |
-| `gpt5-nano` | OpenAI / Azure | Lightest OpenAI option |
+| `gpt5-mini` | OpenAI / Azure | Fast and cost-effective (model names may change — check your provider's docs) |
+| `gpt5-nano` | OpenAI / Azure | Lightest OpenAI option (model names may change — check your provider's docs) |
 | `Qwen3-4B-Instruct-2507` | Ollama / HuggingFace | Small, runs well locally |
 | `Qwen/Qwen3-8B` | Ollama / HuggingFace | Strong open-weight model |
 | `mistralai/Ministral-3-8B-Instruct-2512` | Ollama / HuggingFace | Compact Mistral model |
@@ -192,11 +181,11 @@ This tool is designed to work with government data portals powered by **Tyler Te
 - Washington State ([data.wa.gov](https://data.wa.gov))
 - And dozens of other U.S. cities, counties, and states
 
-To fetch data directly from these portals:
+To import data from these portals:
 
 1. Configure `SOCRATA_APP_TOKEN` in the backend `.env` file
-2. Select "Load from URL" in the CSV Data Source section
-3. Enter the data portal API endpoint URL
+2. Enter a dataset ID on the Import page (e.g., `6fex-3r7d` from a data.wa.gov URL)
+3. Optionally authenticate with OAuth or API Key to access private datasets and push metadata updates
 
 ## Project Sponsor
 

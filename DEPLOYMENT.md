@@ -45,12 +45,6 @@ cd ..
    VITE_LLM_ENDPOINT=https://api.openai.com/v1
    VITE_LLM_API_KEY=your-api-key
    VITE_LLM_MODEL=gpt5-mini
-
-   # Optional: Pre-fill comparison mode models
-   VITE_COMPARISON_MODEL_A=
-   VITE_COMPARISON_MODEL_B=
-   VITE_COMPARISON_JUDGE_MODEL=
-
    ```
 
 3. Configure the backend `.env` file in the `backend/` directory:
@@ -141,10 +135,11 @@ FRONTEND_URL=http://localhost:5173
 #### 4. Test the Flow
 
 1. Start the backend and frontend
-2. Go to Import page, select "Import from data.wa.gov"
+2. Go to the Import page
 3. Click **Sign in with data.wa.gov**
 4. Authorize the app on data.wa.gov
 5. You'll be redirected back and see "Signed in as {your name}"
+6. Enter a dataset ID (e.g., `6fex-3r7d`) and click **Import**
 
 > **Tip:** The ngrok URL changes each restart (free tier). You'll need to update the Callback Prefix on data.wa.gov and `SOCRATA_OAUTH_REDIRECT_URI` each time. For a stable URL, consider ngrok's paid plan with fixed domains.
 
@@ -255,7 +250,7 @@ backend/                  # Python backend (FastAPI)
 src/                      # Frontend source (needed if building on startup)
   components/             # React components
   contexts/               # React context providers
-  hooks/                  # Custom hooks (API, comparison, state)
+  hooks/                  # Custom hooks (API, state)
   pages/                  # Page components (Import, DataOverview, FieldOverview, etc.)
   utils/                  # Utilities (CSV parsing, column analysis, pricing, etc.)
   types/                  # TypeScript type definitions

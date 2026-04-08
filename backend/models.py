@@ -3,24 +3,6 @@ from typing import Any
 from pydantic import BaseModel
 
 # ============================================================================
-# CSV Fetch Models
-# ============================================================================
-
-
-class FetchCsvRequest(BaseModel):
-    """Request to fetch a CSV file from a remote URL (e.g., Socrata open data)."""
-
-    url: str
-
-
-class FetchCsvResponse(BaseModel):
-    """Response containing the fetched CSV content."""
-
-    csvText: str
-    fileName: str
-
-
-# ============================================================================
 # Chat/Streaming Models
 # ============================================================================
 
