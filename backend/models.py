@@ -30,9 +30,9 @@ class ChatRequest(BaseModel):
 
     prompt: str
     systemPrompt: str | None = None
-    model: str | None = None  # Falls back to AZURE_MODEL env var
-    baseURL: str | None = None  # Falls back to AZURE_ENDPOINT env var
-    apiKey: str | None = None  # Falls back to AZURE_KEY env var
+    model: str | None = None  # Falls back to LLM_MODEL env var
+    baseURL: str | None = None  # Falls back to LLM_ENDPOINT env var
+    apiKey: str | None = None  # Falls back to LLM_API_KEY env var
 
 
 # ============================================================================
@@ -89,9 +89,9 @@ class JudgeRequest(BaseModel):
 
     context: str  # Dataset context (fileName, rowCount, columns)
     outputs: list[str]  # List of model outputs to evaluate
-    model: str | None = None  # Falls back to AZURE_MODEL env var
-    baseURL: str | None = None  # Falls back to AZURE_ENDPOINT env var
-    apiKey: str | None = None  # Falls back to AZURE_KEY env var
+    model: str | None = None  # Falls back to LLM_MODEL env var
+    baseURL: str | None = None  # Falls back to LLM_ENDPOINT env var
+    apiKey: str | None = None  # Falls back to LLM_API_KEY env var
     judgeSystemPrompt: str | None = None  # Custom judge system prompt
     judgeEvaluationPrompt: str  # Evaluation prompt template (required from frontend)
     scoringCategories: list[ScoringCategory] | None = None

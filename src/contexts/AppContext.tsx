@@ -214,12 +214,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     // Shared API configuration for all modes
     const [apiConfig, setApiConfig] = useState<APIConfig>({
-        baseURL: import.meta.env.VITE_AZURE_ENDPOINT || '',
-        apiKey: import.meta.env.VITE_AZURE_KEY || '',
+        baseURL: import.meta.env.VITE_LLM_ENDPOINT || '',
+        apiKey: import.meta.env.VITE_LLM_API_KEY || '',
     });
 
     // Model for non-comparison mode
-    const [model, setModel] = useState<string>(import.meta.env.VITE_AZURE_MODEL || '');
+    const [model, setModel] = useState<string>(import.meta.env.VITE_LLM_MODEL || '');
 
     // Combined config for hooks that need the full OpenAIConfig
     const openaiConfig: OpenAIConfigType = useMemo(() => ({

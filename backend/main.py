@@ -9,7 +9,6 @@ import secrets
 import time
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
-from enum import Enum
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -26,15 +25,7 @@ from openai import APIStatusError, AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from openai.types.shared_params.response_format_json_schema import JSONSchema
 
-from .local_providers import (
-    HF_API_KEY,
-    HF_API_URL,
-    LM_STUDIO_URL,
-    OLLAMA_HOST,
-    is_huggingface_available,
-    is_lm_studio_available,
-    is_ollama_available,
-)
+
 from .models import (
     DEFAULT_SCORING_CATEGORIES,
     ChatRequest,
@@ -67,9 +58,9 @@ SOCRATA_OAUTH_REDIRECT_URI = os.getenv(
     "http://localhost:8000/api/auth/socrata/callback",
 )
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "")
-AZURE_KEY = os.getenv("AZURE_KEY", "")
-AZURE_MODEL = os.getenv("AZURE_MODEL", "")
+LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+LLM_MODEL = os.getenv("LLM_MODEL", "")
 CORS_ORIGIN = os.getenv("CORS_ORIGIN", "*")
 # Secret for signing OAuth state tokens (used to prevent CSRF)
 _OAUTH_STATE_SECRET = (
@@ -798,74 +789,31 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
         )
 
 
-class Provider(Enum):
-    OLLAMA = "ollama"
-    LM_STUDIO = "lm_studio"
-    HUGGINGFACE = "huggingface"
-    AZURE = "azure"
-
-
-async def resolve_provider(
-    model: str, base_url: str, api_key: str
-) -> tuple[Provider, str, str, str]:
-    """
-    Resolve which provider to use for a given model.
-
-    Fallback chain: Ollama -> LM Studio -> HuggingFace -> Azure (original params).
-
-    Returns: (provider, resolved_model, base_url, api_key)
-    """
-    if not model:
-        return Provider.AZURE, model, base_url, api_key
-
-    # 1. Check Ollama first (use its OpenAI-compatible endpoint)
-    ollama_model = await is_ollama_available(model)
-    if ollama_model is not None:
-        return Provider.OLLAMA, ollama_model, f"{OLLAMA_HOST}/v1", "ollama"
-
-    # 2. Check LM Studio
-    if await is_lm_studio_available(model):
-        return Provider.LM_STUDIO, model, LM_STUDIO_URL, "lm-studio"
-
-    # 3. Check HuggingFace Router
-    if await is_huggingface_available(model):
-        return Provider.HUGGINGFACE, model, HF_API_URL, HF_API_KEY
-
-    # 4. Fall back to Azure
-    return Provider.AZURE, model, base_url, api_key
-
-
 # OpenAI streaming chat endpoint
 @app.post("/api/openai/chat/stream")
 async def openai_chat_stream(
     request: ChatRequest, http_request: Request
 ) -> StreamingResponse:
     # Get configuration from the request or environment
-    base_url = request.baseURL or AZURE_ENDPOINT
-    api_key = request.apiKey or AZURE_KEY
-    model = request.model or AZURE_MODEL
+    base_url = request.baseURL or LLM_ENDPOINT
+    api_key = request.apiKey or LLM_API_KEY
+    model = request.model or LLM_MODEL
 
-    # Resolve provider: Ollama -> LM Studio -> OpenAI/Azure
-    provider, resolved_model, base_url, api_key = await resolve_provider(
-        model, base_url, api_key
-    )
+    # Validate configuration
+    missing_config = []
+    if not base_url:
+        missing_config.append("Base URL (LLM_ENDPOINT)")
+    if not api_key:
+        missing_config.append("API Key (LLM_API_KEY)")
+    if not model:
+        missing_config.append("Model (LLM_MODEL)")
 
-    # Validate configuration (only needed for Azure — local/HF providers are self-contained)
-    if provider == Provider.AZURE:
-        missing_config = []
-        if not base_url:
-            missing_config.append("Base URL (AZURE_ENDPOINT)")
-        if not api_key:
-            missing_config.append("API Key (AZURE_KEY)")
-        if not resolved_model:
-            missing_config.append("Model (AZURE_MODEL)")
-
-        if missing_config:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Missing required configuration: {', '.join(missing_config)}. "
-                "Please set these in the environment or enter them in the UI.",
-            )
+    if missing_config:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required configuration: {', '.join(missing_config)}. "
+            "Please set these in the environment or enter them in the UI.",
+        )
 
     # Build messages array, only include system prompt if provided
     messages: list[ChatCompletionMessageParam] = []
@@ -888,7 +836,7 @@ async def openai_chat_stream(
             )
 
             stream = await client.chat.completions.create(
-                model=resolved_model,
+                model=model,
                 messages=messages,
                 stream=True,
                 stream_options={"include_usage": True},
@@ -981,31 +929,25 @@ def build_judge_schema(
 async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
     """Evaluate N model outputs and return structured metrics."""
     # Get configuration from the request or environment
-    base_url = request.baseURL or AZURE_ENDPOINT
-    api_key = request.apiKey or AZURE_KEY
-    model = request.model or AZURE_MODEL
+    base_url = request.baseURL or LLM_ENDPOINT
+    api_key = request.apiKey or LLM_API_KEY
+    model = request.model or LLM_MODEL
 
-    # Resolve provider: Ollama -> LM Studio -> OpenAI/Azure
-    provider, resolved_model, base_url, api_key = await resolve_provider(
-        model, base_url, api_key
-    )
+    # Validate configuration
+    missing_config = []
+    if not base_url:
+        missing_config.append("Base URL (LLM_ENDPOINT)")
+    if not api_key:
+        missing_config.append("API Key (LLM_API_KEY)")
+    if not model:
+        missing_config.append("Model (LLM_MODEL)")
 
-    # Validate configuration (only needed for Azure)
-    if provider == Provider.AZURE:
-        missing_config = []
-        if not base_url:
-            missing_config.append("Base URL (AZURE_ENDPOINT)")
-        if not api_key:
-            missing_config.append("API Key (AZURE_KEY)")
-        if not resolved_model:
-            missing_config.append("Model (AZURE_MODEL)")
-
-        if missing_config:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Missing required configuration: {', '.join(missing_config)}. "
-                "Please set these in the environment or enter them in the UI.",
-            )
+    if missing_config:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required configuration: {', '.join(missing_config)}. "
+            "Please set these in the environment or enter them in the UI.",
+        )
 
     if not request.judgeEvaluationPrompt or not request.judgeEvaluationPrompt.strip():
         raise HTTPException(
@@ -1047,7 +989,7 @@ async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
         )
 
         response = await client.chat.completions.create(
-            model=resolved_model,
+            model=model,
             messages=messages,
             response_format={
                 "type": "json_schema",

@@ -7,8 +7,8 @@
 - Node.js 24+ (for frontend build)
 - Python 3.11+ (for backend)
 - An LLM provider — any of the following:
-  - [Ollama](https://ollama.com/) (local, auto-discovered)
-  - [LM Studio](https://lmstudio.ai/) (local, auto-discovered)
+  - [Ollama](https://ollama.com/) (local)
+  - [LM Studio](https://lmstudio.ai/) (local)
   - [HuggingFace](https://huggingface.co/) (API key required)
   - Azure OpenAI or any OpenAI-compatible API
 - A Socrata Open Data API App Token (for fetching data from government data portals — can be entered via the UI or
@@ -42,9 +42,9 @@ cd ..
    VITE_API_BASE_URL=http://localhost:8000
 
    # Optional: Pre-fill API configuration in the UI (works with any OpenAI-compatible endpoint)
-   VITE_AZURE_ENDPOINT=https://api.openai.com/v1
-   VITE_AZURE_KEY=your-api-key
-   VITE_AZURE_MODEL=gpt5-mini
+   VITE_LLM_ENDPOINT=https://api.openai.com/v1
+   VITE_LLM_API_KEY=your-api-key
+   VITE_LLM_MODEL=gpt5-mini
 
    # Optional: Pre-fill comparison mode models
    VITE_COMPARISON_MODEL_A=
@@ -63,17 +63,9 @@ cd ..
 
    # Default LLM endpoint (optional — can also be set via frontend UI)
    # Works with any OpenAI-compatible API (OpenAI, Azure, HuggingFace, etc.)
-   AZURE_ENDPOINT=https://api.openai.com/v1
-   AZURE_KEY=your-api-key
-   AZURE_MODEL=gpt5-mini
-
-   # Local providers (optional — auto-discovered if running)
-   OLLAMA_HOST=http://localhost:11434
-   LM_STUDIO_URL=http://localhost:1234/v1
-
-   # HuggingFace (optional — requires API key)
-   HF_API_KEY=
-   HF_API_URL=https://router.huggingface.co/v1
+   LLM_ENDPOINT=https://api.openai.com/v1
+   LLM_API_KEY=your-api-key
+   LLM_MODEL=gpt5-mini
 
    # Server Configuration
    PORT=8000
@@ -172,12 +164,29 @@ This project is designed for deployment to **Databricks Apps**.
 The deployment is driven by `app.yaml` at the project root. On startup, Databricks Apps runs the command defined there, which:
 
 1. Installs Python dependencies (`pip install -r backend/requirements.txt`)
-2. Installs Node dependencies and builds the frontend (`npm install && npm run build:databricks`)
-3. Starts the FastAPI server via uvicorn on port 8000
+2. Starts the FastAPI server via uvicorn
 
 The built frontend is output to `backend/static/` and served by FastAPI as static files (SPA with catch-all routing).
 
-#### `app.yaml`
+#### `app.yaml` (recommended — pre-built frontend)
+
+Pre-build the frontend locally (see [step 1](#1-pre-build-the-frontend-recommended) below) for faster cold starts:
+
+```yaml
+command:
+  - "sh"
+  - "-c"
+  - |
+    pip install -r backend/requirements.txt && \
+    uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
+
+# Environment variables are loaded from .env.databricks by the backend at runtime.
+# No env section needed here.
+```
+
+#### `app.yaml` (alternative — build on startup)
+
+If you prefer to build the frontend on each deploy (slower cold starts):
 
 ```yaml
 command:
@@ -187,13 +196,10 @@ command:
     pip install -r backend/requirements.txt && \
     npm install && \
     npm run build:databricks && \
-    uvicorn backend.main:app --host 0.0.0.0 --port 8000
-
-# Environment variables are loaded from .env.databricks by the backend at runtime.
-# No env section needed here.
+    uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
 ```
 
-> **Note:** Building on startup means cold starts take longer (npm install + vite build). For faster startups, pre-build locally and commit `backend/static/` — then remove the `npm install && npm run build:databricks &&` portion from the command.
+> **Port note:** `${PORT:-8000}` uses the Databricks platform-assigned port if set, falling back to 8000. The backend's `main.py` also reads `PORT` from the environment.
 
 ### Environment Variables (`.env.databricks`)
 
@@ -219,13 +225,9 @@ VITE_API_BASE_URL=
 SOCRATA_APP_TOKEN=your-socrata-app-token
 
 # LLM Configuration (optional - can also be set via app UI)
-AZURE_ENDPOINT=https://your-endpoint.com/v1
-AZURE_KEY=your-api-key
-AZURE_MODEL=your-model-name
-
-# HuggingFace (optional)
-HF_API_KEY=
-HF_API_URL=https://router.huggingface.co/v1
+LLM_ENDPOINT=https://your-endpoint.com/v1
+LLM_API_KEY=your-api-key
+LLM_MODEL=your-model-name
 
 # Socrata OAuth (optional - for "Sign in with data.wa.gov")
 SOCRATA_SECRET_TOKEN=your-socrata-secret-token
@@ -248,7 +250,6 @@ backend/                  # Python backend (FastAPI)
   __init__.py
   main.py                 # FastAPI application & endpoints
   models.py               # Pydantic data models
-  local_providers.py      # Multi-provider discovery & management
   requirements.txt
   static/                 # Built frontend (created by npm run build:databricks)
 src/                      # Frontend source (needed if building on startup)
@@ -341,15 +342,3 @@ databricks apps deploy ai-metadata-tool \
 - Click **Create App**, configure the app name and settings
 - Upload the project files or connect to a Git repository
 
-### Port Configuration
-
-Databricks Apps routes external traffic to your app container on a platform-assigned port. However, the current `app.yaml` starts uvicorn on `--port 8000`, which works because Databricks Apps forwards to that port by default. If the platform requires a different port (indicated via the `PORT` environment variable), the backend's `main.py` reads `PORT` from the environment and falls back to `8000`. Ensure the `app.yaml` uvicorn `--port` value matches what `main.py` expects, or remove `--port 8000` from `app.yaml` and let the backend use `PORT` dynamically:
-
-```yaml
-command:
-  - "sh"
-  - "-c"
-  - |
-    pip install -r backend/requirements.txt && \
-    uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
-```
