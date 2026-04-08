@@ -35,6 +35,7 @@ from .models import (
     SocrataImportRequest,
     SocrataImportResponse,
     SocrataOAuthLoginResponse,
+    SocrataOAuthUserInfoRequest,
     SocrataOAuthUserInfo,
 )
 
@@ -88,15 +89,14 @@ async def health_check() -> HealthResponse:
 
 
 # Socrata OAuth endpoints
-@app.get("/api/auth/socrata/login", response_model=SocrataOAuthLoginResponse)
-async def socrata_oauth_login() -> SocrataOAuthLoginResponse:
-    """Return the OAuth authorization URL for data.wa.gov sign-in."""
-    if not SOCRATA_APP_TOKEN:
-        raise HTTPException(
-            status_code=400,
-            detail="OAuth not configured. Set SOCRATA_APP_TOKEN in the environment.",
-        )
-    # Signed state token: random_part.signature.timestamp (no cookies needed)
+
+
+def _build_oauth_authorize_url(is_retry: bool = False) -> str:
+    """Build a data.wa.gov OAuth authorize URL with a signed state token.
+
+    When *is_retry* is True an ``R`` flag is appended to the state so the
+    callback knows not to retry again (prevents infinite redirect loops).
+    """
     random_bytes = secrets.token_bytes(16)
     timestamp = str(int(time.time()))
     sig = hmac.new(
@@ -107,6 +107,8 @@ async def socrata_oauth_login() -> SocrataOAuthLoginResponse:
     random_b64 = base64.urlsafe_b64encode(random_bytes).rstrip(b"=").decode()
     sig_b64 = base64.urlsafe_b64encode(sig).rstrip(b"=").decode()
     state = f"{random_b64}.{sig_b64}.{timestamp}"
+    if is_retry:
+        state += ".R"
     params = urlencode(
         {
             "client_id": SOCRATA_APP_TOKEN,
@@ -115,8 +117,18 @@ async def socrata_oauth_login() -> SocrataOAuthLoginResponse:
             "state": state,
         }
     )
-    auth_url = f"https://data.wa.gov/oauth/authorize?{params}"
-    return SocrataOAuthLoginResponse(authUrl=auth_url)
+    return f"https://data.wa.gov/oauth/authorize?{params}"
+
+
+@app.get("/api/auth/socrata/login", response_model=SocrataOAuthLoginResponse)
+async def socrata_oauth_login() -> SocrataOAuthLoginResponse:
+    """Return the OAuth authorization URL for data.wa.gov sign-in."""
+    if not SOCRATA_APP_TOKEN:
+        raise HTTPException(
+            status_code=400,
+            detail="OAuth not configured. Set SOCRATA_APP_TOKEN in the environment.",
+        )
+    return SocrataOAuthLoginResponse(authUrl=_build_oauth_authorize_url())
 
 
 @app.get("/api/auth/socrata/callback")
@@ -142,9 +154,10 @@ async def socrata_oauth_callback(
 
     try:
         parts = state.split(".")
-        if len(parts) != 3:
+        if len(parts) not in (3, 4):
             raise ValueError("wrong number of parts")
-        random_b64, sig_b64, timestamp_str = parts
+        random_b64, sig_b64, timestamp_str = parts[0], parts[1], parts[2]
+        is_retry = len(parts) == 4 and parts[3] == "R"
         timestamp = int(timestamp_str)
     except (ValueError, OverflowError):
         logger.warning("OAuth state parse failed: state=%s", state)
@@ -185,6 +198,15 @@ async def socrata_oauth_callback(
 
             if token_resp.status_code != 200:
                 logger.error("OAuth token exchange failed: %s", token_resp.text)
+                # data.wa.gov may reissue a stale authorization code from a
+                # previous session.  If so, retry once — the failed exchange
+                # invalidates the old code, so the next authorize round-trip
+                # will produce a fresh one.
+                if not is_retry and "Authorization code invalid" in token_resp.text:
+                    logger.info("Stale authorization code — retrying OAuth flow")
+                    return RedirectResponse(
+                        url=_build_oauth_authorize_url(is_retry=True)
+                    )
                 return RedirectResponse(
                     url=f"{base}/#oauth_error=token_exchange_failed"
                 )
@@ -203,13 +225,11 @@ async def socrata_oauth_callback(
 
 
 @app.post("/api/auth/socrata/userinfo", response_model=SocrataOAuthUserInfo)
-async def socrata_oauth_userinfo(request: Request) -> SocrataOAuthUserInfo:
+async def socrata_oauth_userinfo(
+    body: SocrataOAuthUserInfoRequest,
+) -> SocrataOAuthUserInfo:
     """Fetch the current authenticated user's info from data.wa.gov."""
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("OAuth "):
-        raise HTTPException(status_code=401, detail="Missing OAuth token")
-
-    token = auth_header[6:]
+    token = body.oauthToken
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:

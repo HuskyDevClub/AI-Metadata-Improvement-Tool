@@ -121,7 +121,8 @@ export async function fetchSocrataOAuthUserInfo(
 ): Promise<{ id: string; displayName: string; email?: string }> {
     const response = await fetch(`${API_BASE_URL}/api/auth/socrata/userinfo`, {
         method: 'POST',
-        headers: { 'Authorization': `OAuth ${oauthToken}` },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oauthToken }),
     });
     await assertResponseOk(response, 'Failed to fetch user info');
     return response.json();

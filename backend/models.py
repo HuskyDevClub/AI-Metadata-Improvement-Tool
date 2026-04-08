@@ -119,6 +119,12 @@ class SocrataOAuthLoginResponse(BaseModel):
     authUrl: str
 
 
+class SocrataOAuthUserInfoRequest(BaseModel):
+    """Request to fetch user info using an OAuth token."""
+
+    oauthToken: str
+
+
 class SocrataOAuthUserInfo(BaseModel):
     """Current user info from Socrata after OAuth authentication."""
 

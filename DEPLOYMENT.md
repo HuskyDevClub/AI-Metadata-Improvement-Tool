@@ -311,26 +311,46 @@ See the [Environment Variables (`.env.databricks`)](#environment-variables-envda
 
 > **Important — Update Socrata Callback Prefix:** If you previously used a different URL (e.g., ngrok for local dev), you **must** update the Callback Prefix in your data.wa.gov app registration to match the Databricks app URL. Go to data.wa.gov > Profile > Developer Settings > edit your app token, and set the Callback Prefix to `https://your-databricks-app-url/api/auth/socrata/`. If this doesn't match, OAuth will fail with `"Redirection URI outside the registered scope"`.
 
-#### 3. Deploy using Databricks CLI
+#### 3. Deploy using `deploy.sh`
+
+The `deploy.sh` script builds the frontend, stages only the required files, and deploys to Databricks in one step. It reads `DATABRICKS_APP_NAME` and `DATABRICKS_WORKSPACE_PATH` from `.env.databricks`:
 
 ```bash
-# Create the app (first time only)
-databricks apps create ai-metadata-tool
+# Set these in .env.databricks:
+#   DATABRICKS_APP_NAME=open-data-tool
+#   DATABRICKS_WORKSPACE_PATH=/Workspace/Users/you@example.com/open-data-tool
 
+# Create the app (first time only)
+databricks apps create open-data-tool
+
+# Deploy
+./deploy.sh
+```
+
+You can also override both values via command-line arguments:
+
+```bash
+./deploy.sh my-app /Workspace/Users/you@example.com/my-app
+```
+
+The script does the following:
+1. Runs `npm run build:databricks` (outputs frontend to `backend/static/`)
+2. Stages only `app.yaml`, `backend/`, and `.env.databricks` into a temp directory
+3. Syncs the staged files to the workspace path via `databricks sync`
+4. Deploys the app via `databricks apps deploy`
+
+#### 4. Or deploy manually with Databricks CLI
+
+```bash
 # Sync source code to workspace
 databricks sync . /Workspace/Users/<your-email>/ai-metadata-tool
 
 # Deploy the app
 databricks apps deploy ai-metadata-tool \
   --source-code-path /Workspace/Users/<your-email>/ai-metadata-tool
-
-# Optional: use AUTO_SYNC mode to auto-redeploy on workspace file changes
-databricks apps deploy ai-metadata-tool \
-  --source-code-path /Workspace/Users/<your-email>/ai-metadata-tool \
-  --mode AUTO_SYNC
 ```
 
-#### 4. Or deploy via Databricks UI
+#### 5. Or deploy via Databricks UI
 
 - Go to your Databricks workspace
 - Navigate to **Compute** > **Apps**
