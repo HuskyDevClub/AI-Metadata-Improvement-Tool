@@ -23,20 +23,14 @@ from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from openai import APIStatusError, AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
-from openai.types.shared_params.response_format_json_schema import JSONSchema
 
 
 from .models import (
-    DEFAULT_SCORING_CATEGORIES,
     ChatRequest,
     ColumnStats,
     FetchCsvRequest,
     FetchCsvResponse,
     HealthResponse,
-    JudgeMetrics,
-    JudgeRequest,
-    JudgeResponse,
-    ScoringCategory,
     SocrataColumnMetadata,
     SocrataExportRequest,
     SocrataExportResponse,
@@ -877,175 +871,6 @@ async def openai_chat_stream(
             "X-Accel-Buffering": "no",
         },
     )
-
-
-def build_judge_schema(
-    categories: list[ScoringCategory], model_count: int
-) -> JSONSchema:
-    """Build a JSON schema for the judge response based on scoring categories and N models."""
-    metric_props: dict[str, Any] = {}
-    metric_required: list[str] = []
-    for cat in categories:
-        metric_props[cat.key] = {"type": "integer"}
-        metric_required.append(cat.key)
-    metric_props["reasoning"] = {"type": "string"}
-    metric_required.append("reasoning")
-
-    model_schema: dict[str, Any] = {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": metric_props,
-        "required": metric_required,
-    }
-
-    # Build model properties: model1, model2, ..., modelN
-    properties: dict[str, dict[str, Any]] = {}
-    required: list[str] = []
-    for i in range(model_count):
-        key = f"model{i + 1}"
-        properties[key] = model_schema
-        required.append(key)
-
-    # Winner enum: "1", "2", ..., "N", "tie"
-    winner_enum = [str(i + 1) for i in range(model_count)] + ["tie"]
-    properties["winner"] = {"type": "string", "enum": winner_enum}
-    required.append("winner")
-    properties["winnerReasoning"] = {"type": "string"}
-    required.append("winnerReasoning")
-
-    return {
-        "name": "judge_response",
-        "schema": {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": properties,
-            "required": required,
-        },
-        "strict": True,
-    }
-
-
-@app.post("/api/openai/judge", response_model=JudgeResponse)
-async def judge_outputs(request: JudgeRequest) -> JudgeResponse:
-    """Evaluate N model outputs and return structured metrics."""
-    # Get configuration from the request or environment
-    base_url = request.baseURL or LLM_ENDPOINT
-    api_key = request.apiKey or LLM_API_KEY
-    model = request.model or LLM_MODEL
-
-    # Validate configuration
-    missing_config = []
-    if not base_url:
-        missing_config.append("Base URL (LLM_ENDPOINT)")
-    if not api_key:
-        missing_config.append("API Key (LLM_API_KEY)")
-    if not model:
-        missing_config.append("Model (LLM_MODEL)")
-
-    if missing_config:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required configuration: {', '.join(missing_config)}. "
-            "Please set these in the environment or enter them in the UI.",
-        )
-
-    if not request.judgeEvaluationPrompt or not request.judgeEvaluationPrompt.strip():
-        raise HTTPException(
-            status_code=400,
-            detail="judgeEvaluationPrompt is required and cannot be empty.",
-        )
-
-    model_count = len(request.outputs)
-
-    if model_count < 2:
-        raise HTTPException(
-            status_code=400,
-            detail="At least 2 outputs are required for judging.",
-        )
-
-    # Resolve scoring categories
-    categories = request.scoringCategories or DEFAULT_SCORING_CATEGORIES
-    category_keys = [cat.key for cat in categories]
-
-    # Substitute output placeholders: {output_0}, {output_1}, ...
-    user_prompt = request.judgeEvaluationPrompt.replace("{context}", request.context)
-    for i, output in enumerate(request.outputs):
-        user_prompt = user_prompt.replace(f"{{output_{i}}}", output)
-
-    # Build messages array, only include system prompt if provided
-    messages: list[ChatCompletionMessageParam] = []
-    if request.judgeSystemPrompt and request.judgeSystemPrompt.strip():
-        messages.append({"role": "system", "content": request.judgeSystemPrompt})
-    messages.append({"role": "user", "content": user_prompt})
-
-    # Build dynamic schema from categories and model count
-    judge_schema = build_judge_schema(categories, model_count)
-
-    try:
-        # Shared path for all providers (OpenAI / LM Studio / Ollama via AsyncOpenAI)
-        client = AsyncOpenAI(
-            base_url=base_url,
-            api_key=api_key,
-        )
-
-        response = await client.chat.completions.create(
-            model=model,
-            messages=messages,
-            response_format={
-                "type": "json_schema",
-                "json_schema": judge_schema,
-            },
-        )
-
-        content = response.choices[0].message.content
-        if not content:
-            raise HTTPException(
-                status_code=500, detail="Empty response from judge model"
-            )
-
-        result = json.loads(content)
-
-        usage = {
-            "promptTokens": response.usage.prompt_tokens if response.usage else 0,
-            "completionTokens": (
-                response.usage.completion_tokens if response.usage else 0
-            ),
-            "totalTokens": response.usage.total_tokens if response.usage else 0,
-        }
-
-        # Parse N model results (shared for all providers)
-        models_metrics: list[JudgeMetrics] = [
-            JudgeMetrics.from_dict(result[f"model{i + 1}"], category_keys)
-            for i in range(model_count)
-        ]
-
-        # Parse winner: "1", "2", ..., "N" -> 0-based index, "tie" -> None
-        winner_str = result["winner"]
-        winner_index = None if winner_str == "tie" else int(winner_str) - 1
-
-        return JudgeResponse(
-            models=models_metrics,
-            winnerIndex=winner_index,
-            winnerReasoning=result["winnerReasoning"],
-            usage=usage,
-        )
-
-    except json.JSONDecodeError as e:
-        logger.exception("Failed to parse judge response")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to parse judge response: {str(e)}"
-        )
-    except KeyError as e:
-        logger.exception("Invalid judge response structure")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Invalid judge response structure: missing {str(e)}",
-        )
-    except Exception as e:
-        logger.exception("Judge evaluation failed")
-        raise HTTPException(
-            status_code=500, detail=f"Judge evaluation failed: {str(e)}"
-        )
 
 
 # Serve static files (React frontend) - must be last

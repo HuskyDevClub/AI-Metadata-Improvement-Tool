@@ -140,16 +140,3 @@
     opacity: 1;
 }
 
-.prompt-editor-box.judge-prompt-box {
-    border-color: #ddd6fe;
-    background: #faf5ff;
-}
-
-.prompt-editor-box.judge-prompt-box h4 {
-    color: #7c3aed;
-}
-
-.prompt-editor-box.judge-prompt-box textarea:focus {
-    border-color: #a855f7;
-    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
-}

@@ -1,9 +1,6 @@
 import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
 import { useOpenAI } from '../hooks/useOpenAI';
-import { useComparisonGeneration } from '../hooks/useComparisonGeneration';
-import { generateJudgeSystemPrompt, useComparisonState } from '../hooks/useComparisonState';
 import {
     fetchSocrataImport,
     fetchSocrataOAuthLoginUrl,
@@ -20,8 +17,7 @@ import {
     getSampleValues
 } from '../utils/columnAnalyzer';
 import { getEstimatedCost } from '../utils/pricing';
-import { getModelLabel, getVariantLabel } from '../utils/modelColors';
-import { handleJudgeError, handleRegenerationError } from '../utils/stateHelpers';
+import { handleRegenerationError } from '../utils/stateHelpers';
 import {
     appendPromptModifiers,
     buildColumnImprovementPrompt,
@@ -36,19 +32,13 @@ import {
     DEFAULT_SYSTEM_PROMPT,
     type SuggestionItem,
 } from '../utils/prompts';
-import { EMPTY_TOKEN_USAGE } from '../utils/config';
 import type {
     APIConfig,
-    ColumnComparisonResult,
     ColumnInfo,
-    ComparisonConfig,
-    ComparisonTokenUsage,
     CsvRow,
-    DatasetComparisonResult,
     GeneratedResults,
     OpenAIConfig as OpenAIConfigType,
     PromptTemplates,
-    ScoringCategory,
     Status,
     TokenUsage,
 } from '../types';
@@ -74,7 +64,7 @@ function parseSuggestions(text: string): SuggestionItem[] {
     }));
 }
 
-export type PageId = 'import' | 'data' | 'field' | 'compare' | 'settings';
+export type PageId = 'import' | 'data' | 'field' | 'settings';
 
 interface AppContextType {
     // Navigation
@@ -136,24 +126,6 @@ interface AppContextType {
     handleSocrataApiKeySave: (keyId: string, keySecret: string) => void;
     handleSocrataApiKeyClear: () => void;
 
-    // Comparison state
-    comparisonEnabled: boolean;
-    comparisonConfig: ComparisonConfig;
-    datasetComparison: DatasetComparisonResult;
-    columnComparisons: Record<string, ColumnComparisonResult>;
-    comparisonTokenUsage: ComparisonTokenUsage;
-    generatingDatasetModels: Set<number>;
-    generatingColumnModels: Map<number, Set<string>>;
-    regeneratingDatasetModels: Set<number>;
-    regeneratingColumnModels: Map<number, Set<string>>;
-    reJudgingDataset: boolean;
-    reJudgingColumns: Set<string>;
-    comparisonSlotCount: number;
-    comparisonSlotNames: string[];
-    comparisonSlotShortNames: string[];
-    isAnyModelGenerating: boolean;
-    setComparisonConfig: React.Dispatch<React.SetStateAction<ComparisonConfig>>;
-
     // Handlers
     handleAnalyze: (method: 'file' | 'url', file?: File, url?: string) => Promise<void>;
     handleSocrataImport: (datasetId: string) => Promise<void>;
@@ -183,15 +155,6 @@ interface AppContextType {
     handleAddNote: (text: string) => void;
     handleGenerateNote: () => Promise<void>;
     handlePushToSocrata: () => Promise<void>;
-    handleComparisonConfigChange: (config: ComparisonConfig) => void;
-    handleComparisonToggle: (enabled: boolean) => void;
-    handleScoringCategoriesChange: (categories: ScoringCategory[]) => void;
-    handleRegenerateComparisonDataset: (slotIndex: number, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
-    handleRegenerateComparisonColumn: (columnName: string, slotIndex: number, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
-    handleReJudgeDataset: () => Promise<void>;
-    handleReJudgeColumn: (columnName: string) => Promise<void>;
-    getColumnGeneratingModels: (columnName: string) => Set<number>;
-    getColumnRegeneratingModels: (columnName: string) => Set<number>;
     renderTokenUsage: () => React.ReactNode;
 }
 
@@ -220,7 +183,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         apiKey: import.meta.env.VITE_LLM_API_KEY || '',
     });
 
-    // Model for non-comparison mode
     const [model, setModel] = useState<string>(import.meta.env.VITE_LLM_MODEL || '');
 
     // Combined config for hooks that need the full OpenAIConfig
@@ -373,65 +335,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setStatus({ message: 'Signed out from data.wa.gov', type: 'info' });
     }, []);
 
-    // Comparison Mode State (extracted to custom hook)
-    const comparison = useComparisonState();
-    const {
-        comparisonEnabled,
-        comparisonConfig,
-        datasetComparison,
-        columnComparisons,
-        comparisonTokenUsage,
-        generatingDataset: generatingDatasetModels,
-        generatingColumns: generatingColumnModels,
-        regeneratingDataset: regeneratingDatasetModels,
-        regeneratingColumns: regeneratingColumnModels,
-        reJudgingDataset,
-        reJudgingColumns,
-        comparisonSlotCount,
-        isAnyModelGenerating,
-        setComparisonEnabled,
-        setComparisonConfig,
-        setDatasetComparison,
-        setColumnComparisons,
-        setComparisonTokenUsage,
-        setReJudgingDataset,
-        resetComparisonState,
-        addComparisonTokenUsage,
-        setGeneratingDatasetModel,
-        setGeneratingColumnModel,
-        setRegeneratingDatasetModel,
-        setRegeneratingColumnModel,
-        setReJudgingColumn,
-    } = comparison;
-
     // Abort controller for stopping generation
     const abortControllerRef = useRef<AbortController | null>(null);
 
     const { callOpenAIStream } = useOpenAI();
-
-    // Wrapper for comparison config changes
-    const handleComparisonConfigChange = useCallback((newConfig: ComparisonConfig) => {
-        if (newConfig.subMode !== comparisonConfig.subMode) {
-            resetComparisonState();
-        }
-        setComparisonConfig(newConfig);
-    }, [comparisonConfig.subMode, resetComparisonState, setComparisonConfig]);
-
-    const handleComparisonToggle = useCallback((enabled: boolean) => {
-        setComparisonEnabled(enabled);
-        setStatus(null);
-        if (enabled) {
-            setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
-        } else {
-            setComparisonTokenUsage({
-                models: Array(comparisonSlotCount).fill(null).map(() => ({ ...EMPTY_TOKEN_USAGE })),
-                judge: { ...EMPTY_TOKEN_USAGE },
-                total: { ...EMPTY_TOKEN_USAGE },
-            });
-        }
-    }, [setComparisonEnabled, setComparisonTokenUsage, comparisonSlotCount]);
-
-    const { generateParallel, callJudge } = useComparisonGeneration();
 
     const addTokenUsage = useCallback((usage: TokenUsage) => {
         setTokenUsage((prev) => ({
@@ -628,195 +535,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         [openaiConfig, promptTemplates.systemPrompt, buildNotesPrompt, callOpenAIStream, addTokenUsage]
     );
 
-    const getComparisonModelConfig = useCallback((modelName: string): OpenAIConfigType => ({
-        ...apiConfig,
-        model: modelName,
-    }), [apiConfig]);
-
-    const isPromptMode = comparisonConfig.subMode === 'prompts';
-
-    const comparisonSlotNames = isPromptMode
-        ? comparisonConfig.promptVariants.map((v, i) => getVariantLabel(i, v.label))
-        : comparisonConfig.models.map((m, i) => getModelLabel(i, m || undefined));
-
-    const comparisonSlotShortNames = isPromptMode
-        ? comparisonConfig.promptVariants.map((v, i) => v.label || `Prompt ${i + 1}`)
-        : comparisonConfig.models.map((m, i) => m || `Model ${i + 1}`);
-
-    const judgeDatasetOutputs = useCallback(async (
-        context: string,
-        outputs: string[]
-    ): Promise<void> => {
-        const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
-        const judgeResult = await callJudge(context, outputs, judgeConfig, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories);
-        addComparisonTokenUsage({ type: 'judge' }, judgeResult.usage);
-        setDatasetComparison((prev) => ({
-            ...prev,
-            judgeResult: judgeResult.result,
-            isJudging: false,
-        }));
-    }, [getComparisonModelConfig, comparisonConfig.judgeModel, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories, callJudge, addComparisonTokenUsage, setDatasetComparison]);
-
-    const judgeColumnOutputs = useCallback(async (
-        columnName: string,
-        context: string,
-        outputs: string[]
-    ): Promise<void> => {
-        const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
-        const judgeResult = await callJudge(context, outputs, judgeConfig, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories);
-        addComparisonTokenUsage({ type: 'judge' }, judgeResult.usage);
-        setColumnComparisons((prev) => ({
-            ...prev,
-            [columnName]: {
-                ...prev[columnName],
-                judgeResult: judgeResult.result,
-                isJudging: false,
-            },
-        }));
-    }, [getComparisonModelConfig, comparisonConfig.judgeModel, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories, callJudge, addComparisonTokenUsage, setColumnComparisons]);
-
-    const generateDatasetComparisonDescription = useCallback(
-        async (
-            data: CsvRow[],
-            name: string,
-            stats: Record<string, ColumnInfo>,
-            abortSignal?: AbortSignal
-        ): Promise<{ aborted: boolean }> => {
-            const slotCount = comparisonSlotCount;
-            for (let i = 0; i < slotCount; i++) {
-                setGeneratingDatasetModel(i, true);
-            }
-            const outputs: string[] = Array(slotCount).fill('');
-            let configs: OpenAIConfigType[];
-            let prompts: string[];
-            let systemPrompts: string | string[];
-
-            const rowCount = importedRowCount || undefined;
-            if (comparisonConfig.subMode === 'prompts') {
-                configs = Array(slotCount).fill(getComparisonModelConfig(comparisonConfig.promptModel));
-                prompts = comparisonConfig.promptVariants.map(v =>
-                    buildDatasetPromptFromTemplate(data, name, stats, v.datasetPrompt, '', undefined, rowCount)
-                );
-                systemPrompts = comparisonConfig.promptVariants.map(v => v.systemPrompt);
-            } else {
-                const prompt = buildDatasetPrompt(data, name, stats, '', undefined, rowCount);
-                configs = comparisonConfig.models.map(m => getComparisonModelConfig(m));
-                prompts = Array(slotCount).fill(prompt);
-                systemPrompts = promptTemplates.systemPrompt;
-            }
-
-            const onChunks = Array.from({ length: slotCount }, (_, i) => (chunk: string) => {
-                outputs[i] += chunk;
-                const currentOutput = outputs[i];
-                setDatasetComparison((prev) => {
-                    const newOutputs = [...prev.outputs];
-                    newOutputs[i] = currentOutput;
-                    return { ...prev, outputs: newOutputs };
-                });
-            });
-
-            const result = await generateParallel(prompts, configs, systemPrompts, onChunks, abortSignal);
-            result.usages.forEach((usage, i) => {
-                addComparisonTokenUsage({ type: 'model', index: i }, usage);
-            });
-            for (let i = 0; i < slotCount; i++) {
-                setGeneratingDatasetModel(i, false);
-            }
-
-            if (result.aborted) return { aborted: true };
-
-            setDatasetComparison((prev) => ({ ...prev, isJudging: true }));
-            try {
-                const effectiveRows = importedRowCount || data.length;
-                const context = `File: ${name}, Rows: ${effectiveRows}, Columns: ${Object.keys(stats).join(', ')}`;
-                await judgeDatasetOutputs(context, outputs);
-            } catch (error) {
-                setDatasetComparison((prev) => ({ ...prev, isJudging: false }));
-                setStatus({
-                    message: `Judge error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                    type: 'warning'
-                });
-            }
-
-            return { aborted: false };
-        },
-        [buildDatasetPrompt, buildDatasetPromptFromTemplate, comparisonSlotCount, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, generateParallel, promptTemplates.systemPrompt, addComparisonTokenUsage, setGeneratingDatasetModel, setDatasetComparison, judgeDatasetOutputs, importedRowCount]
-    );
-
-    const generateColumnComparisonDescription = useCallback(
-        async (
-            columnName: string,
-            info: ColumnInfo,
-            datasetDescs: string[],
-            columnValues?: (string | null | undefined)[],
-            abortSignal?: AbortSignal
-        ): Promise<{ aborted: boolean }> => {
-            const slotCount = comparisonSlotCount;
-            for (let i = 0; i < slotCount; i++) {
-                setGeneratingColumnModel(i, columnName, true);
-            }
-            const outputs: string[] = Array(slotCount).fill('');
-            let configs: OpenAIConfigType[];
-            let prompts: string[];
-            let systemPrompts: string | string[];
-
-            if (comparisonConfig.subMode === 'prompts') {
-                configs = Array(slotCount).fill(getComparisonModelConfig(comparisonConfig.promptModel));
-                prompts = comparisonConfig.promptVariants.map((v, i) =>
-                    buildColumnPromptFromTemplate(columnName, info, datasetDescs[i], v.columnPrompt, columnValues)
-                );
-                systemPrompts = comparisonConfig.promptVariants.map(v => v.systemPrompt);
-            } else {
-                configs = comparisonConfig.models.map(m => getComparisonModelConfig(m));
-                prompts = comparisonConfig.models.map((_, i) =>
-                    buildColumnPrompt(columnName, info, datasetDescs[i], columnValues)
-                );
-                systemPrompts = promptTemplates.systemPrompt;
-            }
-
-            const onChunks = Array.from({ length: slotCount }, (_, i) => (chunk: string) => {
-                outputs[i] += chunk;
-                const currentOutput = outputs[i];
-                setColumnComparisons((prev) => {
-                    const newOutputs = [...(prev[columnName]?.outputs || Array(slotCount).fill(''))];
-                    newOutputs[i] = currentOutput;
-                    return {
-                        ...prev,
-                        [columnName]: { ...prev[columnName], outputs: newOutputs },
-                    };
-                });
-            });
-
-            const result = await generateParallel(prompts, configs, systemPrompts, onChunks, abortSignal);
-            result.usages.forEach((usage, i) => {
-                addComparisonTokenUsage({ type: 'model', index: i }, usage);
-            });
-            for (let i = 0; i < slotCount; i++) {
-                setGeneratingColumnModel(i, columnName, false);
-            }
-
-            if (result.aborted) return { aborted: true };
-
-            setColumnComparisons((prev) => ({
-                ...prev,
-                [columnName]: { ...prev[columnName], isJudging: true },
-            }));
-
-            try {
-                const context = `Column "${columnName}" (${info.type}): ${getColumnStatsText(info)}`;
-                await judgeColumnOutputs(columnName, context, outputs);
-            } catch {
-                setColumnComparisons((prev) => ({
-                    ...prev,
-                    [columnName]: { ...prev[columnName], isJudging: false },
-                }));
-            }
-
-            return { aborted: false };
-        },
-        [buildColumnPrompt, buildColumnPromptFromTemplate, comparisonSlotCount, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, generateParallel, promptTemplates.systemPrompt, addComparisonTokenUsage, setGeneratingColumnModel, setColumnComparisons, judgeColumnOutputs]
-    );
-
     const handleAnalyze = useCallback(
         async (method: 'file' | 'url', file?: File, url?: string) => {
             abortControllerRef.current = new AbortController();
@@ -830,10 +548,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
             setSocrataDatasetId('');
             setSocrataFieldNameMap({});
-
-            if (comparisonEnabled) {
-                resetComparisonState();
-            }
 
             let currentStep = 'loading CSV';
             try {
@@ -863,105 +577,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 setColumnStats(stats);
                 setShowResults(true);
 
-                if (comparisonEnabled) {
-                    currentStep = 'generating dataset descriptions';
-                    const slotLabel = comparisonConfig.subMode === 'prompts' ? 'prompt variants' : 'models';
-                    setStatus({
-                        message: `Generating dataset descriptions (${comparisonSlotCount} ${slotLabel} in parallel)...`,
-                        type: 'info'
-                    });
+                currentStep = 'generating dataset description';
+                setStatus({ message: 'Generating dataset description...', type: 'info' });
+                const datasetResult = await generateDatasetDescription(result.data, result.fileName, stats, '', undefined, abortSignal);
 
-                    const initialColumnComparisons: Record<string, ColumnComparisonResult> = {};
-                    columns.forEach((col) => {
-                        initialColumnComparisons[col] = {
-                            outputs: Array(comparisonSlotCount).fill(''),
-                            judgeResult: null,
-                            isJudging: false,
-                        };
-                    });
-                    setColumnComparisons(initialColumnComparisons);
-
-                    const datasetResult = await generateDatasetComparisonDescription(
-                        result.data, result.fileName, stats, abortSignal
-                    );
-
-                    if (datasetResult.aborted) {
-                        setStatus({ message: 'Generation stopped.', type: 'info' });
-                        setIsProcessing(false);
-                        return;
-                    }
-
-                    let datasetDescs: string[] = [];
-                    setDatasetComparison((prev) => {
-                        datasetDescs = [...prev.outputs];
-                        return prev;
-                    });
-
-                    currentStep = 'generating column descriptions';
-                    setStatus({
-                        message: `Generating column descriptions for ${columns.length} columns...`,
-                        type: 'info'
-                    });
-
-                    const columnPromises = columns.map(async (col) => {
-                        const info = stats[col];
-                        const colValues = result.data.map(row => row[col]);
-                        return generateColumnComparisonDescription(col, info, datasetDescs, colValues, abortSignal);
-                    });
-
-                    const columnResults = await Promise.all(columnPromises);
-                    const abortedColumns = columnResults.filter(r => r.aborted);
-                    if (abortedColumns.length > 0) {
-                        setStatus({ message: 'Generation stopped.', type: 'info' });
-                        setIsProcessing(false);
-                        return;
-                    }
-
-                    setStatus({
-                        message: 'Comparison complete! All descriptions generated and judged.',
-                        type: 'success'
-                    });
-                } else {
-                    currentStep = 'generating dataset description';
-                    setStatus({ message: 'Generating dataset description...', type: 'info' });
-                    const datasetResult = await generateDatasetDescription(result.data, result.fileName, stats, '', undefined, abortSignal);
-
-                    if (datasetResult.aborted) {
-                        setGeneratingColumns(new Set());
-                        setStatus({ message: 'Generation stopped.', type: 'info' });
-                        setIsProcessing(false);
-                        return;
-                    }
-
-                    const datasetDesc = datasetResult.content;
-                    setGeneratedResults((prev) => ({ ...prev, datasetDescription: datasetDesc }));
-
-                    currentStep = 'generating column descriptions';
-                    setStatus({ message: `Generating descriptions for ${columns.length} columns...`, type: 'info' });
-                    setGeneratingColumns(new Set(columns));
-
-                    const columnPromises = columns.map(async (col) => {
-                        const info = stats[col];
-                        const colValues = result.data.map(row => row[col]);
-                        const colResult = await generateColumnDescription(col, info, datasetDesc, colValues, '', undefined, abortSignal);
-                        return { col, result: colResult };
-                    });
-
-                    const columnResults = await Promise.all(columnPromises);
-                    const abortedColumns = columnResults.filter(r => r.result.aborted);
-                    if (abortedColumns.length > 0) {
-                        setGeneratingColumns(new Set());
-                        setStatus({ message: 'Generation stopped.', type: 'info' });
-                        setIsProcessing(false);
-                        return;
-                    }
-
+                if (datasetResult.aborted) {
                     setGeneratingColumns(new Set());
-                    setStatus({
-                        message: 'Analysis complete! All descriptions generated successfully.',
-                        type: 'success'
-                    });
+                    setStatus({ message: 'Generation stopped.', type: 'info' });
+                    setIsProcessing(false);
+                    return;
                 }
+
+                const datasetDesc = datasetResult.content;
+                setGeneratedResults((prev) => ({ ...prev, datasetDescription: datasetDesc }));
+
+                currentStep = 'generating column descriptions';
+                setStatus({ message: `Generating descriptions for ${columns.length} columns...`, type: 'info' });
+                setGeneratingColumns(new Set(columns));
+
+                const columnPromises = columns.map(async (col) => {
+                    const info = stats[col];
+                    const colValues = result.data.map(row => row[col]);
+                    const colResult = await generateColumnDescription(col, info, datasetDesc, colValues, '', undefined, abortSignal);
+                    return { col, result: colResult };
+                });
+
+                const columnResults = await Promise.all(columnPromises);
+                const abortedColumns = columnResults.filter(r => r.result.aborted);
+                if (abortedColumns.length > 0) {
+                    setGeneratingColumns(new Set());
+                    setStatus({ message: 'Generation stopped.', type: 'info' });
+                    setIsProcessing(false);
+                    return;
+                }
+
+                setGeneratingColumns(new Set());
+                setStatus({
+                    message: 'Analysis complete! All descriptions generated successfully.',
+                    type: 'success'
+                });
             } catch (error) {
                 if (error instanceof Error && error.name === 'AbortError') {
                     setStatus({ message: 'Generation stopped.', type: 'info' });
@@ -976,7 +630,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 setIsProcessing(false);
             }
         },
-        [comparisonEnabled, comparisonSlotCount, comparisonConfig.subMode, resetComparisonState, setColumnComparisons, generateDatasetComparisonDescription, setDatasetComparison, generateColumnComparisonDescription, generateDatasetDescription, generateColumnDescription]
+        [generateDatasetDescription, generateColumnDescription]
     );
 
     const handleStop = useCallback(() => {
@@ -1321,199 +975,6 @@ FORMAT RULES:
         }
     }, [csvData, columnStats, generatedResults, columnSuggestions, openaiConfig, promptTemplates.systemPrompt, buildColumnPrompt, callOpenAIStream, addTokenUsage]);
 
-    const handleRegenerateComparisonDataset = useCallback(
-        async (slotIndex: number, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
-            if (!csvData) return;
-            setRegeneratingDatasetModel(slotIndex, true);
-            try {
-                let prompt: string;
-                let config: OpenAIConfigType;
-                let systemPrompt: string;
-
-                const rowCount = importedRowCount || undefined;
-                if (comparisonConfig.subMode === 'prompts') {
-                    const variant = comparisonConfig.promptVariants[slotIndex];
-                    prompt = buildDatasetPromptFromTemplate(csvData, fileName, columnStats, variant.datasetPrompt, modifier, customInstruction, rowCount);
-                    config = getComparisonModelConfig(comparisonConfig.promptModel);
-                    systemPrompt = variant.systemPrompt;
-                } else {
-                    prompt = buildDatasetPrompt(csvData, fileName, columnStats, modifier, customInstruction, rowCount);
-                    config = getComparisonModelConfig(comparisonConfig.models[slotIndex]);
-                    systemPrompt = promptTemplates.systemPrompt;
-                }
-
-                let output = '';
-                const result = await callOpenAIStream(prompt, config, systemPrompt, (chunk) => {
-                    output += chunk;
-                    setDatasetComparison((prev) => {
-                        const newOutputs = [...prev.outputs];
-                        newOutputs[slotIndex] = output;
-                        return { ...prev, outputs: newOutputs };
-                    });
-                });
-
-                addComparisonTokenUsage({ type: 'model', index: slotIndex }, result.usage);
-
-                if (result.aborted) {
-                    setStatus({ message: 'Regeneration stopped.', type: 'info' });
-                    setRegeneratingDatasetModel(slotIndex, false);
-                    return;
-                }
-
-                let allOutputs: string[] = [];
-                flushSync(() => {
-                    setDatasetComparison((prev) => {
-                        allOutputs = [...prev.outputs];
-                        return { ...prev, isJudging: true };
-                    });
-                });
-
-                const slotLabel = comparisonConfig.subMode === 'prompts' ? 'Prompt' : 'Model';
-                try {
-                    const effectiveRows = importedRowCount || csvData.length;
-                    const context = `File: ${fileName}, Rows: ${effectiveRows}, Columns: ${Object.keys(columnStats).join(', ')}`;
-                    await judgeDatasetOutputs(context, allOutputs);
-                    setStatus({
-                        message: `Successfully regenerated ${slotLabel} ${slotIndex + 1} description!`,
-                        type: 'success'
-                    });
-                } catch (error) {
-                    setDatasetComparison((prev) => ({ ...prev, isJudging: false }));
-                    handleJudgeError(error, setStatus);
-                }
-            } catch (error) {
-                handleRegenerationError(error, setStatus);
-            } finally {
-                setRegeneratingDatasetModel(slotIndex, false);
-            }
-        },
-        [csvData, setRegeneratingDatasetModel, buildDatasetPrompt, buildDatasetPromptFromTemplate, fileName, columnStats, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, callOpenAIStream, promptTemplates.systemPrompt, addComparisonTokenUsage, setDatasetComparison, judgeDatasetOutputs, importedRowCount]
-    );
-
-    const handleRegenerateComparisonColumn = useCallback(
-        async (columnName: string, slotIndex: number, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
-            const info = columnStats[columnName];
-            if (!info) return;
-            setRegeneratingColumnModel(slotIndex, columnName, true);
-            try {
-                const datasetDesc = datasetComparison.outputs[slotIndex] || '';
-                const colValues = csvData?.map(row => row[columnName]);
-
-                let prompt: string;
-                let config: OpenAIConfigType;
-                let systemPrompt: string;
-
-                if (comparisonConfig.subMode === 'prompts') {
-                    const variant = comparisonConfig.promptVariants[slotIndex];
-                    prompt = buildColumnPromptFromTemplate(columnName, info, datasetDesc, variant.columnPrompt, colValues, modifier, customInstruction);
-                    config = getComparisonModelConfig(comparisonConfig.promptModel);
-                    systemPrompt = variant.systemPrompt;
-                } else {
-                    prompt = buildColumnPrompt(columnName, info, datasetDesc, colValues, modifier, customInstruction);
-                    config = getComparisonModelConfig(comparisonConfig.models[slotIndex]);
-                    systemPrompt = promptTemplates.systemPrompt;
-                }
-
-                let output = '';
-                const result = await callOpenAIStream(prompt, config, systemPrompt, (chunk) => {
-                    output += chunk;
-                    setColumnComparisons((prev) => {
-                        const currentOutputs = [...(prev[columnName]?.outputs || Array(comparisonSlotCount).fill(''))];
-                        currentOutputs[slotIndex] = output;
-                        return {
-                            ...prev,
-                            [columnName]: { ...prev[columnName], outputs: currentOutputs },
-                        };
-                    });
-                });
-
-                addComparisonTokenUsage({ type: 'model', index: slotIndex }, result.usage);
-
-                if (result.aborted) {
-                    setStatus({ message: 'Regeneration stopped.', type: 'info' });
-                    setRegeneratingColumnModel(slotIndex, columnName, false);
-                    return;
-                }
-
-                let allOutputs: string[] = [];
-                flushSync(() => {
-                    setColumnComparisons((prev) => {
-                        allOutputs = [...(prev[columnName]?.outputs || [])];
-                        return {
-                            ...prev,
-                            [columnName]: { ...prev[columnName], isJudging: true },
-                        };
-                    });
-                });
-
-                const slotLabel = comparisonConfig.subMode === 'prompts' ? 'Prompt' : 'Model';
-                try {
-                    const context = `Column "${columnName}" (${info.type}): ${getColumnStatsText(info)}`;
-                    await judgeColumnOutputs(columnName, context, allOutputs);
-                    setStatus({
-                        message: `Successfully regenerated ${slotLabel} ${slotIndex + 1} description for "${columnName}"!`,
-                        type: 'success'
-                    });
-                } catch (error) {
-                    setColumnComparisons((prev) => ({
-                        ...prev,
-                        [columnName]: { ...prev[columnName], isJudging: false },
-                    }));
-                    handleJudgeError(error, setStatus);
-                }
-            } catch (error) {
-                handleRegenerationError(error, setStatus);
-            } finally {
-                setRegeneratingColumnModel(slotIndex, columnName, false);
-            }
-        },
-        [csvData, columnStats, comparisonSlotCount, setRegeneratingColumnModel, datasetComparison.outputs, buildColumnPrompt, buildColumnPromptFromTemplate, comparisonConfig.subMode, comparisonConfig.models, comparisonConfig.promptModel, comparisonConfig.promptVariants, getComparisonModelConfig, callOpenAIStream, promptTemplates.systemPrompt, addComparisonTokenUsage, setColumnComparisons, judgeColumnOutputs]
-    );
-
-    const handleReJudgeDataset = useCallback(async () => {
-        if (!csvData || !datasetComparison.outputs.some(o => o)) return;
-        setReJudgingDataset(true);
-        setDatasetComparison((prev) => ({ ...prev, isJudging: true }));
-        try {
-            const effectiveRows = importedRowCount || csvData.length;
-            const context = `File: ${fileName}, Rows: ${effectiveRows}, Columns: ${Object.keys(columnStats).join(', ')}`;
-            await judgeDatasetOutputs(context, datasetComparison.outputs);
-            setStatus({ message: 'Successfully re-judged dataset descriptions!', type: 'success' });
-        } catch (error) {
-            setDatasetComparison((prev) => ({ ...prev, isJudging: false }));
-            setStatus({
-                message: `Judge error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                type: 'error'
-            });
-        } finally {
-            setReJudgingDataset(false);
-        }
-    }, [csvData, datasetComparison.outputs, setReJudgingDataset, setDatasetComparison, fileName, columnStats, judgeDatasetOutputs, importedRowCount]);
-
-    const handleReJudgeColumn = useCallback(async (columnName: string) => {
-        const info = columnStats[columnName];
-        const columnResult = columnComparisons[columnName];
-        if (!info || !columnResult?.outputs.some(o => o)) return;
-        setReJudgingColumn(columnName, true);
-        setColumnComparisons((prev) => ({
-            ...prev,
-            [columnName]: { ...prev[columnName], isJudging: true },
-        }));
-        try {
-            const context = `Column "${columnName}" (${info.type}): ${getColumnStatsText(info)}`;
-            await judgeColumnOutputs(columnName, context, columnResult.outputs);
-            setStatus({ message: `Successfully re-judged "${columnName}" descriptions!`, type: 'success' });
-        } catch (error) {
-            setColumnComparisons((prev) => ({
-                ...prev,
-                [columnName]: { ...prev[columnName], isJudging: false },
-            }));
-            handleJudgeError(error, setStatus);
-        } finally {
-            setReJudgingColumn(columnName, false);
-        }
-    }, [columnStats, columnComparisons, setReJudgingColumn, setColumnComparisons, judgeColumnOutputs]);
-
     const handleEditDatasetDescription = useCallback((newDescription: string) => {
         setGeneratedResults((prev) => ({ ...prev, datasetDescription: newDescription }));
     }, []);
@@ -1606,10 +1067,6 @@ FORMAT RULES:
             setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
             setSocrataDatasetId(datasetId);
 
-            if (comparisonEnabled) {
-                resetComparisonState();
-            }
-
             try {
                 setStatus({ message: 'Importing dataset from data.wa.gov...', type: 'info' });
                 const result = await fetchSocrataImport(
@@ -1677,25 +1134,13 @@ FORMAT RULES:
                 setIsProcessing(false);
             }
         },
-        [comparisonEnabled, resetComparisonState, socrataOAuthToken, socrataApiKeyId, socrataApiKeySecret]
+        [socrataOAuthToken, socrataApiKeyId, socrataApiKeySecret]
     );
 
     const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
         setApiConfig({ baseURL: newConfig.baseURL, apiKey: newConfig.apiKey });
         setModel(newConfig.model);
     }, []);
-
-    const handleScoringCategoriesChange = useCallback((categories: ScoringCategory[]) => {
-        setComparisonConfig((prev) => {
-            const slotCount = prev.subMode === 'models' ? prev.models.length : prev.promptVariants.length;
-            const labelPrefix = prev.subMode === 'prompts' ? 'Prompt' : 'Model';
-            return {
-                ...prev,
-                scoringCategories: categories,
-                judgeSystemPrompt: generateJudgeSystemPrompt(categories, slotCount, labelPrefix),
-            };
-        });
-    }, [setComparisonConfig]);
 
     const handlePushToSocrata = useCallback(async () => {
         if (!socrataDatasetId) return;
@@ -1730,74 +1175,7 @@ FORMAT RULES:
         }
     }, [socrataDatasetId, generatedResults, socrataFieldNameMap, socrataOAuthToken, socrataApiKeyId, socrataApiKeySecret]);
 
-    const getColumnGeneratingModels = useCallback((columnName: string): Set<number> => {
-        const result = new Set<number>();
-        generatingColumnModels.forEach((cols, modelIndex) => {
-            if (cols.has(columnName)) result.add(modelIndex);
-        });
-        return result;
-    }, [generatingColumnModels]);
-
-    const getColumnRegeneratingModels = useCallback((columnName: string): Set<number> => {
-        const result = new Set<number>();
-        regeneratingColumnModels.forEach((cols, modelIndex) => {
-            if (cols.has(columnName)) result.add(modelIndex);
-        });
-        return result;
-    }, [regeneratingColumnModels]);
-
     const renderTokenUsage = useCallback(() => {
-        if (comparisonEnabled && comparisonTokenUsage.total.totalTokens > 0) {
-            const getSlotModel = (i: number) =>
-                comparisonConfig.subMode === 'prompts'
-                    ? comparisonConfig.promptModel
-                    : comparisonConfig.models[i];
-
-            return (
-                <div className="tokenUsage comparison">
-                    {Array.from({ length: comparisonSlotCount }, (_, i) => (
-                        <div className="tokenUsageRow" key={i}>
-                            <span className="tokenLabel">{comparisonSlotShortNames[i]}:</span>
-                            <span
-                                className="tokenValue">{comparisonTokenUsage.models[i]?.totalTokens.toLocaleString() || 0} tokens</span>
-                            {(() => {
-                                const usage = comparisonTokenUsage.models[i];
-                                if (!usage) return null;
-                                const cost = getEstimatedCost(getSlotModel(i), usage.promptTokens, usage.completionTokens);
-                                return cost !== null ? <span className="tokenCost">~${cost.toFixed(4)}</span> : null;
-                            })()}
-                        </div>
-                    ))}
-                    <div className="tokenUsageRow">
-                        <span className="tokenLabel">Judge:</span>
-                        <span
-                            className="tokenValue">{comparisonTokenUsage.judge.totalTokens.toLocaleString()} tokens</span>
-                        {(() => {
-                            const cost = getEstimatedCost(comparisonConfig.judgeModel, comparisonTokenUsage.judge.promptTokens, comparisonTokenUsage.judge.completionTokens);
-                            return cost !== null ? <span className="tokenCost judge">~${cost.toFixed(4)}</span> : null;
-                        })()}
-                    </div>
-                    <div className="tokenUsageRow total">
-                        <span className="tokenLabel">Total:</span>
-                        <span
-                            className="tokenValue tokenTotal">{comparisonTokenUsage.total.totalTokens.toLocaleString()} tokens</span>
-                        {(() => {
-                            let totalCost = 0;
-                            for (let i = 0; i < comparisonSlotCount; i++) {
-                                const usage = comparisonTokenUsage.models[i];
-                                if (usage) {
-                                    totalCost += getEstimatedCost(getSlotModel(i), usage.promptTokens, usage.completionTokens) || 0;
-                                }
-                            }
-                            totalCost += getEstimatedCost(comparisonConfig.judgeModel, comparisonTokenUsage.judge.promptTokens, comparisonTokenUsage.judge.completionTokens) || 0;
-                            return totalCost > 0 ?
-                                <span className="tokenCost total">~${totalCost.toFixed(4)}</span> : null;
-                        })()}
-                    </div>
-                </div>
-            );
-        }
-
         if (tokenUsage.totalTokens > 0) {
             return (
                 <div className="tokenUsage">
@@ -1821,7 +1199,7 @@ FORMAT RULES:
         }
 
         return null;
-    }, [comparisonEnabled, comparisonTokenUsage, comparisonSlotCount, comparisonSlotShortNames, comparisonConfig, tokenUsage, openaiConfig.model]);
+    }, [tokenUsage, openaiConfig.model]);
 
     const value: AppContextType = {
         currentPage,
@@ -1867,22 +1245,6 @@ FORMAT RULES:
         socrataApiKeySecret,
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
-        comparisonEnabled,
-        comparisonConfig,
-        datasetComparison,
-        columnComparisons,
-        comparisonTokenUsage,
-        generatingDatasetModels,
-        generatingColumnModels,
-        regeneratingDatasetModels,
-        regeneratingColumnModels,
-        reJudgingDataset,
-        reJudgingColumns,
-        comparisonSlotCount,
-        comparisonSlotNames,
-        comparisonSlotShortNames,
-        isAnyModelGenerating,
-        setComparisonConfig,
         handleAnalyze,
         handleSocrataImport,
         handleStop,
@@ -1911,15 +1273,6 @@ FORMAT RULES:
         handleAddNote,
         handleGenerateNote,
         handlePushToSocrata,
-        handleComparisonConfigChange,
-        handleComparisonToggle,
-        handleScoringCategoriesChange,
-        handleRegenerateComparisonDataset,
-        handleRegenerateComparisonColumn,
-        handleReJudgeDataset,
-        handleReJudgeColumn,
-        getColumnGeneratingModels,
-        getColumnRegeneratingModels,
         renderTokenUsage,
     };
 

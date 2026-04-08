@@ -13,16 +13,3 @@ export function handleRegenerationError(
         type,
     });
 }
-
-/**
- * Helper to handle judge errors consistently
- */
-export function handleJudgeError(
-    error: unknown,
-    setStatus: (status: Status) => void
-): void {
-    setStatus({
-        message: `Judge error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        type: 'warning',
-    });
-}

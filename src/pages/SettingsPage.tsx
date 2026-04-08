@@ -7,12 +7,8 @@ export function SettingsPage() {
     const {
         openaiConfig,
         handleOpenAIConfigChange,
-        comparisonEnabled,
-        comparisonConfig,
         promptTemplates,
         setPromptTemplates,
-        handleScoringCategoriesChange,
-        setComparisonConfig,
     } = useAppContext();
 
     return (
@@ -21,7 +17,6 @@ export function SettingsPage() {
                 <OpenAIConfig
                     config={openaiConfig}
                     onChange={handleOpenAIConfigChange}
-                    showModel={!comparisonEnabled}
                 />
             </div>
 
@@ -29,18 +24,6 @@ export function SettingsPage() {
                 <PromptEditor
                     templates={promptTemplates}
                     onChange={setPromptTemplates}
-                    comparisonEnabled={comparisonEnabled}
-                    comparisonSubMode={comparisonConfig.subMode}
-                    judgeSystemPrompt={comparisonConfig.judgeSystemPrompt}
-                    onJudgeSystemPromptChange={(prompt) =>
-                        setComparisonConfig((prev) => ({ ...prev, judgeSystemPrompt: prompt }))
-                    }
-                    judgeEvaluationPrompt={comparisonConfig.judgeEvaluationPrompt}
-                    onJudgeEvaluationPromptChange={(prompt) =>
-                        setComparisonConfig((prev) => ({ ...prev, judgeEvaluationPrompt: prompt }))
-                    }
-                    scoringCategories={comparisonConfig.scoringCategories}
-                    onScoringCategoriesChange={handleScoringCategoriesChange}
                 />
             </div>
         </div>

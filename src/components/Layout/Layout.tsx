@@ -5,7 +5,6 @@ import { StatusMessage } from '../StatusMessage/StatusMessage';
 import { ImportPage } from '../../pages/ImportPage';
 import { DataOverviewPage } from '../../pages/DataOverviewPage';
 import { FieldOverviewPage } from '../../pages/FieldOverviewPage';
-import { ComparePage } from '../../pages/ComparePage';
 import { SettingsPage } from '../../pages/SettingsPage';
 import './Layout.css';
 
@@ -34,8 +33,6 @@ function CurrentPage() {
             return <DataOverviewPage/>;
         case 'field':
             return <FieldOverviewPage/>;
-        case 'compare':
-            return <ComparePage/>;
         case 'settings':
             return <SettingsPage/>;
     }
@@ -87,7 +84,6 @@ export function Layout() {
                 <nav className="layout-nav">
                     <NavTab page="import" label="Import"/>
                     <NavTab page="data" label="Data Overview" disabled={!showResults}/>
-                    <NavTab page="compare" label="Compare" disabled={!showResults}/>
                     <NavTab page="settings" label="Settings"/>
                 </nav>
             </div>
