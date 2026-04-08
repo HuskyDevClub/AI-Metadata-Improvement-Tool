@@ -1,12 +1,6 @@
-import Papa from 'papaparse';
 import type { ColumnInfo, CsvRow } from '../types';
 import { API_BASE_URL } from './config';
 import { assertResponseOk } from './api';
-
-interface ParseResult {
-    data: CsvRow[];
-    fileName: string;
-}
 
 interface SocrataColumnMeta {
     fieldName: string;
@@ -48,24 +42,6 @@ function parseNotesString(raw: string): string[] {
  */
 function serializeNotes(notes: string[]): string {
     return notes.filter(n => n.trim()).join('\n\n');
-}
-
-export function parseFile(file: File): Promise<ParseResult> {
-    return new Promise((resolve, reject) => {
-        Papa.parse<CsvRow>(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-                resolve({
-                    data: results.data,
-                    fileName: file.name,
-                });
-            },
-            error: (error) => {
-                reject(new Error(`Error parsing CSV: ${error.message}`));
-            },
-        });
-    });
 }
 
 interface SocrataExportResult {

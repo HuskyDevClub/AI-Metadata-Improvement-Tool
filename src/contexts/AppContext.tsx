@@ -5,16 +5,9 @@ import {
     fetchSocrataImport,
     fetchSocrataOAuthLoginUrl,
     fetchSocrataOAuthUserInfo,
-    parseFile,
     pushSocrataMetadata,
-} from '../utils/csvParser';
-import {
-    analyzeColumn,
-    buildSampleRows,
-    getColumnStatsText,
-    getSampleCount,
-    getSampleValues
-} from '../utils/columnAnalyzer';
+} from '../utils/socrataApi';
+import { buildSampleRows, getColumnStatsText, getSampleCount, getSampleValues } from '../utils/columnAnalyzer';
 import { getEstimatedCost } from '../utils/pricing';
 import { handleRegenerationError } from '../utils/stateHelpers';
 import {
@@ -72,8 +65,6 @@ interface AppContextType {
     navigate: (page: PageId, fieldName?: string) => void;
 
     // API & Config
-    apiConfig: APIConfig;
-    model: string;
     openaiConfig: OpenAIConfigType;
     promptTemplates: PromptTemplates;
     setPromptTemplates: React.Dispatch<React.SetStateAction<PromptTemplates>>;
@@ -90,7 +81,6 @@ interface AppContextType {
 
     // Processing
     status: Status | null;
-    setStatus: React.Dispatch<React.SetStateAction<Status | null>>;
     isProcessing: boolean;
     generatingColumns: Set<string>;
     regeneratingDataset: boolean;
@@ -104,12 +94,8 @@ interface AppContextType {
     generatingNotes: boolean;
     pendingNote: string;
 
-    // Token usage
-    tokenUsage: TokenUsage;
-
     // Socrata
     socrataDatasetId: string;
-    socrataFieldNameMap: Record<string, string>;
     isPushingSocrata: boolean;
 
     // Socrata OAuth
@@ -126,12 +112,10 @@ interface AppContextType {
     handleSocrataApiKeyClear: () => void;
 
     // Handlers
-    handleAnalyze: (file: File) => Promise<void>;
     handleSocrataImport: (datasetId: string) => Promise<void>;
     handleStop: () => void;
     handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
     handleRegenerateColumn: (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
-    handleGenerateEmptyDescriptions: () => Promise<void>;
     handleGenerateSelectedDescriptions: (selectedColumns: string[]) => Promise<void>;
     handleSuggestDatasetImprovement: () => Promise<void>;
     handleDismissDatasetSuggestions: () => void;
@@ -535,104 +519,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         [openaiConfig, promptTemplates.systemPrompt, buildNotesPrompt, callOpenAIStream, addTokenUsage]
     );
 
-    const handleAnalyze = useCallback(
-        async (file: File) => {
-            abortControllerRef.current = new AbortController();
-            const abortSignal = abortControllerRef.current.signal;
-
-            setIsProcessing(true);
-            setShowResults(false);
-            setIsImportedData(false);
-            setImportedRowCount(0);
-            setGeneratedResults({ datasetDescription: '', rowLabel: '', notes: [], columnDescriptions: {} });
-            setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
-            setSocrataDatasetId('');
-            setSocrataFieldNameMap({});
-
-            let currentStep = 'loading CSV';
-            try {
-                setStatus({
-                    message: 'Reading CSV file...',
-                    type: 'info'
-                });
-
-                const result = await parseFile(file);
-
-                if (!result.data || result.data.length === 0) {
-                    setStatus({ message: 'No data found in CSV file', type: 'error' });
-                    setIsProcessing(false);
-                    return;
-                }
-
-                setCsvData(result.data);
-                setFileName(result.fileName);
-
-                setStatus({ message: 'Analyzing columns...', type: 'info' });
-                const columns = Object.keys(result.data[0]);
-                const stats: Record<string, ColumnInfo> = {};
-                columns.forEach((col) => {
-                    const values = result.data.map((row) => row[col]);
-                    stats[col] = analyzeColumn(col, values);
-                });
-                setColumnStats(stats);
-                setShowResults(true);
-
-                currentStep = 'generating dataset description';
-                setStatus({ message: 'Generating dataset description...', type: 'info' });
-                const datasetResult = await generateDatasetDescription(result.data, result.fileName, stats, '', undefined, abortSignal);
-
-                if (datasetResult.aborted) {
-                    setGeneratingColumns(new Set());
-                    setStatus({ message: 'Generation stopped.', type: 'info' });
-                    setIsProcessing(false);
-                    return;
-                }
-
-                const datasetDesc = datasetResult.content;
-                setGeneratedResults((prev) => ({ ...prev, datasetDescription: datasetDesc }));
-
-                currentStep = 'generating column descriptions';
-                setStatus({ message: `Generating descriptions for ${columns.length} columns...`, type: 'info' });
-                setGeneratingColumns(new Set(columns));
-
-                const columnPromises = columns.map(async (col) => {
-                    const info = stats[col];
-                    const colValues = result.data.map(row => row[col]);
-                    const colResult = await generateColumnDescription(col, info, datasetDesc, colValues, '', undefined, abortSignal);
-                    return { col, result: colResult };
-                });
-
-                const columnResults = await Promise.all(columnPromises);
-                const abortedColumns = columnResults.filter(r => r.result.aborted);
-                if (abortedColumns.length > 0) {
-                    setGeneratingColumns(new Set());
-                    setStatus({ message: 'Generation stopped.', type: 'info' });
-                    setIsProcessing(false);
-                    return;
-                }
-
-                setGeneratingColumns(new Set());
-                setStatus({
-                    message: 'Analysis complete! All descriptions generated successfully.',
-                    type: 'success'
-                });
-            } catch (error) {
-                if (error instanceof Error && error.name === 'AbortError') {
-                    setStatus({ message: 'Generation stopped.', type: 'info' });
-                } else {
-                    const detail = error instanceof Error ? error.message : 'Unknown error';
-                    setStatus({
-                        message: `Error while ${currentStep}: ${detail}`,
-                        type: 'error'
-                    });
-                }
-            } finally {
-                setIsProcessing(false);
-            }
-        },
-        [generateDatasetDescription, generateColumnDescription]
-    );
-
     const handleStop = useCallback(() => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
@@ -711,55 +597,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         },
         [csvData, columnStats, generatedResults.datasetDescription, generateColumnDescription]
     );
-
-    const handleGenerateEmptyDescriptions = useCallback(async () => {
-        if (!csvData) return;
-        const emptyColumns = Object.keys(columnStats).filter(
-            (col) => !generatedResults.columnDescriptions[col]?.trim()
-        );
-        if (emptyColumns.length === 0) {
-            setStatus({ message: 'All columns already have descriptions.', type: 'info' });
-            return;
-        }
-
-        setIsGeneratingEmpty(true);
-        setGeneratingColumns(new Set(emptyColumns));
-        setStatus({
-            message: `Generating descriptions for ${emptyColumns.length} empty column(s)...`,
-            type: 'info',
-        });
-
-        try {
-            let datasetDesc = generatedResults.datasetDescription;
-            if (!datasetDesc.trim()) {
-                const dsResult = await generateDatasetDescription(csvData, fileName, columnStats);
-                datasetDesc = dsResult.content;
-                setGeneratedResults((prev) => ({ ...prev, datasetDescription: datasetDesc }));
-            }
-
-            const columnPromises = emptyColumns.map(async (col) => {
-                const info = columnStats[col];
-                const colValues = csvData.map((row) => row[col]);
-                const result = await generateColumnDescription(col, info, datasetDesc, colValues);
-                return { col, result };
-            });
-
-            await Promise.all(columnPromises);
-
-            setStatus({
-                message: `Successfully generated descriptions for ${emptyColumns.length} column(s)!`,
-                type: 'success',
-            });
-        } catch (error) {
-            setStatus({
-                message: `Error generating descriptions: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                type: 'error',
-            });
-        } finally {
-            setGeneratingColumns(new Set());
-            setIsGeneratingEmpty(false);
-        }
-    }, [csvData, columnStats, generatedResults, fileName, generateDatasetDescription, generateColumnDescription]);
 
     const handleGenerateSelectedDescriptions = useCallback(async (selectedColumns: string[]) => {
         if (!csvData || selectedColumns.length === 0) return;
@@ -1231,8 +1068,6 @@ FORMAT RULES:
         currentPage,
         currentFieldName,
         navigate,
-        apiConfig,
-        model,
         openaiConfig,
         promptTemplates,
         setPromptTemplates,
@@ -1245,7 +1080,6 @@ FORMAT RULES:
         isImportedData,
         importedRowCount,
         status,
-        setStatus,
         isProcessing,
         generatingColumns,
         regeneratingDataset,
@@ -1258,9 +1092,7 @@ FORMAT RULES:
         generatingRowLabel,
         generatingNotes,
         pendingNote,
-        tokenUsage,
         socrataDatasetId,
-        socrataFieldNameMap,
         isPushingSocrata,
         socrataOAuthToken,
         socrataOAuthUser,
@@ -1271,12 +1103,10 @@ FORMAT RULES:
         socrataApiKeySecret,
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
-        handleAnalyze,
         handleSocrataImport,
         handleStop,
         handleRegenerateDataset,
         handleRegenerateColumn,
-        handleGenerateEmptyDescriptions,
         handleGenerateSelectedDescriptions,
         handleSuggestDatasetImprovement,
         handleDismissDatasetSuggestions,
