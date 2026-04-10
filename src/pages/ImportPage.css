@@ -157,6 +157,62 @@
     margin-top: 4px;
 }
 
+/* Or divider */
+.import-or-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 20px 0;
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+.import-or-divider::before,
+.import-or-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+/* CSV upload button */
+.import-csv-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 20px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.2s, background 0.15s;
+}
+
+.import-csv-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.import-csv-btn.dragging {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.import-csv-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Processing indicator */
 .import-processing {
     display: flex;

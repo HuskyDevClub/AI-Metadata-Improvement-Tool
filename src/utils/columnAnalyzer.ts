@@ -1,5 +1,61 @@
 import type { CategoricalStats, ColumnInfo, CsvRow, NumericStats, TextStats } from '../types';
 
+export function analyzeColumn(_columnName: string, values: (string | null | undefined)[]): ColumnInfo {
+    const nonNullValues = values.filter(
+        (v): v is string => v !== null && v !== undefined && v !== ''
+    );
+
+    const nullCount = values.length - nonNullValues.length;
+    const totalCount = values.length;
+
+    if (nonNullValues.length === 0) {
+        return { type: 'empty', stats: {}, nullCount, totalCount };
+    }
+
+    // Try to parse as numbers
+    const numericValues = nonNullValues
+        .map((v) => parseFloat(v))
+        .filter((v) => !isNaN(v));
+
+    if (numericValues.length / nonNullValues.length > 0.8) {
+        // Numeric column
+        numericValues.sort((a, b) => a - b);
+        const stats: NumericStats = {
+            count: numericValues.length,
+            min: Math.min(...numericValues),
+            max: Math.max(...numericValues),
+            mean: numericValues.reduce((a, b) => a + b, 0) / numericValues.length,
+            q1: numericValues[Math.floor(numericValues.length * 0.25)],
+            median: numericValues[Math.floor(numericValues.length * 0.5)],
+            q3: numericValues[Math.floor(numericValues.length * 0.75)],
+        };
+        return { type: 'numeric', stats, nullCount, totalCount };
+    }
+
+    // Check if categorical
+    const uniqueValues = [...new Set(nonNullValues)];
+    const uniqueRatio = uniqueValues.length / nonNullValues.length;
+
+    if (uniqueRatio < 0.5 || uniqueValues.length < 50) {
+        // Categorical column
+        const stats: CategoricalStats = {
+            count: nonNullValues.length,
+            uniqueCount: uniqueValues.length,
+            values: uniqueValues.slice(0, 20),
+            hasMore: uniqueValues.length > 20,
+        };
+        return { type: 'categorical', stats, nullCount, totalCount };
+    }
+
+    // Text column
+    const stats: TextStats = {
+        count: nonNullValues.length,
+        uniqueCount: uniqueValues.length,
+        samples: nonNullValues.slice(0, 5),
+    };
+    return { type: 'text', stats, nullCount, totalCount };
+}
+
 export function formatColumnStats(info: ColumnInfo): string {
     if (info.type === 'numeric') {
         const stats = info.stats as NumericStats;

@@ -95,7 +95,7 @@ export function DataOverviewPage() {
                 </div>
             )}
 
-            {generatedResults.datasetDescription && (
+            {csvData && (
                 <DatasetDescription
                     description={generatedResults.datasetDescription}
                     fileName={fileName}

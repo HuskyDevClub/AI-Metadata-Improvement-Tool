@@ -5,9 +5,16 @@ import {
     fetchSocrataImport,
     fetchSocrataOAuthLoginUrl,
     fetchSocrataOAuthUserInfo,
+    parseFile,
     pushSocrataMetadata,
 } from '../utils/socrataApi';
-import { buildSampleRows, getColumnStatsText, getSampleCount, getSampleValues } from '../utils/columnAnalyzer';
+import {
+    analyzeColumn,
+    buildSampleRows,
+    getColumnStatsText,
+    getSampleCount,
+    getSampleValues
+} from '../utils/columnAnalyzer';
 import { getEstimatedCost } from '../utils/pricing';
 import { handleRegenerationError } from '../utils/stateHelpers';
 import {
@@ -112,6 +119,7 @@ interface AppContextType {
     handleSocrataApiKeyClear: () => void;
 
     // Handlers
+    handleAnalyze: (file: File) => Promise<void>;
     handleSocrataImport: (datasetId: string) => Promise<void>;
     handleStop: () => void;
     handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
@@ -517,6 +525,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
             return { content: fullContent.trim() };
         },
         [openaiConfig, promptTemplates.systemPrompt, buildNotesPrompt, callOpenAIStream, addTokenUsage]
+    );
+
+    const handleAnalyze = useCallback(
+        async (file: File) => {
+            setIsProcessing(true);
+            setShowResults(false);
+            setIsImportedData(false);
+            setImportedRowCount(0);
+            setGeneratedResults({ datasetDescription: '', rowLabel: '', notes: [], columnDescriptions: {} });
+            setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
+            setSocrataDatasetId('');
+            setSocrataFieldNameMap({});
+
+            try {
+                setStatus({ message: 'Reading CSV file...', type: 'info' });
+
+                const result = await parseFile(file);
+
+                if (!result.data || result.data.length === 0) {
+                    setStatus({ message: 'No data found in CSV file', type: 'error' });
+                    setIsProcessing(false);
+                    return;
+                }
+
+                setCsvData(result.data);
+                setFileName(result.fileName);
+
+                setStatus({ message: 'Analyzing columns...', type: 'info' });
+                const columns = Object.keys(result.data[0]);
+                const stats: Record<string, ColumnInfo> = {};
+                columns.forEach((col) => {
+                    const values = result.data.map((row) => row[col]);
+                    stats[col] = analyzeColumn(col, values);
+                });
+                setColumnStats(stats);
+                setShowResults(true);
+                setStatus({ message: 'CSV loaded successfully.', type: 'success' });
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : 'Unknown error';
+                setStatus({ message: `Error reading CSV: ${detail}`, type: 'error' });
+            } finally {
+                setIsProcessing(false);
+            }
+        },
+        []
     );
 
     const handleStop = useCallback(() => {
@@ -1103,6 +1156,7 @@ FORMAT RULES:
         socrataApiKeySecret,
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
+        handleAnalyze,
         handleSocrataImport,
         handleStop,
         handleRegenerateDataset,

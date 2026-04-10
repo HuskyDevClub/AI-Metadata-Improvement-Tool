@@ -1,6 +1,30 @@
+import Papa from 'papaparse';
 import type { ColumnInfo, CsvRow } from '../types';
 import { API_BASE_URL } from './config';
 import { assertResponseOk } from './api';
+
+interface ParseResult {
+    data: CsvRow[];
+    fileName: string;
+}
+
+export function parseFile(file: File): Promise<ParseResult> {
+    return new Promise((resolve, reject) => {
+        Papa.parse<CsvRow>(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                resolve({
+                    data: results.data,
+                    fileName: file.name,
+                });
+            },
+            error: (error) => {
+                reject(new Error(`Error parsing CSV: ${error.message}`));
+            },
+        });
+    });
+}
 
 interface SocrataColumnMeta {
     fieldName: string;
