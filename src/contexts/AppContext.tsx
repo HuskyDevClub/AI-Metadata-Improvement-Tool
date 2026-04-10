@@ -65,11 +65,36 @@ function parseSuggestions(text: string): SuggestionItem[] {
 
 export type PageId = 'import' | 'data' | 'field' | 'settings';
 
+export interface DatasetTabInfo {
+    id: string;
+    fileName: string;
+}
+
+interface SavedDatasetState {
+    page: 'data' | 'field';
+    fieldName: string | null;
+    csvData: CsvRow[] | null;
+    fileName: string;
+    columnStats: Record<string, ColumnInfo>;
+    generatedResults: GeneratedResults;
+    showResults: boolean;
+    isImportedData: boolean;
+    importedRowCount: number;
+    tokenUsage: TokenUsage;
+    socrataDatasetId: string;
+    socrataFieldNameMap: Record<string, string>;
+}
+
 interface AppContextType {
     // Navigation
     currentPage: PageId;
     currentFieldName: string | null;
     navigate: (page: PageId, fieldName?: string) => void;
+
+    // Multi-dataset tabs
+    datasetTabs: DatasetTabInfo[];
+    activeDatasetId: string | null;
+    switchToDataset: (id: string) => void;
 
     // API & Config
     openaiConfig: OpenAIConfigType;
@@ -147,6 +172,7 @@ interface AppContextType {
     handleGenerateNote: () => Promise<void>;
     handlePushToSocrata: () => Promise<void>;
     handleCloseDataset: () => void;
+    closeTab: (id: string) => void;
     renderTokenUsage: () => React.ReactNode;
 }
 
@@ -163,10 +189,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Navigation
     const [currentPage, setCurrentPage] = useState<PageId>('import');
     const [currentFieldName, setCurrentFieldName] = useState<string | null>(null);
+    const lastDatasetPageRef = useRef<{ page: 'data' | 'field'; fieldName: string | null }>({
+        page: 'data',
+        fieldName: null
+    });
 
     const navigate = useCallback((page: PageId, fieldName?: string) => {
         setCurrentPage(page);
         setCurrentFieldName(fieldName ?? null);
+        if (page === 'data' || page === 'field') {
+            lastDatasetPageRef.current = { page, fieldName: fieldName ?? null };
+        }
     }, []);
 
     // Shared API configuration for all modes
@@ -236,6 +269,90 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [generatingRowLabel, setGeneratingRowLabel] = useState(false);
     const [generatingNotes, setGeneratingNotes] = useState(false);
     const [pendingNote, setPendingNote] = useState('');
+
+    // --- Multi-dataset tab support ---
+    const [datasetTabs, setDatasetTabs] = useState<DatasetTabInfo[]>([]);
+    const [activeDatasetId, setActiveDatasetId] = useState<string | null>(null);
+    const savedDatasetsRef = useRef<Map<string, SavedDatasetState>>(new Map());
+    const activeDatasetIdRef = useRef<string | null>(null);
+
+    // Abort controller for stopping generation (moved here so switchToDataset can reference it)
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    // Ref that always holds current per-dataset state (updated synchronously during render)
+    const datasetStateRef = useRef({
+        csvData, fileName, columnStats, generatedResults, showResults,
+        isImportedData, importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
+    });
+    datasetStateRef.current = {
+        csvData, fileName, columnStats, generatedResults, showResults,
+        isImportedData, importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
+    };
+
+    const saveCurrentDataset = useCallback(() => {
+        const id = activeDatasetIdRef.current;
+        if (!id) return;
+        const s = datasetStateRef.current;
+        const lp = lastDatasetPageRef.current;
+        savedDatasetsRef.current.set(id, {
+            ...s,
+            page: lp.page,
+            fieldName: lp.fieldName,
+        });
+    }, []);
+
+    const restoreDataset = useCallback((id: string) => {
+        const saved = savedDatasetsRef.current.get(id);
+        if (!saved) return;
+        setCsvData(saved.csvData);
+        setFileName(saved.fileName);
+        setColumnStats(saved.columnStats);
+        setGeneratedResults(saved.generatedResults);
+        setShowResults(saved.showResults);
+        setIsImportedData(saved.isImportedData);
+        setImportedRowCount(saved.importedRowCount);
+        setTokenUsage(saved.tokenUsage);
+        setSocrataDatasetId(saved.socrataDatasetId);
+        setSocrataFieldNameMap(saved.socrataFieldNameMap);
+        setIsProcessing(false);
+        setGeneratingColumns(new Set());
+        setRegeneratingDataset(false);
+        setRegeneratingColumns(new Set());
+        setSuggestingDataset(false);
+        setDatasetSuggestions([]);
+        setSuggestingColumns(new Set());
+        setColumnSuggestions({});
+        setIsGeneratingEmpty(false);
+        setGeneratingRowLabel(false);
+        setGeneratingNotes(false);
+        setPendingNote('');
+        setIsPushingSocrata(false);
+        setCurrentPage(saved.page);
+        setCurrentFieldName(saved.fieldName);
+        lastDatasetPageRef.current = { page: saved.page, fieldName: saved.fieldName };
+    }, []);
+
+    const switchToDataset = useCallback((id: string) => {
+        const currentId = activeDatasetIdRef.current;
+        if (id === currentId) {
+            // Already active - navigate back to its last page (in case we're on import/settings)
+            const lp = lastDatasetPageRef.current;
+            setCurrentPage(lp.page);
+            setCurrentFieldName(lp.fieldName);
+            return;
+        }
+        // Abort any ongoing processing
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        // Save current dataset
+        saveCurrentDataset();
+        // Restore target
+        restoreDataset(id);
+        activeDatasetIdRef.current = id;
+        setActiveDatasetId(id);
+        savedDatasetsRef.current.delete(id);
+    }, [saveCurrentDataset, restoreDataset]);
 
     // Socrata OAuth: detect token in URL fragment on mount, or restore from localStorage
     useEffect(() => {
@@ -326,9 +443,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('socrata_oauth_user');
         setStatus({ message: 'Signed out from data.wa.gov', type: 'info' });
     }, []);
-
-    // Abort controller for stopping generation
-    const abortControllerRef = useRef<AbortController | null>(null);
 
     const { callOpenAIStream } = useOpenAI();
 
@@ -530,17 +644,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const handleAnalyze = useCallback(
         async (file: File) => {
             setIsProcessing(true);
-            setShowResults(false);
-            setIsImportedData(false);
-            setImportedRowCount(0);
-            setGeneratedResults({ datasetDescription: '', rowLabel: '', notes: [], columnDescriptions: {} });
-            setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
-            setSocrataDatasetId('');
-            setSocrataFieldNameMap({});
+            setStatus({ message: 'Reading CSV file...', type: 'info' });
 
             try {
-                setStatus({ message: 'Reading CSV file...', type: 'info' });
-
                 const result = await parseFile(file);
 
                 if (!result.data || result.data.length === 0) {
@@ -549,8 +655,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     return;
                 }
 
+                // Save current dataset before switching
+                if (activeDatasetIdRef.current && datasetStateRef.current.showResults) {
+                    saveCurrentDataset();
+                }
+
+                // Create new tab
+                const newId = crypto.randomUUID();
+                activeDatasetIdRef.current = newId;
+                setActiveDatasetId(newId);
+
+                // Set new dataset state
                 setCsvData(result.data);
                 setFileName(result.fileName);
+                setShowResults(true);
+                setIsImportedData(false);
+                setImportedRowCount(0);
+                setGeneratedResults({ datasetDescription: '', rowLabel: '', notes: [], columnDescriptions: {} });
+                setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
+                setSocrataDatasetId('');
+                setSocrataFieldNameMap({});
 
                 setStatus({ message: 'Analyzing columns...', type: 'info' });
                 const columns = Object.keys(result.data[0]);
@@ -560,8 +684,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     stats[col] = analyzeColumn(col, values);
                 });
                 setColumnStats(stats);
-                setShowResults(true);
-                setStatus({ message: 'CSV loaded successfully.', type: 'success' });
+
+                // Add tab
+                setDatasetTabs(prev => [...prev, { id: newId, fileName: result.fileName }]);
+                lastDatasetPageRef.current = { page: 'data', fieldName: null };
+
+                setStatus({ message: 'CSV loaded successfully.', type: 'success', autoHide: 3000 });
             } catch (error) {
                 const detail = error instanceof Error ? error.message : 'Unknown error';
                 setStatus({ message: `Error reading CSV: ${detail}`, type: 'error' });
@@ -569,7 +697,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 setIsProcessing(false);
             }
         },
-        []
+        [saveCurrentDataset]
     );
 
     const handleStop = useCallback(() => {
@@ -579,30 +707,68 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const handleCloseDataset = useCallback(() => {
-        setCsvData(null);
-        setFileName('');
-        setColumnStats({});
-        setGeneratedResults({ datasetDescription: '', rowLabel: '', notes: [], columnDescriptions: {} });
-        setShowResults(false);
-        setIsImportedData(false);
-        setImportedRowCount(0);
-        setGeneratingColumns(new Set());
-        setRegeneratingDataset(false);
-        setRegeneratingColumns(new Set());
-        setSuggestingDataset(false);
-        setDatasetSuggestions([]);
-        setSuggestingColumns(new Set());
-        setColumnSuggestions({});
-        setIsGeneratingEmpty(false);
-        setGeneratingRowLabel(false);
-        setGeneratingNotes(false);
-        setPendingNote('');
-        setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
-        setSocrataDatasetId('');
-        setSocrataFieldNameMap({});
-        setStatus(null);
-        navigate('import');
-    }, [navigate]);
+        const closingId = activeDatasetIdRef.current;
+
+        // Abort any ongoing processing
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
+        // Remove from tabs
+        const remainingTabs = datasetTabs.filter(t => t.id !== closingId);
+        setDatasetTabs(remainingTabs);
+
+        // Clean up saved state
+        if (closingId) savedDatasetsRef.current.delete(closingId);
+
+        if (remainingTabs.length > 0) {
+            // Switch to the last remaining tab
+            const nextTab = remainingTabs[remainingTabs.length - 1];
+            restoreDataset(nextTab.id);
+            activeDatasetIdRef.current = nextTab.id;
+            setActiveDatasetId(nextTab.id);
+            savedDatasetsRef.current.delete(nextTab.id);
+        } else {
+            // No datasets left - reset everything
+            activeDatasetIdRef.current = null;
+            setActiveDatasetId(null);
+            setCsvData(null);
+            setFileName('');
+            setColumnStats({});
+            setGeneratedResults({ datasetDescription: '', rowLabel: '', notes: [], columnDescriptions: {} });
+            setShowResults(false);
+            setIsImportedData(false);
+            setImportedRowCount(0);
+            setGeneratingColumns(new Set());
+            setRegeneratingDataset(false);
+            setRegeneratingColumns(new Set());
+            setSuggestingDataset(false);
+            setDatasetSuggestions([]);
+            setSuggestingColumns(new Set());
+            setColumnSuggestions({});
+            setIsGeneratingEmpty(false);
+            setGeneratingRowLabel(false);
+            setGeneratingNotes(false);
+            setPendingNote('');
+            setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
+            setSocrataDatasetId('');
+            setSocrataFieldNameMap({});
+            setIsPushingSocrata(false);
+            setIsProcessing(false);
+            setStatus(null);
+            navigate('import');
+        }
+    }, [datasetTabs, navigate, restoreDataset]);
+
+    const closeTab = useCallback((id: string) => {
+        if (id === activeDatasetIdRef.current) {
+            handleCloseDataset();
+        } else {
+            // Close an inactive tab - just remove it from tabs and saved state
+            savedDatasetsRef.current.delete(id);
+            setDatasetTabs(prev => prev.filter(t => t.id !== id));
+        }
+    }, [handleCloseDataset]);
 
     const handleRegenerateDataset = useCallback(
         async (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
@@ -976,15 +1142,9 @@ FORMAT RULES:
     const handleSocrataImport = useCallback(
         async (datasetId: string) => {
             setIsProcessing(true);
-            setShowResults(false);
-            setIsImportedData(false);
-            setImportedRowCount(0);
-            setGeneratedResults({ datasetDescription: '', rowLabel: '', notes: [], columnDescriptions: {} });
-            setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
-            setSocrataDatasetId(datasetId);
+            setStatus({ message: 'Importing dataset from data.wa.gov...', type: 'info' });
 
             try {
-                setStatus({ message: 'Importing dataset from data.wa.gov...', type: 'info' });
                 const result = await fetchSocrataImport(
                     datasetId,
                     socrataOAuthToken || undefined,
@@ -998,10 +1158,23 @@ FORMAT RULES:
                     return;
                 }
 
+                // Save current dataset before switching
+                if (activeDatasetIdRef.current && datasetStateRef.current.showResults) {
+                    saveCurrentDataset();
+                }
+
+                // Create new tab
+                const newId = crypto.randomUUID();
+                activeDatasetIdRef.current = newId;
+                setActiveDatasetId(newId);
+
                 // Store sample rows (sufficient for display & AI prompts)
                 setCsvData(result.sampleRows);
                 setFileName(result.fileName);
                 setImportedRowCount(result.totalRowCount);
+                setIsImportedData(true);
+                setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
+                setSocrataDatasetId(datasetId);
 
                 // Use pre-computed stats from SODA API — no client-side analyzeColumn
                 setColumnStats(result.columnStats);
@@ -1038,10 +1211,15 @@ FORMAT RULES:
                 });
 
                 setShowResults(true);
+
+                // Add tab
+                setDatasetTabs(prev => [...prev, { id: newId, fileName: result.fileName }]);
+                lastDatasetPageRef.current = { page: 'data', fieldName: null };
+
                 setStatus({
                     message: `Imported "${result.datasetName}" with ${columns.length} columns (${result.totalRowCount.toLocaleString()} rows). Existing descriptions pre-populated — edit or improve with AI.`,
                     type: 'success',
-                    autoHide: 5000,
+                    autoHide: 3000,
                 });
             } catch (error) {
                 const detail = error instanceof Error ? error.message : 'Unknown error';
@@ -1050,7 +1228,7 @@ FORMAT RULES:
                 setIsProcessing(false);
             }
         },
-        [socrataOAuthToken, socrataApiKeyId, socrataApiKeySecret]
+        [socrataOAuthToken, socrataApiKeyId, socrataApiKeySecret, saveCurrentDataset]
     );
 
     const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
@@ -1121,6 +1299,9 @@ FORMAT RULES:
         currentPage,
         currentFieldName,
         navigate,
+        datasetTabs,
+        activeDatasetId,
+        switchToDataset,
         openaiConfig,
         promptTemplates,
         setPromptTemplates,
@@ -1184,6 +1365,7 @@ FORMAT RULES:
         handleGenerateNote,
         handlePushToSocrata,
         handleCloseDataset,
+        closeTab,
         renderTokenUsage,
     };
 

@@ -24,6 +24,33 @@ function NavTab({ page, label, disabled }: { page: PageId; label: string; disabl
     );
 }
 
+function DatasetTab({ id, fileName }: { id: string; fileName: string }) {
+    const { activeDatasetId, currentPage, switchToDataset, closeTab } = useAppContext();
+    const isActive = id === activeDatasetId && currentPage !== 'import' && currentPage !== 'settings';
+
+    return (
+        <button
+            className={`layout-nav-link layout-dataset-tab ${isActive ? 'active' : ''}`}
+            onClick={() => switchToDataset(id)}
+            title={fileName}
+        >
+            <span className="layout-dataset-tab-name">{fileName}</span>
+            <span
+                className="layout-dataset-tab-close"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm('Close this dataset?')) {
+                        closeTab(id);
+                    }
+                }}
+                title="Close dataset"
+            >
+                &times;
+            </span>
+        </button>
+    );
+}
+
 function CurrentPage() {
     const { currentPage } = useAppContext();
     switch (currentPage) {
@@ -54,7 +81,9 @@ export function Layout() {
         isPushingSocrata,
         socrataDatasetId,
         handlePushToSocrata,
-        handleCloseDataset,
+        datasetTabs,
+        activeDatasetId,
+        switchToDataset,
     } = useAppContext();
 
     return (
@@ -97,10 +126,12 @@ export function Layout() {
                 </div>
                 <nav className="layout-nav">
                     <NavTab page="import" label="Import"/>
-                    <NavTab page="data" label="Data Overview" disabled={!showResults}/>
+                    {datasetTabs.map(tab => (
+                        <DatasetTab key={tab.id} id={tab.id} fileName={tab.fileName}/>
+                    ))}
                 </nav>
             </div>
-            {showResults && fileName && currentPage === 'data' && (
+            {showResults && fileName && (currentPage === 'data' || currentPage === 'field') && (
                 <div className="layout-dataset-bar">
                     <span className="layout-dataset-name">{fileName}</span>
                     <div className="layout-dataset-bar-actions">
@@ -119,21 +150,6 @@ export function Layout() {
                                 {isPushingSocrata ? 'Pushing...' : 'Push to data.wa.gov'}
                             </button>
                         )}
-                        <button
-                            className="layout-dataset-close-btn"
-                            onClick={() => {
-                                if (window.confirm('Close this dataset and return to Import?')) {
-                                    handleCloseDataset();
-                                }
-                            }}
-                            title="Close dataset"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor"
-                                 strokeWidth="1.5" strokeLinecap="round">
-                                <path d="M4 4l8 8M12 4l-8 8"/>
-                            </svg>
-                            Close
-                        </button>
                     </div>
                 </div>
             )}
