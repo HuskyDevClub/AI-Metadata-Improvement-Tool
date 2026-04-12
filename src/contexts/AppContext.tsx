@@ -1237,6 +1237,27 @@ FORMAT RULES:
         [socrataOAuthToken, socrataApiKeyId, socrataApiKeySecret, saveCurrentDataset]
     );
 
+    // Auto-import dataset from ?dataset_id=<id> query parameter on mount
+    const urlDatasetIdHandledRef = useRef(false);
+    useEffect(() => {
+        if (urlDatasetIdHandledRef.current) return;
+        const params = new URLSearchParams(window.location.search);
+        const datasetIdFromUrl = params.get('dataset_id');
+        if (!datasetIdFromUrl) return;
+
+        urlDatasetIdHandledRef.current = true;
+
+        // Strip dataset_id from URL while preserving other params and hash
+        params.delete('dataset_id');
+        const remainingQuery = params.toString();
+        const newUrl = window.location.pathname
+            + (remainingQuery ? `?${remainingQuery}` : '')
+            + window.location.hash;
+        window.history.replaceState(null, '', newUrl);
+
+        handleSocrataImport(datasetIdFromUrl);
+    }, [handleSocrataImport]);
+
     const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
         setApiConfig({ baseURL: newConfig.baseURL, apiKey: newConfig.apiKey });
         setModel(newConfig.model);
