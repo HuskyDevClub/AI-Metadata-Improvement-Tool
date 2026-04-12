@@ -203,15 +203,14 @@ export function AppProvider({ children }: {children: ReactNode}) {
         }
     }, []);
 
-    // Shared API configuration for all modes (persisted to localStorage,
-    // falls back to VITE_* env defaults on first load)
+    // Shared API configuration for all modes (persisted to localStorage)
     const [apiConfig, setApiConfig] = useState<APIConfig>(() => ({
-        baseURL: localStorage.getItem('openai_base_url') ?? (import.meta.env.VITE_LLM_ENDPOINT || ''),
-        apiKey: localStorage.getItem('openai_api_key') ?? (import.meta.env.VITE_LLM_API_KEY || ''),
+        baseURL: localStorage.getItem('openai_base_url') ?? '',
+        apiKey: localStorage.getItem('openai_api_key') ?? '',
     }));
 
     const [model, setModel] = useState<string>(
-        () => localStorage.getItem('openai_model') ?? (import.meta.env.VITE_LLM_MODEL || '')
+        () => localStorage.getItem('openai_model') ?? ''
     );
 
     // Combined config for hooks that need the full OpenAIConfig
@@ -1247,11 +1246,8 @@ FORMAT RULES:
     }, []);
 
     const handleOpenAIConfigClear = useCallback(() => {
-        const envBaseURL = import.meta.env.VITE_LLM_ENDPOINT || '';
-        const envApiKey = import.meta.env.VITE_LLM_API_KEY || '';
-        const envModel = import.meta.env.VITE_LLM_MODEL || '';
-        setApiConfig({ baseURL: envBaseURL, apiKey: envApiKey });
-        setModel(envModel);
+        setApiConfig({ baseURL: '', apiKey: '' });
+        setModel('');
         localStorage.removeItem('openai_base_url');
         localStorage.removeItem('openai_api_key');
         localStorage.removeItem('openai_model');

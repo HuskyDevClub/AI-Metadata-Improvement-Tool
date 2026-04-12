@@ -40,11 +40,6 @@ cd ..
    ```env
    # Backend API URL (defaults to http://localhost:8000)
    VITE_API_BASE_URL=http://localhost:8000
-
-   # Optional: Pre-fill API configuration in the UI (works with any OpenAI-compatible endpoint)
-   VITE_LLM_ENDPOINT=https://api.openai.com/v1
-   VITE_LLM_API_KEY=your-api-key
-   VITE_LLM_MODEL=gpt5-mini
    ```
 
 3. Configure the backend `.env` file in the `backend/` directory:

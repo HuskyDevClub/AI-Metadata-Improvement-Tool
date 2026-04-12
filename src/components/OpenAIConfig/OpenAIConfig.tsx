@@ -50,7 +50,7 @@ export function OpenAIConfig({
 
     return (
         <div className="openai-config-section">
-            <div className="openai-config-section-title">API Configuration</div>
+            <div className="openai-config-section-title">Custom API Configuration</div>
             <div className="openai-config-grid">
                 <div className="openai-config-input-group">
                     <label htmlFor="openaiBaseURL">Base URL *</label>
