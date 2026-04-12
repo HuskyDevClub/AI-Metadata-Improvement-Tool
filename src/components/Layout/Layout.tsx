@@ -32,6 +32,15 @@ function DatasetTab({ id, fileName }: {id: string; fileName: string}) {
         <button
             className={`layout-nav-link layout-dataset-tab ${isActive ? 'active' : ''}`}
             onClick={() => switchToDataset(id)}
+            onAuxClick={(e) => {
+                if (e.button === 1) {
+                    e.preventDefault();
+                    closeTab(id);
+                }
+            }}
+            onMouseDown={(e) => {
+                if (e.button === 1) e.preventDefault();
+            }}
             title={fileName}
         >
             <span className="layout-dataset-tab-name">{fileName}</span>
