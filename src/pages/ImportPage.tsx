@@ -23,6 +23,7 @@ export function ImportPage() {
     const [showApiKey, setShowApiKey] = useState(!!socrataApiKeyId);
     const [apiKeyIdInput, setApiKeyIdInput] = useState(socrataApiKeyId);
     const [apiKeySecretInput, setApiKeySecretInput] = useState(socrataApiKeySecret);
+    const [rememberKey, setRememberKey] = useState(true);
     const apiKeysSaved = !!(socrataApiKeyId && socrataApiKeySecret);
 
     const csvFileRef = useRef<HTMLInputElement>(null);
@@ -51,7 +52,18 @@ export function ImportPage() {
 
     const handleSocrataSubmit = () => {
         if (!datasetId.trim()) return;
-        handleSocrataImport(datasetId.trim());
+
+        const trimmedKeyId = apiKeyIdInput.trim();
+        const trimmedKeySecret = apiKeySecretInput.trim();
+        const hasCredentials = !!(trimmedKeyId && trimmedKeySecret);
+
+        if (rememberKey && hasCredentials) {
+            handleSocrataApiKeySave(trimmedKeyId, trimmedKeySecret);
+        } else if (!rememberKey && (socrataApiKeyId || socrataApiKeySecret)) {
+            handleSocrataApiKeyClear();
+        }
+
+        handleSocrataImport(datasetId.trim(), trimmedKeyId, trimmedKeySecret);
     };
 
     const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -139,7 +151,6 @@ export function ImportPage() {
                             placeholder="Your Socrata API Key ID"
                             value={apiKeyIdInput}
                             onChange={(e) => setApiKeyIdInput(e.target.value)}
-                            disabled={apiKeysSaved}
                         />
                     </div>
                     <div className="import-form-group">
@@ -150,35 +161,16 @@ export function ImportPage() {
                             placeholder="Your Socrata API Key Secret"
                             value={apiKeySecretInput}
                             onChange={(e) => setApiKeySecretInput(e.target.value)}
-                            disabled={apiKeysSaved}
                         />
                     </div>
-                    {apiKeysSaved ? (
-                        <button
-                            type="button"
-                            className="import-form-link-btn"
-                            onClick={() => {
-                                handleSocrataApiKeyClear();
-                                setApiKeyIdInput('');
-                                setApiKeySecretInput('');
-                            }}
-                        >
-                            Clear saved keys
-                        </button>
-                    ) : (
-                        <button
-                            type="button"
-                            className="import-form-link-btn"
-                            onClick={() => {
-                                if (apiKeyIdInput.trim() && apiKeySecretInput.trim()) {
-                                    handleSocrataApiKeySave(apiKeyIdInput.trim(), apiKeySecretInput.trim());
-                                }
-                            }}
-                            disabled={!apiKeyIdInput.trim() || !apiKeySecretInput.trim()}
-                        >
-                            Save keys
-                        </button>
-                    )}
+                    <label className="import-form-remember">
+                        <input
+                            type="checkbox"
+                            checked={rememberKey}
+                            onChange={(e) => setRememberKey(e.target.checked)}
+                        />
+                        Remember this API key on this browser
+                    </label>
                     <span className="import-form-hint">
                         Generate API keys from your data.wa.gov profile &gt; Developer Settings
                     </span>

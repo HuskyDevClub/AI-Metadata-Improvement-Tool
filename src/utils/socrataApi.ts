@@ -79,7 +79,7 @@ export async function pushSocrataMetadata(
     datasetDescription: string | undefined,
     rowLabel: string | undefined,
     notes: string[] | undefined,
-    columns: { fieldName: string; description: string }[],
+    columns: {fieldName: string; description: string}[],
     oauthToken?: string,
     apiKeyId?: string,
     apiKeySecret?: string,
@@ -142,7 +142,7 @@ export async function fetchSocrataOAuthLoginUrl(): Promise<string> {
 
 export async function fetchSocrataOAuthUserInfo(
     oauthToken: string,
-): Promise<{ id: string; displayName: string; email?: string }> {
+): Promise<{id: string; displayName: string; email?: string}> {
     const response = await fetch(`${API_BASE_URL}/api/auth/socrata/userinfo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

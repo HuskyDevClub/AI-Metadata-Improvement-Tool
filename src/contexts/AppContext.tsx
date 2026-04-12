@@ -101,6 +101,7 @@ interface AppContextType {
     promptTemplates: PromptTemplates;
     setPromptTemplates: React.Dispatch<React.SetStateAction<PromptTemplates>>;
     handleOpenAIConfigChange: (config: OpenAIConfigType) => void;
+    handleOpenAIConfigClear: () => void;
 
     // CSV Data
     csvData: CsvRow[] | null;
@@ -132,7 +133,7 @@ interface AppContextType {
 
     // Socrata OAuth
     socrataOAuthToken: string | null;
-    socrataOAuthUser: { id: string; displayName: string; email?: string } | null;
+    socrataOAuthUser: {id: string; displayName: string; email?: string} | null;
     isSocrataOAuthAuthenticating: boolean;
     handleSocrataOAuthLogin: () => Promise<void>;
     handleSocrataOAuthLogout: () => void;
@@ -145,7 +146,7 @@ interface AppContextType {
 
     // Handlers
     handleAnalyze: (file: File) => Promise<void>;
-    handleSocrataImport: (datasetId: string) => Promise<void>;
+    handleSocrataImport: (datasetId: string, keyId?: string, keySecret?: string) => Promise<void>;
     handleStop: () => void;
     handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
     handleRegenerateColumn: (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
@@ -185,11 +186,11 @@ export function useAppContext(): AppContextType {
     return ctx;
 }
 
-export function AppProvider({ children }: { children: ReactNode }) {
+export function AppProvider({ children }: {children: ReactNode}) {
     // Navigation
     const [currentPage, setCurrentPage] = useState<PageId>('import');
     const [currentFieldName, setCurrentFieldName] = useState<string | null>(null);
-    const lastDatasetPageRef = useRef<{ page: 'data' | 'field'; fieldName: string | null }>({
+    const lastDatasetPageRef = useRef<{page: 'data' | 'field'; fieldName: string | null}>({
         page: 'data',
         fieldName: null
     });
@@ -202,13 +203,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // Shared API configuration for all modes
-    const [apiConfig, setApiConfig] = useState<APIConfig>({
-        baseURL: import.meta.env.VITE_LLM_ENDPOINT || '',
-        apiKey: import.meta.env.VITE_LLM_API_KEY || '',
-    });
+    // Shared API configuration for all modes (persisted to localStorage,
+    // falls back to VITE_* env defaults on first load)
+    const [apiConfig, setApiConfig] = useState<APIConfig>(() => ({
+        baseURL: localStorage.getItem('openai_base_url') ?? (import.meta.env.VITE_LLM_ENDPOINT || ''),
+        apiKey: localStorage.getItem('openai_api_key') ?? (import.meta.env.VITE_LLM_API_KEY || ''),
+    }));
 
-    const [model, setModel] = useState<string>(import.meta.env.VITE_LLM_MODEL || '');
+    const [model, setModel] = useState<string>(
+        () => localStorage.getItem('openai_model') ?? (import.meta.env.VITE_LLM_MODEL || '')
+    );
 
     // Combined config for hooks that need the full OpenAIConfig
     const openaiConfig: OpenAIConfigType = useMemo(() => ({
@@ -558,7 +562,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             modifier: '' | 'concise' | 'detailed' = '',
             customInstruction?: string,
             abortSignal?: AbortSignal
-        ): Promise<{ content: string; aborted: boolean }> => {
+        ): Promise<{content: string; aborted: boolean}> => {
             const prompt = buildDatasetPrompt(data, name, stats, modifier, customInstruction, importedRowCount || undefined);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
@@ -583,7 +587,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             modifier: '' | 'concise' | 'detailed' = '',
             customInstruction?: string,
             abortSignal?: AbortSignal
-        ): Promise<{ content: string; aborted: boolean }> => {
+        ): Promise<{content: string; aborted: boolean}> => {
             const prompt = buildColumnPrompt(columnName, info, datasetDesc, columnValues, modifier, customInstruction);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
@@ -605,7 +609,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             name: string,
             stats: Record<string, ColumnInfo>,
             rowCountOverride?: number,
-        ): Promise<{ content: string }> => {
+        ): Promise<{content: string}> => {
             const prompt = buildRowLabelPrompt(data, name, stats, rowCountOverride);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
@@ -627,7 +631,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             name: string,
             stats: Record<string, ColumnInfo>,
             rowCountOverride?: number,
-        ): Promise<{ content: string }> => {
+        ): Promise<{content: string}> => {
             const prompt = buildNotesPrompt(data, name, stats, rowCountOverride);
             let fullContent = '';
             setPendingNote('');
@@ -1140,16 +1144,19 @@ FORMAT RULES:
     }, [csvData, fileName, columnStats, importedRowCount, generateNotes]);
 
     const handleSocrataImport = useCallback(
-        async (datasetId: string) => {
+        async (datasetId: string, keyId?: string, keySecret?: string) => {
             setIsProcessing(true);
             setStatus({ message: 'Importing dataset from data.wa.gov...', type: 'info' });
+
+            const effectiveKeyId = keyId !== undefined ? keyId : socrataApiKeyId;
+            const effectiveKeySecret = keySecret !== undefined ? keySecret : socrataApiKeySecret;
 
             try {
                 const result = await fetchSocrataImport(
                     datasetId,
                     socrataOAuthToken || undefined,
-                    socrataApiKeyId || undefined,
-                    socrataApiKeySecret || undefined,
+                    effectiveKeyId || undefined,
+                    effectiveKeySecret || undefined,
                 );
 
                 if (!result.sampleRows || result.sampleRows.length === 0) {
@@ -1234,6 +1241,20 @@ FORMAT RULES:
     const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
         setApiConfig({ baseURL: newConfig.baseURL, apiKey: newConfig.apiKey });
         setModel(newConfig.model);
+        localStorage.setItem('openai_base_url', newConfig.baseURL);
+        localStorage.setItem('openai_api_key', newConfig.apiKey);
+        localStorage.setItem('openai_model', newConfig.model);
+    }, []);
+
+    const handleOpenAIConfigClear = useCallback(() => {
+        const envBaseURL = import.meta.env.VITE_LLM_ENDPOINT || '';
+        const envApiKey = import.meta.env.VITE_LLM_API_KEY || '';
+        const envModel = import.meta.env.VITE_LLM_MODEL || '';
+        setApiConfig({ baseURL: envBaseURL, apiKey: envApiKey });
+        setModel(envModel);
+        localStorage.removeItem('openai_base_url');
+        localStorage.removeItem('openai_api_key');
+        localStorage.removeItem('openai_model');
     }, []);
 
     const handlePushToSocrata = useCallback(async () => {
@@ -1306,6 +1327,7 @@ FORMAT RULES:
         promptTemplates,
         setPromptTemplates,
         handleOpenAIConfigChange,
+        handleOpenAIConfigClear,
         csvData,
         fileName,
         columnStats,

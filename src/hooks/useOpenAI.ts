@@ -11,7 +11,7 @@ export function useOpenAI() {
             systemPrompt: string,
             onChunk: (chunk: string) => void,
             abortSignal?: AbortSignal
-        ): Promise<{ usage: TokenUsage; aborted: boolean }> => {
+        ): Promise<{usage: TokenUsage; aborted: boolean}> => {
             const response = await fetch(`${API_BASE_URL}/api/openai/chat/stream`, {
                 method: 'POST',
                 headers: {

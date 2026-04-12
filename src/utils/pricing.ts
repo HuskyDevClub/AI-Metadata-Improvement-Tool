@@ -1,5 +1,5 @@
 // Pricing per 1M tokens (USD) - updated as of Jan 2025
-const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+const MODEL_PRICING: Record<string, {input: number; output: number}> = {
     'gpt-5-nano': { input: 0.05, output: 0.40 },
     'gpt-5-mini': { input: 0.25, output: 2.00 },
     'gpt-4o-mini': { input: 0.15, output: 0.60 },

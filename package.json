@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:backend": "python3 -m backend.main",
+    "dev:all": "concurrently -n be,fe -c blue,green \"npm:dev:backend\" \"npm:dev\"",
     "build": "tsc -b && vite build",
     "build:databricks": "tsc -b && vite build --mode databricks",
     "lint": "eslint .",
@@ -22,6 +24,7 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

@@ -8,7 +8,7 @@ import { FieldOverviewPage } from '../../pages/FieldOverviewPage';
 import { SettingsPage } from '../../pages/SettingsPage';
 import './Layout.css';
 
-function NavTab({ page, label, disabled }: { page: PageId; label: string; disabled?: boolean }) {
+function NavTab({ page, label, disabled }: {page: PageId; label: string; disabled?: boolean}) {
     const { currentPage, navigate } = useAppContext();
     const isActive = currentPage === page;
 
@@ -24,7 +24,7 @@ function NavTab({ page, label, disabled }: { page: PageId; label: string; disabl
     );
 }
 
-function DatasetTab({ id, fileName }: { id: string; fileName: string }) {
+function DatasetTab({ id, fileName }: {id: string; fileName: string}) {
     const { activeDatasetId, currentPage, switchToDataset, closeTab } = useAppContext();
     const isActive = id === activeDatasetId && currentPage !== 'import' && currentPage !== 'settings';
 

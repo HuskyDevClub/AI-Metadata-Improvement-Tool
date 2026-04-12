@@ -1,7 +1,7 @@
 import type { PromptTemplates } from '../../types';
 import './PromptEditor.css';
 
-const PROMPT_INFO: Record<string, { description: string; placeholders?: string }> = {
+const PROMPT_INFO: Record<string, {description: string; placeholders?: string}> = {
     systemPrompt: {
         description: 'Sets the AI\'s persona and rules for all generation tasks (tone, style, language guidelines). Applied as the system message in every request.',
     },
@@ -31,7 +31,7 @@ const PROMPT_INFO: Record<string, { description: string; placeholders?: string }
     },
 };
 
-function InfoIcon({ promptKey }: { promptKey: string }) {
+function InfoIcon({ promptKey }: {promptKey: string}) {
     const info = PROMPT_INFO[promptKey];
     if (!info) return null;
     const tooltip = info.placeholders

@@ -157,6 +157,21 @@
     margin-top: 4px;
 }
 
+.import-form-remember {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.import-form-remember input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: var(--accent);
+}
+
 /* Or divider */
 .import-or-divider {
     display: flex;

@@ -1,8 +1,8 @@
-.openai-config-section {
+.socrata-api-config-section {
     margin-bottom: 24px;
 }
 
-.openai-config-section-title {
+.socrata-api-config-section-title {
     font-size: 16px;
     font-weight: 600;
     color: var(--text);
@@ -11,26 +11,26 @@
     border-bottom: 1px solid var(--border);
 }
 
-.openai-config-grid {
+.socrata-api-config-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
-.openai-config-input-group {
+.socrata-api-config-input-group {
     display: flex;
     flex-direction: column;
 }
 
-.openai-config-input-group label {
+.socrata-api-config-input-group label {
     font-size: 13px;
     font-weight: 500;
     color: var(--text-secondary);
     margin-bottom: 6px;
 }
 
-.openai-config-input-group input {
+.socrata-api-config-input-group input {
     padding: 9px 12px;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -39,17 +39,17 @@
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.openai-config-input-group input:focus {
+.socrata-api-config-input-group input:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-.openai-config-input-wrapper {
+.socrata-api-config-input-wrapper {
     position: relative;
 }
 
-.openai-config-input-wrapper input {
+.socrata-api-config-input-wrapper input {
     width: 100%;
     padding: 9px 38px 9px 12px;
     border: 1px solid var(--border);
@@ -60,13 +60,13 @@
     box-sizing: border-box;
 }
 
-.openai-config-input-wrapper input:focus {
+.socrata-api-config-input-wrapper input:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-.openai-config-reveal-btn {
+.socrata-api-config-reveal-btn {
     position: absolute;
     top: 50%;
     right: 8px;
@@ -85,24 +85,18 @@
     transition: color 0.15s, background 0.15s;
 }
 
-.openai-config-reveal-btn:hover {
+.socrata-api-config-reveal-btn:hover {
     color: var(--text);
     background: rgba(0, 0, 0, 0.05);
 }
 
-.openai-config-help-text {
-    font-size: 12px;
-    color: var(--text-tertiary);
-    margin-top: 6px;
-}
-
-.openai-config-actions {
+.socrata-api-config-actions {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    gap: 8px;
+    margin-bottom: 8px;
 }
 
-.openai-config-save-btn {
+.socrata-api-config-save-btn {
     padding: 8px 14px;
     border: 1px solid var(--accent);
     background: var(--accent);
@@ -114,16 +108,16 @@
     transition: opacity 0.15s;
 }
 
-.openai-config-save-btn:hover:not(:disabled) {
+.socrata-api-config-save-btn:hover:not(:disabled) {
     opacity: 0.9;
 }
 
-.openai-config-save-btn:disabled {
+.socrata-api-config-save-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.openai-config-clear-btn {
+.socrata-api-config-clear-btn {
     padding: 8px 14px;
     border: 1px solid var(--border);
     background: transparent;
@@ -135,19 +129,18 @@
     transition: background 0.15s, color 0.15s;
 }
 
-.openai-config-clear-btn:hover {
+.socrata-api-config-clear-btn:hover {
     background: var(--surface-alt, rgba(0, 0, 0, 0.03));
     color: var(--text);
 }
 
-.openai-config-dirty-hint {
+.socrata-api-config-help-text {
     font-size: 12px;
     color: var(--text-tertiary);
-    font-style: italic;
 }
 
 @media (max-width: 768px) {
-    .openai-config-grid {
+    .socrata-api-config-grid {
         grid-template-columns: 1fr;
     }
 }
