@@ -40,6 +40,7 @@ export function SettingsPage() {
                 <PromptEditor
                     templates={promptTemplates}
                     onChange={setPromptTemplates}
+                    openaiConfig={openaiConfig}
                 />
             </div>
         </div>
