@@ -99,7 +99,7 @@ interface AppContextType {
     // API & Config
     openaiConfig: OpenAIConfigType;
     promptTemplates: PromptTemplates;
-    setPromptTemplates: React.Dispatch<React.SetStateAction<PromptTemplates>>;
+    setPromptTemplates: (templates: PromptTemplates) => void;
     handleOpenAIConfigChange: (config: OpenAIConfigType) => void;
     handleOpenAIConfigClear: () => void;
 
@@ -219,15 +219,27 @@ export function AppProvider({ children }: {children: ReactNode}) {
         model,
     }), [apiConfig, model]);
 
-    const [promptTemplates, setPromptTemplates] = useState<PromptTemplates>({
-        systemPrompt: DEFAULT_SYSTEM_PROMPT,
-        dataset: DEFAULT_DATASET_PROMPT,
-        column: DEFAULT_COLUMN_PROMPT,
-        rowLabel: DEFAULT_ROW_LABEL_PROMPT,
-        notes: DEFAULT_NOTES_PROMPT,
-        datasetSuggestion: DEFAULT_DATASET_SUGGESTION_PROMPT,
-        columnSuggestion: DEFAULT_COLUMN_SUGGESTION_PROMPT,
+    const [promptTemplates, setPromptTemplatesState] = useState<PromptTemplates>(() => {
+        try {
+            const saved = localStorage.getItem('prompt_templates');
+            if (saved) return JSON.parse(saved) as PromptTemplates;
+        } catch { /* ignore corrupt data */
+        }
+        return {
+            systemPrompt: DEFAULT_SYSTEM_PROMPT,
+            dataset: DEFAULT_DATASET_PROMPT,
+            column: DEFAULT_COLUMN_PROMPT,
+            rowLabel: DEFAULT_ROW_LABEL_PROMPT,
+            notes: DEFAULT_NOTES_PROMPT,
+            datasetSuggestion: DEFAULT_DATASET_SUGGESTION_PROMPT,
+            columnSuggestion: DEFAULT_COLUMN_SUGGESTION_PROMPT,
+        };
     });
+
+    const setPromptTemplates = useCallback((templates: PromptTemplates) => {
+        setPromptTemplatesState(templates);
+        localStorage.setItem('prompt_templates', JSON.stringify(templates));
+    }, []);
 
     const [csvData, setCsvData] = useState<CsvRow[] | null>(null);
     const [fileName, setFileName] = useState('');
