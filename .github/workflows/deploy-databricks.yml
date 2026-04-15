@@ -1,0 +1,38 @@
+name: Deploy to Databricks
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: databricks-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Write .env.databricks from secret
+        env:
+          DATABRICKS_ENV_FILE: ${{ secrets.DATABRICKS_ENV_FILE }}
+        run: printf '%s' "$DATABRICKS_ENV_FILE" > .env.databricks
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Build and deploy
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: ./deploy.sh

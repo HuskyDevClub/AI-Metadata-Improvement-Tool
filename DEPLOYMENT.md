@@ -54,7 +54,7 @@ cd ..
    # Works with any OpenAI-compatible API (OpenAI, Azure, HuggingFace, etc.)
    LLM_ENDPOINT=https://api.openai.com/v1
    LLM_API_KEY=your-api-key
-   LLM_MODEL=gpt5-mini
+   LLM_MODEL=gpt-5-mini
 
    # Server Configuration
    PORT=8000
@@ -351,4 +351,110 @@ databricks apps deploy ai-metadata-tool \
 - Navigate to **Compute** > **Apps**
 - Click **Create App**, configure the app name and settings
 - Upload the project files or connect to a Git repository
+
+### Continuous Deployment with GitHub Actions
+
+A GitHub Actions workflow at `.github/workflows/deploy-databricks.yml` runs `deploy.sh` on every push to `main`, so commits merged to main automatically redeploy to Databricks Apps. The workflow preserves the pre-built-frontend flow (fast cold starts) and can also be triggered manually from the **Actions** tab.
+
+#### 1. Get a working local deploy first
+
+Make sure `./deploy.sh` works locally with a valid `.env.databricks`. The CI workflow does exactly what the local script does — if it fails locally, it'll fail in CI.
+
+#### 2. Add GitHub repository secrets
+
+In GitHub: **Settings → Secrets and variables → Actions → New repository secret**. Add three secrets:
+
+| Secret | Value |
+|---|---|
+| `DATABRICKS_HOST` | **Workspace** URL, e.g. `https://dbc-xxxxxxxx-xxxx.cloud.databricks.com` or `https://adb-1234567890.12.azuredatabricks.net`. This is the URL you use to log in to the Databricks UI — **not** your app's public `*.databricksapps.com` URL (that URL serves the deployed app and does not respond to CLI auth, so using it produces `Failed to resolve host metadata ... {}` followed by a token-rejection error). |
+| `DATABRICKS_TOKEN` | A Databricks personal access token (`dapi...`). Generate in Databricks at **User Settings → Developer → Access tokens**. Must be created from inside the same workspace that `DATABRICKS_HOST` points to. |
+| `DATABRICKS_ENV_FILE` | The **entire contents** of your local `.env.databricks`, pasted as-is. GitHub supports multi-line secret values. |
+
+`DATABRICKS_ENV_FILE` contains everything `deploy.sh` and Vite need: `DATABRICKS_APP_NAME`, `DATABRICKS_WORKSPACE_PATH`, `VITE_API_BASE_URL`, `SOCRATA_APP_TOKEN`, plus any LLM/OAuth vars. Keeping it as one secret mirrors how the local file works, so there's nothing extra to maintain.
+
+#### 3. Commit and push the workflow
+
+The workflow file must be on `main` before it can run. After committing:
+
+- Every push to `main` triggers a deploy
+- You can also run it on demand via **Actions → Deploy to Databricks → Run workflow**
+
+#### 4. What the workflow does
+
+1. Checkout and install Node.js 24
+2. `npm install`
+3. Writes `.env.databricks` from the `DATABRICKS_ENV_FILE` secret
+4. Installs the Databricks CLI via the official `databricks/setup-cli@main` action
+5. Runs `./deploy.sh` with `DATABRICKS_HOST` and `DATABRICKS_TOKEN` exported to the environment — builds the frontend, stages files, syncs to the workspace, and calls `databricks apps deploy`
+
+A `concurrency` group prevents two deploys from racing: if you push twice in quick succession, the second run queues behind the first instead of clobbering it.
+
+#### 5. How `.env.databricks` reaches CI
+
+`DATABRICKS_ENV_FILE` is a GitHub secret name chosen for this project — it's **not** a standard Databricks variable. The workflow reads it and writes the value to disk as `.env.databricks` before `deploy.sh` runs:
+
+```yaml
+- name: Write .env.databricks from secret
+  env:
+    DATABRICKS_ENV_FILE: ${{ secrets.DATABRICKS_ENV_FILE }}
+  run: printf '%s' "$DATABRICKS_ENV_FILE" > .env.databricks
+```
+
+After this step, the CI runner's working directory has a `.env.databricks` identical to your local one, so both `deploy.sh` (which reads `DATABRICKS_APP_NAME` / `DATABRICKS_WORKSPACE_PATH`) and Vite (which bakes `VITE_*` vars into the build) work unchanged.
+
+**Local `.env.databricks` vs the CI secret:**
+
+- **On the CI runner:** never committed, never needed in git — the workflow re-creates it from `DATABRICKS_ENV_FILE` at the start of every run.
+- **On your laptop:** only needed to *author* the secret. Get `./deploy.sh` working locally first so you know the values are correct, then copy the entire file's contents into the `DATABRICKS_ENV_FILE` secret in GitHub. After that, CI is fully self-contained — you can merge to main and deploy without ever touching the local file again.
+
+**Why one big secret instead of many individual ones:**
+
+- Your local file and the CI secret stay identical by construction — no mapping to maintain.
+- Adding a new var later (new LLM model, new Socrata config) means editing only the secret — the workflow needs no changes.
+- Nothing is ever committed. `.env.databricks` stays gitignored; CI never depends on a file in the repo.
+
+**Creating the `DATABRICKS_ENV_FILE` secret:**
+
+1. Open your local `.env.databricks` and copy its **entire contents** (all lines, including comments).
+2. In GitHub, go to **Settings → Secrets and variables → Actions → New repository secret**.
+3. Set **Name** to `DATABRICKS_ENV_FILE`.
+4. Paste the file contents into the **Secret** box. GitHub preserves newlines in secret values, so the multi-line file transfers intact.
+5. Click **Add secret**.
+
+#### 6. How `DATABRICKS_HOST` / `DATABRICKS_TOKEN` authenticate CI
+
+Unlike `DATABRICKS_ENV_FILE`, these two are **standard Databricks CLI environment variables** — the CLI reads them automatically when no `~/.databrickscfg` file is present, which is the case on a fresh GitHub Actions runner.
+
+**`DATABRICKS_HOST`** — your Databricks workspace URL, e.g. `https://your-workspace.cloud.databricks.com` or `https://adb-1234567890.12.azuredatabricks.net`. Same URL you see in the browser when logged into Databricks. Tells the CLI *which* workspace to talk to.
+
+**`DATABRICKS_TOKEN`** — a **Personal Access Token (PAT)** proving that the CI runner is authorized to act in that workspace. Format: `dapi1234abcd...`. To generate one:
+
+1. Log into Databricks
+2. Click your avatar (top-right) → **User Settings**
+3. Go to **Developer** → **Access tokens** → **Manage**
+4. Click **Generate new token**, set a comment (e.g. `github-actions-ci`) and a lifetime (e.g. 90 days)
+5. **Copy the token immediately** — Databricks only shows it once. Paste it into the `DATABRICKS_TOKEN` GitHub secret.
+
+**How the workflow uses them:**
+
+```yaml
+- name: Build and deploy
+  env:
+    DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+    DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+  run: ./deploy.sh
+```
+
+When `deploy.sh` calls `databricks sync` and `databricks apps deploy`, the CLI picks up these env vars automatically and authenticates — no `.databrickscfg` file needed.
+
+**Security notes:**
+
+- **PATs expire.** Whatever lifetime you pick, set a calendar reminder to rotate the token before it expires, otherwise CI deploys will start failing.
+- **Treat the token like a password.** Anyone with it can do anything *you* can do in the workspace. If it ever leaks, revoke it immediately at **User Settings → Developer → Access tokens**.
+- **For production**, consider using an **OAuth machine-to-machine (M2M) service principal** instead of a personal PAT — it's not tied to a specific user account, so deploys survive people leaving the team. PATs are fine for getting started.
+
+#### Rotating secrets
+
+- **Databricks token** (common, since PATs expire): update `DATABRICKS_TOKEN` in GitHub.
+- **Env file changes** (app URL, Socrata tokens, LLM config): update `DATABRICKS_ENV_FILE` in GitHub. The workflow writes a fresh copy at the start of every run, so nothing needs to be re-committed.
 

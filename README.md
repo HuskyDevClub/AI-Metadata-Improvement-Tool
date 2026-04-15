@@ -166,8 +166,8 @@ a compatible `/v1/chat/completions` endpoint will work out of the box.
 
 | Model | Provider | Notes |
 |-------|----------|-------|
-| `gpt5-mini` | OpenAI / Azure | Fast and cost-effective (model names may change — check your provider's docs) |
-| `gpt5-nano` | OpenAI / Azure | Lightest OpenAI option (model names may change — check your provider's docs) |
+| `gpt-5-mini` | OpenAI / Azure | Fast and cost-effective (model names may change — check your provider's docs) |
+| `gpt-5-nano` | OpenAI / Azure | Lightest OpenAI option (model names may change — check your provider's docs) |
 | `Qwen3-4B-Instruct-2507` | Ollama / HuggingFace | Small, runs well locally |
 | `Qwen/Qwen3-8B` | Ollama / HuggingFace | Strong open-weight model |
 | `mistralai/Ministral-3-8B-Instruct-2512` | Ollama / HuggingFace | Compact Mistral model |

@@ -91,8 +91,6 @@ export function Layout() {
         socrataDatasetId,
         handlePushToSocrata,
         datasetTabs,
-        activeDatasetId,
-        switchToDataset,
     } = useAppContext();
 
     return (
