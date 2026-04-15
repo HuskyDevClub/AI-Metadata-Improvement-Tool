@@ -130,6 +130,18 @@ export interface ConfidenceMetrics {
     rule_validation_strength: number;
     likelihood_ratio: number;
     composite_confidence_score: number;
+    // Additional advanced statistical metrics
+    effect_size_cohens_d: number;
+    distribution_skewness: number;
+    distribution_kurtosis: number;
+    robust_median_score: number;
+    robust_trimmed_mean: number;
+    ranking_consistency: number;
+    performance_stability_cv: number;
+    statistical_significance_f: number;
+    statistical_significance_p: number;
+    category_correlation_avg: number;
+    reliability_cronbach_alpha: number;
 }
 
 export interface ComparisonResult {

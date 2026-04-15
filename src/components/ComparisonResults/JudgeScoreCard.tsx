@@ -244,6 +244,72 @@ export function JudgeScoreCard({
                 </div>
             )}
 
+            {result.confidenceMetrics && (
+                <div className="advanced-statistics">
+                    <div className="advanced-header">
+                        <span className="advanced-title">Advanced Statistical Analysis</span>
+                    </div>
+                    <div className="advanced-metrics">
+                        <div className="advanced-row">
+                            <div className="advanced-metric">
+                                <span className="metric-label">Effect Size (Cohen's d)</span>
+                                <span className="metric-value">{result.confidenceMetrics.effect_size_cohens_d.toFixed(3)}</span>
+                            </div>
+                            <div className="advanced-metric">
+                                <span className="metric-label">Distribution Skewness</span>
+                                <span className="metric-value">{result.confidenceMetrics.distribution_skewness.toFixed(3)}</span>
+                            </div>
+                            <div className="advanced-metric">
+                                <span className="metric-label">Distribution Kurtosis</span>
+                                <span className="metric-value">{result.confidenceMetrics.distribution_kurtosis.toFixed(3)}</span>
+                            </div>
+                        </div>
+                        <div className="advanced-row">
+                            <div className="advanced-metric">
+                                <span className="metric-label">Robust Median Score</span>
+                                <span className="metric-value">{result.confidenceMetrics.robust_median_score.toFixed(2)}</span>
+                            </div>
+                            <div className="advanced-metric">
+                                <span className="metric-label">Trimmed Mean</span>
+                                <span className="metric-value">{result.confidenceMetrics.robust_trimmed_mean.toFixed(2)}</span>
+                            </div>
+                            <div className="advanced-metric">
+                                <span className="metric-label">Ranking Consistency</span>
+                                <span className="metric-value">{(result.confidenceMetrics.ranking_consistency * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+                        <div className="advanced-row">
+                            <div className="advanced-metric">
+                                <span className="metric-label">Performance Stability (CV)</span>
+                                <span className="metric-value">{(result.confidenceMetrics.performance_stability_cv * 100).toFixed(1)}%</span>
+                            </div>
+                            <div className="advanced-metric">
+                                <span className="metric-label">ANOVA F-Statistic</span>
+                                <span className="metric-value">{result.confidenceMetrics.statistical_significance_f.toFixed(3)}</span>
+                            </div>
+                            <div className="advanced-metric">
+                                <span className="metric-label">p-value</span>
+                                <span className="metric-value">{result.confidenceMetrics.statistical_significance_p < 0.001 ? '<0.001' : result.confidenceMetrics.statistical_significance_p.toFixed(3)}</span>
+                            </div>
+                        </div>
+                        <div className="advanced-row">
+                            <div className="advanced-metric">
+                                <span className="metric-label">Category Correlation</span>
+                                <span className="metric-value">{(result.confidenceMetrics.category_correlation_avg * 100).toFixed(1)}%</span>
+                            </div>
+                            <div className="advanced-metric">
+                                <span className="metric-label">Cronbach's Alpha</span>
+                                <span className="metric-value">{result.confidenceMetrics.reliability_cronbach_alpha.toFixed(3)}</span>
+                            </div>
+                            <div className="advanced-metric">
+                                <span className="metric-label">Outlier Ratio</span>
+                                <span className="metric-value">{(result.confidenceMetrics.outlier_ratio * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="judge-reasoning">
                 <strong>Reasoning:</strong> {result.winnerReasoning}
             </div>

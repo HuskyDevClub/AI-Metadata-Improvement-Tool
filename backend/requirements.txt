@@ -13,3 +13,6 @@ pydantic>=2.5.0
 
 # Environment variable management
 python-dotenv>=1.0.0
+
+# Scientific computing for advanced statistics
+scipy>=1.11.0

@@ -133,6 +133,17 @@
 - **Progressive Enhancement**: Users can choose when to address validation issues
 - **Export Protection**: Prevents publishing of invalid metadata
 
+### 📊 Enhanced Statistical Analysis for Comparison Mode
+- **Effect Size Measures**: Added Cohen's d calculation for standardized mean differences between model outputs
+- **Distribution Statistics**: Implemented skewness and kurtosis analysis for score distribution characterization
+- **Robust Statistics**: Added median-based measures and trimmed means for outlier-resistant analysis
+- **Ranking Consistency**: Implemented ranking agreement metrics across scoring categories
+- **Performance Stability**: Added coefficient of variation (CV) for assessing score variability
+- **Statistical Significance**: Integrated ANOVA F-test and p-value calculations for multiple model comparisons
+- **Correlation Analysis**: Added inter-category correlation analysis to assess scoring consistency
+- **Reliability Metrics**: Implemented Cronbach's alpha for measuring inter-rater reliability across models
+- **Advanced UI Display**: New "Advanced Statistical Analysis" section in JudgeScoreCard with comprehensive metrics visualization
+
 ---
 
 ## Implementation Notes

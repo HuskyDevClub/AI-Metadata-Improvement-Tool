@@ -172,6 +172,10 @@
     color: var(--text);
 }
 
+.pairwise-reasoning {
+    color: var(--text);
+}
+
 .confidence-metrics {
     margin-bottom: 12px;
     padding: 12px;
@@ -284,6 +288,62 @@
     color: var(--text);
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     font-weight: 600;
+}
+
+.advanced-statistics {
+    margin-bottom: 12px;
+    padding: 12px;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+}
+
+.advanced-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.advanced-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.advanced-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.advanced-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.advanced-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: var(--surface-secondary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+}
+
+.metric-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.metric-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
 
 .judge-reasoning {

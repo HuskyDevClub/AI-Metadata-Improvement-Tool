@@ -943,9 +943,10 @@ def calculate_confidence_metrics(
     judge_certainty: float,
     outputs: list[str]
 ) -> dict[str, float]:
-    """Calculate advanced composite confidence score with statistical analysis."""
+    """Calculate advanced composite confidence score with comprehensive statistical analysis."""
     import math
     import statistics
+    from scipy import stats as scipy_stats
 
     # 1. Judge certainty (already provided by judge, 0-1)
     judge_certainty_norm = judge_certainty
@@ -1043,6 +1044,111 @@ def calculate_confidence_metrics(
     # Likelihood ratio for final confidence assessment
     confidence_likelihood_ratio = composite_confidence_score / (1 - composite_confidence_score) if composite_confidence_score < 1 else 10
 
+    # 6. Additional Advanced Statistical Metrics
+
+    # Effect size measures (Cohen's d for pairwise comparisons)
+    effect_sizes = []
+    if len(models_metrics) > 1:
+        for i in range(len(models_metrics)):
+            for j in range(i + 1, len(models_metrics)):
+                scores_i = list(models_metrics[i].scores.values())
+                scores_j = list(models_metrics[j].scores.values())
+                if len(scores_i) > 1 and len(scores_j) > 1:
+                    mean_i = statistics.mean(scores_i)
+                    mean_j = statistics.mean(scores_j)
+                    std_i = statistics.stdev(scores_i)
+                    std_j = statistics.stdev(scores_j)
+                    pooled_std = math.sqrt((std_i**2 + std_j**2) / 2)
+                    if pooled_std > 0:
+                        cohens_d = abs(mean_i - mean_j) / pooled_std
+                        effect_sizes.append(cohens_d)
+
+    avg_effect_size = statistics.mean(effect_sizes) if effect_sizes else 0
+
+    # Distribution statistics (skewness, kurtosis)
+    if len(all_scores) > 2:
+        skewness = scipy_stats.skew(all_scores)
+        kurtosis = scipy_stats.kurtosis(all_scores)
+    else:
+        skewness = 0
+        kurtosis = 0
+
+    # Robust statistics (median-based measures)
+    median_score = statistics.median(all_scores) if all_scores else 0
+    trimmed_mean = statistics.mean(sorted(all_scores)[1:-1]) if len(all_scores) > 2 else mean_score
+
+    # Ranking statistics (Kendall's tau, Spearman's rho)
+    ranking_consistency = 0
+    if len(models_metrics) > 1:
+        # Calculate ranking consistency across models
+        rankings = []
+        for metrics in models_metrics:
+            # Sort categories by score descending to get ranking
+            sorted_items = sorted(metrics.scores.items(), key=lambda x: x[1], reverse=True)
+            rankings.append([item[0] for item in sorted_items])
+
+        # Calculate pairwise ranking agreement
+        consistency_scores = []
+        for i in range(len(rankings)):
+            for j in range(i + 1, len(rankings)):
+                # Simple ranking agreement (fraction of categories with same relative ordering)
+                rank1 = rankings[i]
+                rank2 = rankings[j]
+                agreements = 0
+                total_pairs = 0
+                for a in range(len(rank1)):
+                    for b in range(a + 1, len(rank1)):
+                        idx_a1 = rank1.index(rank1[a])
+                        idx_b1 = rank1.index(rank1[b])
+                        idx_a2 = rank2.index(rank1[a])
+                        idx_b2 = rank2.index(rank1[b])
+                        if (idx_a1 < idx_b1) == (idx_a2 < idx_b2):
+                            agreements += 1
+                        total_pairs += 1
+                if total_pairs > 0:
+                    consistency_scores.append(agreements / total_pairs)
+
+        ranking_consistency = statistics.mean(consistency_scores) if consistency_scores else 0
+
+    # Performance stability (coefficient of variation)
+    coefficient_of_variation = (stdev_score / mean_score) if mean_score > 0 else 0
+
+    # Statistical significance (ANOVA-like F-test for multiple comparisons)
+    if len(models_metrics) > 1:
+        # One-way ANOVA F-statistic
+        group_scores = [list(m.scores.values()) for m in models_metrics]
+        f_statistic, p_value = scipy_stats.f_oneway(*group_scores) if len(group_scores) > 1 else (0, 1)
+    else:
+        f_statistic = 0
+        p_value = 1
+
+    # Correlation analysis between scoring categories
+    category_correlations = []
+    if len(models_metrics) > 0:
+        category_keys = list(models_metrics[0].scores.keys())
+        if len(category_keys) > 1:
+            for i in range(len(category_keys)):
+                for j in range(i + 1, len(category_keys)):
+                    scores_i = [m.scores[category_keys[i]] for m in models_metrics]
+                    scores_j = [m.scores[category_keys[j]] for m in models_metrics]
+                    if len(scores_i) > 1 and len(scores_j) > 1:
+                        corr, _ = scipy_stats.pearsonr(scores_i, scores_j)
+                        category_correlations.append(abs(corr))
+
+    avg_category_correlation = statistics.mean(category_correlations) if category_correlations else 0
+
+    # Reliability metrics (Cronbach's alpha for inter-rater reliability)
+    cronbach_alpha = 0
+    if len(models_metrics) > 1 and len(category_keys) > 1:
+        # Cronbach's alpha calculation
+        n_items = len(category_keys)
+        n_raters = len(models_metrics)
+        item_variances = [statistics.variance([m.scores[k] for m in models_metrics]) for k in category_keys]
+        total_variance = statistics.variance([score for m in models_metrics for score in m.scores.values()])
+
+        if total_variance > 0:
+            cronbach_alpha = (n_items / (n_items - 1)) * (1 - sum(item_variances) / total_variance)
+
     return {
         "judge_certainty": judge_certainty_norm,
         "inter_model_agreement": inter_model_agreement,
@@ -1055,6 +1161,18 @@ def calculate_confidence_metrics(
         "rule_validation_strength": calibrated_confidence,
         "likelihood_ratio": confidence_likelihood_ratio,
         "composite_confidence_score": composite_confidence_score,
+        # Additional advanced metrics
+        "effect_size_cohens_d": avg_effect_size,
+        "distribution_skewness": skewness,
+        "distribution_kurtosis": kurtosis,
+        "robust_median_score": median_score,
+        "robust_trimmed_mean": trimmed_mean,
+        "ranking_consistency": ranking_consistency,
+        "performance_stability_cv": coefficient_of_variation,
+        "statistical_significance_f": f_statistic,
+        "statistical_significance_p": p_value,
+        "category_correlation_avg": avg_category_correlation,
+        "reliability_cronbach_alpha": cronbach_alpha,
     }
 
 
