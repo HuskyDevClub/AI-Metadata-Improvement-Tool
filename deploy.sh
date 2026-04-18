@@ -45,6 +45,15 @@ fi
 echo "==> Syncing to $WORKSPACE_PATH ..."
 databricks sync "$STAGING" "$WORKSPACE_PATH" --full
 
+# `databricks apps deploy` requires the app's compute to be ACTIVE; start it if not.
+echo "==> Checking app '$APP_NAME' compute status..."
+APP_STATE=$(databricks apps get "$APP_NAME" --output json | jq -r '.compute_status.state // "UNKNOWN"')
+echo "    Current state: $APP_STATE"
+if [ "$APP_STATE" != "ACTIVE" ]; then
+  echo "==> App not active — starting..."
+  databricks apps start "$APP_NAME"
+fi
+
 echo "==> Deploying app '$APP_NAME'..."
 databricks apps deploy "$APP_NAME" \
   --source-code-path "$WORKSPACE_PATH"
