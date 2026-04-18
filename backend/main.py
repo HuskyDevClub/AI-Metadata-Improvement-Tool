@@ -55,7 +55,7 @@ LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
 # Secret for signing OAuth state tokens (used to prevent CSRF)
 _OAUTH_STATE_SECRET = (
-    os.getenv("OAUTH_STATE_SECRET") or SOCRATA_SECRET_TOKEN or secrets.token_hex(32)
+        os.getenv("OAUTH_STATE_SECRET") or SOCRATA_SECRET_TOKEN or secrets.token_hex(32)
 )
 
 # For Databricks Apps, the port is typically provided via environment variable
@@ -131,10 +131,10 @@ async def socrata_oauth_login() -> SocrataOAuthLoginResponse:
 
 @app.get("/api/auth/socrata/callback")
 async def socrata_oauth_callback(
-    request: Request,
-    code: str | None = None,
-    error: str | None = None,
-    state: str | None = None,
+        request: Request,
+        code: str | None = None,
+        error: str | None = None,
+        state: str | None = None,
 ):
     """OAuth callback — exchanges authorization code for access token, redirects to frontend."""
     base = FRONTEND_URL.rstrip("/") if FRONTEND_URL else ""
@@ -224,7 +224,7 @@ async def socrata_oauth_callback(
 
 @app.post("/api/auth/socrata/userinfo", response_model=SocrataOAuthUserInfo)
 async def socrata_oauth_userinfo(
-    body: SocrataOAuthUserInfoRequest,
+        body: SocrataOAuthUserInfoRequest,
 ) -> SocrataOAuthUserInfo:
     """Fetch the current authenticated user's info from data.wa.gov."""
     token = body.oauthToken
@@ -270,7 +270,7 @@ _soda_semaphore = asyncio.Semaphore(10)
 
 
 def build_socrata_auth(
-    request: SocrataImportRequest | SocrataExportRequest,
+        request: SocrataImportRequest | SocrataExportRequest,
 ) -> dict[str, str]:
     """Build auth headers from import/export request.
 
@@ -303,10 +303,10 @@ def soda_escape(field_name: str) -> str:
 
 
 async def _soda_get(
-    client: httpx.AsyncClient,
-    soda_base: str,
-    params: dict[str, str],
-    headers: dict[str, str],
+        client: httpx.AsyncClient,
+        soda_base: str,
+        params: dict[str, str],
+        headers: dict[str, str],
 ) -> list[dict[str, Any]]:
     """Issue a SODA query and return the parsed JSON list."""
     async with _soda_semaphore:
@@ -323,11 +323,11 @@ async def _soda_get(
 
 
 async def _compute_numeric_stats(
-    client: httpx.AsyncClient,
-    soda_base: str,
-    field: str,
-    total_rows: int,
-    headers: dict[str, str],
+        client: httpx.AsyncClient,
+        soda_base: str,
+        field: str,
+        total_rows: int,
+        headers: dict[str, str],
 ) -> ColumnStats:
     """Compute numeric column stats using SODA aggregate + quartile lookups."""
     esc = soda_escape(field)
@@ -405,11 +405,11 @@ async def _compute_numeric_stats(
 
 
 async def _compute_groupby(
-    client: httpx.AsyncClient,
-    soda_base: str,
-    field: str,
-    headers: dict[str, str],
-    limit: int = 51,
+        client: httpx.AsyncClient,
+        soda_base: str,
+        field: str,
+        headers: dict[str, str],
+        limit: int = 51,
 ) -> list[dict[str, Any]]:
     """Run a group-by query for a column. Returns up to `limit` groups sorted by count desc."""
     esc = soda_escape(field)
@@ -428,9 +428,9 @@ async def _compute_groupby(
 
 
 def _classify_from_groupby(
-    groups: list[dict[str, Any]],
-    field: str,
-    total_rows: int,
+        groups: list[dict[str, Any]],
+        field: str,
+        total_rows: int,
 ) -> ColumnStats:
     """Given group-by results, classify as categorical or text and build stats."""
     unique_count = len(groups)
@@ -478,11 +478,11 @@ def _classify_from_groupby(
 
 
 async def _compute_column_stats(
-    client: httpx.AsyncClient,
-    soda_base: str,
-    col_meta: SocrataColumnMetadata,
-    total_rows: int,
-    headers: dict[str, str],
+        client: httpx.AsyncClient,
+        soda_base: str,
+        col_meta: SocrataColumnMetadata,
+        total_rows: int,
+        headers: dict[str, str],
 ) -> tuple[str, ColumnStats]:
     """Compute stats for a single column. Returns (display_name, stats)."""
     field = col_meta.fieldName
@@ -553,9 +553,9 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
             dataset_name = metadata.get("name") or dataset_id
             dataset_description = metadata.get("description") or ""
             row_label = (
-                metadata.get("metadata", {}).get("rowLabel", "")
-                or metadata.get("rowLabel", "")
-                or ""
+                    metadata.get("metadata", {}).get("rowLabel", "")
+                    or metadata.get("rowLabel", "")
+                    or ""
             )
 
             total_rows = int(count_rows[0]["total"]) if count_rows else 0
@@ -638,7 +638,7 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
         raise HTTPException(
             status_code=400,
             detail="Authentication required to update metadata on data.wa.gov. "
-            "Please sign in with OAuth or provide API Key credentials.",
+                   "Please sign in with OAuth or provide API Key credentials.",
         )
 
     headers = build_socrata_auth(request)
@@ -738,7 +738,7 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
 # OpenAI streaming chat endpoint
 @app.post("/api/openai/chat/stream")
 async def openai_chat_stream(
-    request: ChatRequest, http_request: Request
+        request: ChatRequest, http_request: Request
 ) -> StreamingResponse:
     # Get configuration from the request or environment
     base_url = request.baseURL or LLM_ENDPOINT
@@ -758,7 +758,7 @@ async def openai_chat_stream(
         raise HTTPException(
             status_code=400,
             detail=f"Missing required configuration: {', '.join(missing_config)}. "
-            "Please set these in the environment or enter them in the UI.",
+                   "Please set these in the environment or enter them in the UI.",
         )
 
     # Build messages array, only include system prompt if provided
@@ -831,6 +831,7 @@ static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static_assets")
 
+
     # Root route - serve index.html
     @app.get("/")
     async def serve_root() -> FileResponse:
@@ -838,6 +839,7 @@ if static_dir.exists():
         if index_path.exists():
             return FileResponse(index_path)
         raise HTTPException(status_code=404, detail="Frontend not built")
+
 
     # Serve index.html for all non-API routes (SPA support)
     @app.get("/{full_path:path}")
@@ -857,7 +859,6 @@ if static_dir.exists():
             return FileResponse(index_path)
 
         raise HTTPException(status_code=404, detail="Not found")
-
 
 if __name__ == "__main__":
     import uvicorn

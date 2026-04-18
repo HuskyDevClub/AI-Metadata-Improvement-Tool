@@ -77,7 +77,6 @@ interface SavedDatasetState {
     columnStats: Record<string, ColumnInfo>;
     generatedResults: GeneratedResults;
     showResults: boolean;
-    isImportedData: boolean;
     importedRowCount: number;
     tokenUsage: TokenUsage;
     socrataDatasetId: string;
@@ -108,7 +107,6 @@ interface AppContextType {
     columnStats: Record<string, ColumnInfo>;
     generatedResults: GeneratedResults;
     showResults: boolean;
-    isImportedData: boolean;
     importedRowCount: number;
 
     // Processing
@@ -245,7 +243,6 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const [status, setStatus] = useState<Status | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [showResults, setShowResults] = useState(false);
-    const [isImportedData, setIsImportedData] = useState(false);
     const [importedRowCount, setImportedRowCount] = useState(0);
     const [generatingColumns, setGeneratingColumns] = useState<Set<string>>(new Set());
     const [regeneratingDataset, setRegeneratingDataset] = useState(false);
@@ -286,11 +283,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
     // Ref that always holds current per-dataset state (updated synchronously during render)
     const datasetStateRef = useRef({
         csvData, fileName, columnStats, generatedResults, showResults,
-        isImportedData, importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
+        importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
     });
     datasetStateRef.current = {
         csvData, fileName, columnStats, generatedResults, showResults,
-        isImportedData, importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
+        importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
     };
 
     const saveCurrentDataset = useCallback(() => {
@@ -313,7 +310,6 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setColumnStats(saved.columnStats);
         setGeneratedResults(saved.generatedResults);
         setShowResults(saved.showResults);
-        setIsImportedData(saved.isImportedData);
         setImportedRowCount(saved.importedRowCount);
         setTokenUsage(saved.tokenUsage);
         setSocrataDatasetId(saved.socrataDatasetId);
@@ -642,7 +638,6 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setCsvData(result.data);
                 setFileName(result.fileName);
                 setShowResults(true);
-                setIsImportedData(false);
                 setImportedRowCount(0);
                 setGeneratedResults({ datasetDescription: '', rowLabel: '', columnDescriptions: {} });
                 setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
@@ -710,7 +705,6 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setColumnStats({});
             setGeneratedResults({ datasetDescription: '', rowLabel: '', columnDescriptions: {} });
             setShowResults(false);
-            setIsImportedData(false);
             setImportedRowCount(0);
             setGeneratingColumns(new Set());
             setRegeneratingDataset(false);
@@ -1095,7 +1089,6 @@ FORMAT RULES:
                 setCsvData(result.sampleRows);
                 setFileName(result.fileName);
                 setImportedRowCount(result.totalRowCount);
-                setIsImportedData(true);
                 setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
                 setSocrataDatasetId(datasetId);
 
@@ -1265,7 +1258,6 @@ FORMAT RULES:
         columnStats,
         generatedResults,
         showResults,
-        isImportedData,
         importedRowCount,
         status,
         isProcessing,

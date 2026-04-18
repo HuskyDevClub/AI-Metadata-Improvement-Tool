@@ -9,7 +9,6 @@ export function DataOverviewPage() {
         fileName,
         columnStats,
         generatedResults,
-        isImportedData,
         importedRowCount,
         isProcessing,
         generatingColumns,
@@ -83,12 +82,6 @@ export function DataOverviewPage() {
 
     return (
         <div className="data-overview-page">
-            {isImportedData && (
-                <div className="import-warning-banner">
-                    Viewing imported results. Regeneration requires the original CSV data.
-                </div>
-            )}
-
             {csvData && (
                 <DatasetDescription
                     description={generatedResults.datasetDescription}
