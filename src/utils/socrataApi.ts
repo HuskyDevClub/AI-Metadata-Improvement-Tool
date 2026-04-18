@@ -52,6 +52,7 @@ interface SocrataExportResult {
 
 export async function pushSocrataMetadata(
     datasetId: string,
+    datasetTitle: string | undefined,
     datasetDescription: string | undefined,
     rowLabel: string | undefined,
     columns: {fieldName: string; description: string}[],
@@ -67,6 +68,7 @@ export async function pushSocrataMetadata(
             oauthToken,
             apiKeyId,
             apiKeySecret,
+            datasetTitle,
             datasetDescription,
             rowLabel,
             columns

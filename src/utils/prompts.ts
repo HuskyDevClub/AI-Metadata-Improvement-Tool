@@ -67,6 +67,26 @@ Address ALL of the following elements that apply to this column:
 
 Write 2-5 sentences. Be specific to this column's actual data — do not write generic descriptions that could apply to any column.`;
 
+export const DEFAULT_DATASET_TITLE_PROMPT = `Generate a clear, descriptive Title for this government dataset on data.wa.gov. The title should be a short phrase (typically 3-10 words) that accurately describes what the dataset contains.
+
+Dataset Name: {fileName}
+Number of Rows: {rowCount}
+Columns (name — type):
+{columnInfo}
+
+Sample Data (first {sampleCount} rows):
+{sampleRows}
+
+Rules:
+- Use Title Case (e.g. "Washington State Vehicle Registrations")
+- Be specific about the subject, scope, and time period if inferable from the data
+- Spell out acronyms unless they are universally understood by the public
+- Do NOT include the words "Dataset" or "Data" — the context is implicit
+- Do NOT include punctuation at the end
+- Do NOT wrap the title in quotes
+
+Return ONLY the title text — nothing else.`;
+
 export const DEFAULT_ROW_LABEL_PROMPT = `Determine the most accurate and concise Row Label for this government dataset on data.wa.gov. The Row Label should describe what a single row represents in plain language.
 
 Dataset Name: {fileName}

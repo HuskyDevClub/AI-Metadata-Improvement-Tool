@@ -93,6 +93,7 @@ class SocrataExportRequest(BaseModel):
     oauthToken: str | None = None
     apiKeyId: str | None = None
     apiKeySecret: str | None = None
+    datasetTitle: str | None = None
     datasetDescription: str | None = None
     rowLabel: str | None = None
     columns: list[SocrataColumnUpdate] = []

@@ -40,6 +40,7 @@ export interface ColumnInfo {
 }
 
 export interface GeneratedResults {
+    datasetTitle: string;
     datasetDescription: string;
     rowLabel: string;
     columnDescriptions: Record<string, string>;
@@ -58,6 +59,7 @@ export interface PromptTemplates {
     dataset: string;
     column: string;
     rowLabel: string;
+    datasetTitle: string;
     datasetSuggestion: string;
     columnSuggestion: string;
 }

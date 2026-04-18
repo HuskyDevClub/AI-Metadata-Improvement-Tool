@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { PageId } from '../../contexts/AppContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { FloatingActions } from '../FloatingActions/FloatingActions';
@@ -57,6 +58,127 @@ function DatasetTab({ id, fileName }: {id: string; fileName: string}) {
                 &times;
             </span>
         </button>
+    );
+}
+
+function DatasetTitleBar() {
+    const {
+        fileName,
+        generatedResults,
+        handleEditDatasetTitle,
+        handleGenerateDatasetTitle,
+        generatingDatasetTitle,
+        socrataDatasetId,
+    } = useAppContext();
+
+    const title = generatedResults.datasetTitle;
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState(title);
+
+    const save = () => {
+        handleEditDatasetTitle(editValue.trim());
+        setIsEditing(false);
+    };
+    const cancel = () => {
+        setEditValue(title);
+        setIsEditing(false);
+    };
+
+    const isSocrataImport = !!socrataDatasetId;
+    const subtitleText = isSocrataImport ? socrataDatasetId : fileName;
+    const showSubtitle = !isEditing && !!title && title !== subtitleText;
+
+    return (
+        <div className="layout-dataset-title-group">
+            <div className="layout-dataset-title-row">
+                {isEditing ? (
+                    <div className="layout-dataset-title-edit">
+                        <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="layout-dataset-title-input"
+                            placeholder="e.g. Washington State Vehicle Registrations"
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') save();
+                                if (e.key === 'Escape') cancel();
+                            }}
+                        />
+                        <button className="layout-dataset-title-btn save" onClick={save}>Save</button>
+                        <button className="layout-dataset-title-btn cancel" onClick={cancel}>Cancel</button>
+                    </div>
+                ) : (
+                    <>
+                        <h2 className="layout-dataset-title" title={title || fileName}>
+                            {generatingDatasetTitle ? (
+                                <span className="layout-dataset-title-generating">
+                                    {title || 'Generating title...'}
+                                    <span className="ed-cursor">|</span>
+                                </span>
+                            ) : (
+                                title || <span className="layout-dataset-title-fallback">{fileName}</span>
+                            )}
+                        </h2>
+                        {!generatingDatasetTitle && (
+                            <span className="layout-dataset-title-actions">
+                                <button
+                                    className="layout-dataset-title-btn edit"
+                                    onClick={() => {
+                                        setEditValue(title);
+                                        setIsEditing(true);
+                                    }}
+                                    title="Edit title"
+                                    aria-label="Edit title"
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                         stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                                         strokeLinejoin="round">
+                                        <path d="M12 20h9"/>
+                                        <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                    </svg>
+                                </button>
+                                <button
+                                    className="layout-dataset-title-btn generate"
+                                    onClick={handleGenerateDatasetTitle}
+                                    title="Generate title with AI"
+                                >
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                         stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                                         strokeLinejoin="round">
+                                        <path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3z"/>
+                                    </svg>
+                                    {title ? 'Regenerate' : 'Generate'}
+                                </button>
+                            </span>
+                        )}
+                    </>
+                )}
+            </div>
+            {showSubtitle && (
+                <div className="layout-dataset-subtitle" title={subtitleText}>
+                    {isSocrataImport ? (
+                        <svg className="layout-dataset-subtitle-icon" width="12" height="12"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                             strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                    ) : (
+                        <svg className="layout-dataset-subtitle-icon" width="12" height="12"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                             strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                    )}
+                    {isSocrataImport && (
+                        <span className="layout-dataset-subtitle-label">Dataset ID</span>
+                    )}
+                    <span className="layout-dataset-subtitle-value">{subtitleText}</span>
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -140,7 +262,7 @@ export function Layout() {
             </div>
             {showResults && fileName && (currentPage === 'data' || currentPage === 'field') && (
                 <div className="layout-dataset-bar">
-                    <span className="layout-dataset-name">{fileName}</span>
+                    <DatasetTitleBar/>
                     <div className="layout-dataset-bar-actions">
                         {socrataDatasetId && (
                             <button

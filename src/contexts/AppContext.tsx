@@ -26,6 +26,7 @@ import {
     DEFAULT_COLUMN_SUGGESTION_PROMPT,
     DEFAULT_DATASET_PROMPT,
     DEFAULT_DATASET_SUGGESTION_PROMPT,
+    DEFAULT_DATASET_TITLE_PROMPT,
     DEFAULT_ROW_LABEL_PROMPT,
     DEFAULT_SYSTEM_PROMPT,
     type SuggestionItem,
@@ -121,6 +122,7 @@ interface AppContextType {
     columnSuggestions: Record<string, SuggestionItem[]>;
     isGeneratingEmpty: boolean;
     generatingRowLabel: boolean;
+    generatingDatasetTitle: boolean;
 
     // Socrata
     socrataDatasetId: string;
@@ -162,6 +164,8 @@ interface AppContextType {
     handleEditColumnDescription: (columnName: string, newDescription: string) => void;
     handleEditRowLabel: (newLabel: string) => void;
     handleGenerateRowLabel: () => Promise<void>;
+    handleEditDatasetTitle: (newTitle: string) => void;
+    handleGenerateDatasetTitle: () => Promise<void>;
     handlePushToSocrata: () => Promise<void>;
     handleCloseDataset: () => void;
     closeTab: (id: string) => void;
@@ -211,19 +215,21 @@ export function AppProvider({ children }: {children: ReactNode}) {
     }), [apiConfig, model]);
 
     const [promptTemplates, setPromptTemplatesState] = useState<PromptTemplates>(() => {
-        try {
-            const saved = localStorage.getItem('prompt_templates');
-            if (saved) return JSON.parse(saved) as PromptTemplates;
-        } catch { /* ignore corrupt data */
-        }
-        return {
+        const defaults: PromptTemplates = {
             systemPrompt: DEFAULT_SYSTEM_PROMPT,
             dataset: DEFAULT_DATASET_PROMPT,
             column: DEFAULT_COLUMN_PROMPT,
             rowLabel: DEFAULT_ROW_LABEL_PROMPT,
+            datasetTitle: DEFAULT_DATASET_TITLE_PROMPT,
             datasetSuggestion: DEFAULT_DATASET_SUGGESTION_PROMPT,
             columnSuggestion: DEFAULT_COLUMN_SUGGESTION_PROMPT,
         };
+        try {
+            const saved = localStorage.getItem('prompt_templates');
+            if (saved) return { ...defaults, ...JSON.parse(saved) } as PromptTemplates;
+        } catch { /* ignore corrupt data */
+        }
+        return defaults;
     });
 
     const setPromptTemplates = useCallback((templates: PromptTemplates) => {
@@ -235,6 +241,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const [fileName, setFileName] = useState('');
     const [columnStats, setColumnStats] = useState<Record<string, ColumnInfo>>({});
     const [generatedResults, setGeneratedResults] = useState<GeneratedResults>({
+        datasetTitle: '',
         datasetDescription: '',
         rowLabel: '',
         columnDescriptions: {},
@@ -270,6 +277,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const [socrataApiKeySecret, setSocrataApiKeySecret] = useState(() => localStorage.getItem('socrata_api_key_secret') || '');
     const [isGeneratingEmpty, setIsGeneratingEmpty] = useState(false);
     const [generatingRowLabel, setGeneratingRowLabel] = useState(false);
+    const [generatingDatasetTitle, setGeneratingDatasetTitle] = useState(false);
 
     // --- Multi-dataset tab support ---
     const [datasetTabs, setDatasetTabs] = useState<DatasetTabInfo[]>([]);
@@ -324,6 +332,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setColumnSuggestions({});
         setIsGeneratingEmpty(false);
         setGeneratingRowLabel(false);
+        setGeneratingDatasetTitle(false);
         setIsPushingSocrata(false);
         setCurrentPage(saved.page);
         setCurrentFieldName(saved.fieldName);
@@ -500,6 +509,15 @@ export function AppProvider({ children }: {children: ReactNode}) {
         return buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.rowLabel, '', undefined, rowCountOverride);
     }, [promptTemplates.rowLabel, buildDatasetPromptFromTemplate]);
 
+    const buildDatasetTitlePrompt = useCallback((
+        data: CsvRow[],
+        name: string,
+        stats: Record<string, ColumnInfo>,
+        rowCountOverride?: number,
+    ): string => {
+        return buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.datasetTitle, '', undefined, rowCountOverride);
+    }, [promptTemplates.datasetTitle, buildDatasetPromptFromTemplate]);
+
     const buildColumnPromptFromTemplate = useCallback((
         columnName: string,
         info: ColumnInfo,
@@ -610,6 +628,28 @@ export function AppProvider({ children }: {children: ReactNode}) {
         [openaiConfig, promptTemplates.systemPrompt, buildRowLabelPrompt, callOpenAIStream, addTokenUsage]
     );
 
+    const generateDatasetTitle = useCallback(
+        async (
+            data: CsvRow[],
+            name: string,
+            stats: Record<string, ColumnInfo>,
+            rowCountOverride?: number,
+        ): Promise<{content: string}> => {
+            const prompt = buildDatasetTitlePrompt(data, name, stats, rowCountOverride);
+            let fullContent = '';
+            const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
+                fullContent += chunk;
+                setGeneratedResults((prev) => ({
+                    ...prev,
+                    datasetTitle: fullContent.trim().replace(/^["']|["']$/g, ''),
+                }));
+            });
+            addTokenUsage(result.usage);
+            return { content: fullContent.trim().replace(/^["']|["']$/g, '') };
+        },
+        [openaiConfig, promptTemplates.systemPrompt, buildDatasetTitlePrompt, callOpenAIStream, addTokenUsage]
+    );
+
     const handleAnalyze = useCallback(
         async (file: File) => {
             setIsProcessing(true);
@@ -639,7 +679,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setFileName(result.fileName);
                 setShowResults(true);
                 setImportedRowCount(0);
-                setGeneratedResults({ datasetDescription: '', rowLabel: '', columnDescriptions: {} });
+                setGeneratedResults({ datasetTitle: '', datasetDescription: '', rowLabel: '', columnDescriptions: {} });
                 setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
                 setSocrataDatasetId('');
                 setSocrataFieldNameMap({});
@@ -703,7 +743,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setCsvData(null);
             setFileName('');
             setColumnStats({});
-            setGeneratedResults({ datasetDescription: '', rowLabel: '', columnDescriptions: {} });
+            setGeneratedResults({ datasetTitle: '', datasetDescription: '', rowLabel: '', columnDescriptions: {} });
             setShowResults(false);
             setImportedRowCount(0);
             setGeneratingColumns(new Set());
@@ -715,6 +755,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setColumnSuggestions({});
             setIsGeneratingEmpty(false);
             setGeneratingRowLabel(false);
+            setGeneratingDatasetTitle(false);
             setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
             setSocrataDatasetId('');
             setSocrataFieldNameMap({});
@@ -1053,6 +1094,26 @@ FORMAT RULES:
         }
     }, [csvData, fileName, columnStats, importedRowCount, generateRowLabel]);
 
+    const handleEditDatasetTitle = useCallback((newTitle: string) => {
+        setGeneratedResults((prev) => ({ ...prev, datasetTitle: newTitle }));
+    }, []);
+
+    const handleGenerateDatasetTitle = useCallback(async () => {
+        if (!csvData) return;
+        setGeneratingDatasetTitle(true);
+        try {
+            await generateDatasetTitle(csvData, fileName, columnStats, importedRowCount || undefined);
+            setStatus({ message: 'Successfully generated dataset title!', type: 'success' });
+        } catch (error) {
+            setStatus({
+                message: `Error generating dataset title: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                type: 'error',
+            });
+        } finally {
+            setGeneratingDatasetTitle(false);
+        }
+    }, [csvData, fileName, columnStats, importedRowCount, generateDatasetTitle]);
+
     const handleSocrataImport = useCallback(
         async (datasetId: string, keyId?: string, keySecret?: string) => {
             setIsProcessing(true);
@@ -1120,6 +1181,7 @@ FORMAT RULES:
                 setSocrataFieldNameMap(fieldMap);
 
                 setGeneratedResults({
+                    datasetTitle: result.datasetName || '',
                     datasetDescription: result.datasetDescription || '',
                     rowLabel: result.rowLabel || '',
                     columnDescriptions,
@@ -1198,6 +1260,7 @@ FORMAT RULES:
 
             const result = await pushSocrataMetadata(
                 socrataDatasetId,
+                generatedResults.datasetTitle || undefined,
                 generatedResults.datasetDescription || undefined,
                 generatedResults.rowLabel || undefined,
                 columnUpdates,
@@ -1270,6 +1333,7 @@ FORMAT RULES:
         columnSuggestions,
         isGeneratingEmpty,
         generatingRowLabel,
+        generatingDatasetTitle,
         socrataDatasetId,
         isPushingSocrata,
         socrataOAuthToken,
@@ -1303,6 +1367,8 @@ FORMAT RULES:
         handleEditColumnDescription,
         handleEditRowLabel,
         handleGenerateRowLabel,
+        handleEditDatasetTitle,
+        handleGenerateDatasetTitle,
         handlePushToSocrata,
         handleCloseDataset,
         closeTab,

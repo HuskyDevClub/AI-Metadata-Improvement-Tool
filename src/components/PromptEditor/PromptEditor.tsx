@@ -6,6 +6,7 @@ import {
     DEFAULT_COLUMN_SUGGESTION_PROMPT,
     DEFAULT_DATASET_PROMPT,
     DEFAULT_DATASET_SUGGESTION_PROMPT,
+    DEFAULT_DATASET_TITLE_PROMPT,
     DEFAULT_ROW_LABEL_PROMPT,
     DEFAULT_SYSTEM_PROMPT,
 } from '../../utils/prompts';
@@ -27,6 +28,10 @@ const PROMPT_INFO: Record<string, {description: string; placeholders?: string}> 
         description: 'Template for determining a short noun phrase (e.g. "license record") that describes what one row represents.',
         placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
     },
+    datasetTitle: {
+        description: 'Template for generating a short, descriptive title for the dataset (e.g. "Washington State Vehicle Registrations").',
+        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+    },
     datasetSuggestion: {
         description: 'Template for reviewing an existing dataset description and returning actionable improvement suggestions.',
         placeholders: '{currentDescription}',
@@ -42,6 +47,7 @@ const DEFAULTS: Record<keyof PromptTemplates, string> = {
     dataset: DEFAULT_DATASET_PROMPT,
     column: DEFAULT_COLUMN_PROMPT,
     rowLabel: DEFAULT_ROW_LABEL_PROMPT,
+    datasetTitle: DEFAULT_DATASET_TITLE_PROMPT,
     datasetSuggestion: DEFAULT_DATASET_SUGGESTION_PROMPT,
     columnSuggestion: DEFAULT_COLUMN_SUGGESTION_PROMPT,
 };
@@ -51,6 +57,7 @@ const PROMPT_FIELDS: {key: keyof PromptTemplates; label: string}[] = [
     { key: 'dataset', label: 'Dataset Description Prompt' },
     { key: 'column', label: 'Column Description Prompt' },
     { key: 'rowLabel', label: 'Row Label Prompt' },
+    { key: 'datasetTitle', label: 'Dataset Title Prompt' },
     { key: 'datasetSuggestion', label: 'Dataset Description Suggestion Prompt' },
     { key: 'columnSuggestion', label: 'Column Description Suggestion Prompt' },
 ];
