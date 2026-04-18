@@ -30,12 +30,6 @@ export function DataOverviewPage() {
         handleEditRowLabel,
         handleGenerateRowLabel,
         generatingRowLabel,
-        handleEditNote,
-        handleDeleteNote,
-        handleAddNote,
-        handleGenerateNote,
-        generatingNotes,
-        pendingNote,
         renderTokenUsage,
     } = useAppContext();
 
@@ -116,13 +110,6 @@ export function DataOverviewPage() {
                     onEditRowLabel={handleEditRowLabel}
                     onGenerateRowLabel={handleGenerateRowLabel}
                     isGeneratingRowLabel={generatingRowLabel}
-                    notes={generatedResults.notes}
-                    onEditNote={handleEditNote}
-                    onDeleteNote={handleDeleteNote}
-                    onAddNote={handleAddNote}
-                    onGenerateNote={handleGenerateNote}
-                    isGeneratingNote={generatingNotes}
-                    pendingNote={pendingNote}
                 />
             )}
 

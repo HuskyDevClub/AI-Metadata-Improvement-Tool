@@ -1,6 +1,6 @@
+from pydantic import BaseModel
 from typing import Any
 
-from pydantic import BaseModel
 
 # ============================================================================
 # Chat/Streaming Models
@@ -70,7 +70,6 @@ class SocrataImportResponse(BaseModel):
     datasetName: str
     datasetDescription: str
     rowLabel: str
-    notes: str
     columns: list[SocrataColumnMetadata]
     columnStats: dict[str, ColumnStats]
 
@@ -96,7 +95,6 @@ class SocrataExportRequest(BaseModel):
     apiKeySecret: str | None = None
     datasetDescription: str | None = None
     rowLabel: str | None = None
-    notes: str | None = None
     columns: list[SocrataColumnUpdate] = []
 
 

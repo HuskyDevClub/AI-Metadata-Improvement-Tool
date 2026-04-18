@@ -40,32 +40,8 @@ interface SocrataImportResult {
     datasetName: string;
     datasetDescription: string;
     rowLabel: string;
-    notes: string[];
     columns: SocrataColumnMeta[];
     columnStats: Record<string, ColumnInfo>;
-}
-
-/**
- * Parse a notes string (from Socrata) into an array of individual notes.
- * Splits on double-newlines (paragraphs) or bullet-style lines.
- */
-function parseNotesString(raw: string): string[] {
-    if (!raw.trim()) return [];
-    // Try splitting on double-newline (paragraph breaks) first
-    const paragraphs = raw.split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
-    if (paragraphs.length > 1) return paragraphs;
-    // Try splitting on single newlines that look like separate items
-    const lines = raw.split(/\n/).map(s => s.trim()).filter(Boolean);
-    if (lines.length > 1) return lines;
-    // Single block of text
-    return [raw.trim()];
-}
-
-/**
- * Serialize an array of notes into a single string for Socrata export.
- */
-function serializeNotes(notes: string[]): string {
-    return notes.filter(n => n.trim()).join('\n\n');
 }
 
 interface SocrataExportResult {
@@ -78,7 +54,6 @@ export async function pushSocrataMetadata(
     datasetId: string,
     datasetDescription: string | undefined,
     rowLabel: string | undefined,
-    notes: string[] | undefined,
     columns: {fieldName: string; description: string}[],
     oauthToken?: string,
     apiKeyId?: string,
@@ -94,7 +69,6 @@ export async function pushSocrataMetadata(
             apiKeySecret,
             datasetDescription,
             rowLabel,
-            notes: notes ? serializeNotes(notes) : undefined,
             columns
         }),
     });
@@ -127,7 +101,6 @@ export async function fetchSocrataImport(
         datasetName: result.datasetName,
         datasetDescription: result.datasetDescription,
         rowLabel: result.rowLabel || '',
-        notes: parseNotesString(result.notes || ''),
         columns: result.columns,
         columnStats: result.columnStats,
     };

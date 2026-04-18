@@ -23,13 +23,6 @@ interface DatasetDescriptionProps {
     onEditRowLabel?: (newLabel: string) => void;
     onGenerateRowLabel?: () => void;
     isGeneratingRowLabel?: boolean;
-    notes?: string[];
-    onEditNote?: (index: number, text: string) => void;
-    onDeleteNote?: (index: number) => void;
-    onAddNote?: (text: string) => void;
-    onGenerateNote?: () => void;
-    isGeneratingNote?: boolean;
-    pendingNote?: string;
 }
 
 export function DatasetDescription({
@@ -52,20 +45,9 @@ export function DatasetDescription({
                                        onEditRowLabel,
                                        onGenerateRowLabel,
                                        isGeneratingRowLabel = false,
-                                       notes = [],
-                                       onEditNote,
-                                       onDeleteNote,
-                                       onAddNote,
-                                       onGenerateNote,
-                                       isGeneratingNote = false,
-                                       pendingNote = '',
                                    }: DatasetDescriptionProps) {
     const [isEditingRowLabel, setIsEditingRowLabel] = useState(false);
     const [rowLabelEditValue, setRowLabelEditValue] = useState(rowLabel);
-    const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
-    const [noteEditValue, setNoteEditValue] = useState('');
-    const [isAddingNote, setIsAddingNote] = useState(false);
-    const [newNoteValue, setNewNoteValue] = useState('');
 
     const handleRowLabelSave = () => {
         onEditRowLabel?.(rowLabelEditValue);
@@ -75,23 +57,6 @@ export function DatasetDescription({
     const handleRowLabelCancel = () => {
         setRowLabelEditValue(rowLabel);
         setIsEditingRowLabel(false);
-    };
-
-    const handleNoteSave = (index: number) => {
-        onEditNote?.(index, noteEditValue);
-        setEditingNoteIndex(null);
-    };
-
-    const handleNoteCancel = () => {
-        setEditingNoteIndex(null);
-    };
-
-    const handleAddNoteSave = () => {
-        if (newNoteValue.trim()) {
-            onAddNote?.(newNoteValue.trim());
-            setNewNoteValue('');
-        }
-        setIsAddingNote(false);
     };
 
     return (
@@ -174,136 +139,6 @@ export function DatasetDescription({
                                 )}
                             </div>
                         )}
-                    </div>
-                )}
-
-                {onAddNote && (
-                    <div className="dataset-notes">
-                        <div className="dataset-notes-header">
-                            <span className="dataset-notes-title">Notes</span>
-                            <span className="dataset-notes-header-actions">
-                                <button
-                                    className="dataset-row-label-btn"
-                                    onClick={() => {
-                                        setNewNoteValue('');
-                                        setIsAddingNote(true);
-                                    }}
-                                    disabled={isGeneratingNote}
-                                >
-                                    + Add
-                                </button>
-                                <button
-                                    className="dataset-row-label-btn generate"
-                                    onClick={onGenerateNote}
-                                    disabled={isGeneratingNote}
-                                    title="Generate a note with AI"
-                                >
-                                    {isGeneratingNote ? 'Generating...' : 'Generate'}
-                                </button>
-                            </span>
-                        </div>
-
-                        {notes.length === 0 && !isGeneratingNote && !isAddingNote && (
-                            <div className="dataset-notes-empty">
-                                <em className="dataset-row-label-empty">No notes yet</em>
-                            </div>
-                        )}
-
-                        <div className="dataset-notes-list">
-                            {notes.map((note, index) => (
-                                <div key={index} className="dataset-note-item">
-                                    {editingNoteIndex === index ? (
-                                        <div className="dataset-notes-edit">
-                                            <textarea
-                                                value={noteEditValue}
-                                                onChange={(e) => setNoteEditValue(e.target.value)}
-                                                className="dataset-notes-textarea"
-                                                rows={3}
-                                                autoFocus
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Escape') handleNoteCancel();
-                                                }}
-                                            />
-                                            <div className="dataset-notes-edit-actions">
-                                                <button className="dataset-row-label-btn save"
-                                                        onClick={() => handleNoteSave(index)}>Save
-                                                </button>
-                                                <button className="dataset-row-label-btn cancel"
-                                                        onClick={handleNoteCancel}>Cancel
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="dataset-note-display">
-                                            <span className="dataset-note-text">{note}</span>
-                                            <span className="dataset-note-actions">
-                                                <button
-                                                    className="dataset-row-label-btn edit"
-                                                    onClick={() => {
-                                                        setNoteEditValue(note);
-                                                        setEditingNoteIndex(index);
-                                                    }}
-                                                    title="Edit note"
-                                                >
-                                                    &#9998;
-                                                </button>
-                                                <button
-                                                    className="dataset-note-delete-btn"
-                                                    onClick={() => onDeleteNote?.(index)}
-                                                    title="Delete note"
-                                                >
-                                                    &times;
-                                                </button>
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-
-                            {isGeneratingNote && pendingNote && (
-                                <div className="dataset-note-item dataset-note-generating">
-                                    <span className="dataset-row-label-generating">
-                                        {pendingNote}
-                                        <span className="ed-cursor">|</span>
-                                    </span>
-                                </div>
-                            )}
-
-                            {isGeneratingNote && !pendingNote && (
-                                <div className="dataset-note-item dataset-note-generating">
-                                    <span className="dataset-row-label-generating">
-                                        Generating...
-                                        <span className="ed-cursor">|</span>
-                                    </span>
-                                </div>
-                            )}
-
-                            {isAddingNote && (
-                                <div className="dataset-note-item">
-                                    <div className="dataset-notes-edit">
-                                        <textarea
-                                            value={newNoteValue}
-                                            onChange={(e) => setNewNoteValue(e.target.value)}
-                                            className="dataset-notes-textarea"
-                                            placeholder="Add a note: data limitations, update frequency, methodology, caveats..."
-                                            rows={3}
-                                            autoFocus
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Escape') setIsAddingNote(false);
-                                            }}
-                                        />
-                                        <div className="dataset-notes-edit-actions">
-                                            <button className="dataset-row-label-btn save"
-                                                    onClick={handleAddNoteSave}>Add
-                                            </button>
-                                            <button className="dataset-row-label-btn cancel"
-                                                    onClick={() => setIsAddingNote(false)}>Cancel
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 )}
 
