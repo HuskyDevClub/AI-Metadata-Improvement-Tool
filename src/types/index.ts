@@ -43,6 +43,8 @@ export interface GeneratedResults {
     datasetTitle: string;
     datasetDescription: string;
     rowLabel: string;
+    category: string;
+    tags: string[];
     columnDescriptions: Record<string, string>;
 }
 
@@ -60,6 +62,8 @@ export interface PromptTemplates {
     column: string;
     rowLabel: string;
     datasetTitle: string;
+    category: string;
+    tags: string;
     datasetSuggestion: string;
     columnSuggestion: string;
 }

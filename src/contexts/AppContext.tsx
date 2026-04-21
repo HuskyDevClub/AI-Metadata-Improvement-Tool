@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useOpenAI } from '../hooks/useOpenAI';
+import { fetchSocrataCategories } from '../utils/categoriesApi';
 import {
     fetchSocrataImport,
     fetchSocrataOAuthLoginUrl,
@@ -21,7 +22,9 @@ import {
     appendPromptModifiers,
     buildColumnImprovementPrompt,
     buildDatasetImprovementPrompt,
+    buildNumberedCategoryList,
     buildRegenerateWithSuggestionsPrompt,
+    DEFAULT_CATEGORY_PROMPT,
     DEFAULT_COLUMN_PROMPT,
     DEFAULT_COLUMN_SUGGESTION_PROMPT,
     DEFAULT_DATASET_PROMPT,
@@ -29,6 +32,9 @@ import {
     DEFAULT_DATASET_TITLE_PROMPT,
     DEFAULT_ROW_LABEL_PROMPT,
     DEFAULT_SYSTEM_PROMPT,
+    DEFAULT_TAGS_PROMPT,
+    parseCategoryIndex,
+    parseTagsFromResponse,
     type SuggestionItem,
 } from '../utils/prompts';
 import type {
@@ -102,6 +108,9 @@ interface AppContextType {
     handleOpenAIConfigChange: (config: OpenAIConfigType) => void;
     handleOpenAIConfigClear: () => void;
 
+    // Live data from data.wa.gov
+    allowedCategories: string[];
+
     // CSV Data
     csvData: CsvRow[] | null;
     fileName: string;
@@ -123,6 +132,8 @@ interface AppContextType {
     isGeneratingEmpty: boolean;
     generatingRowLabel: boolean;
     generatingDatasetTitle: boolean;
+    generatingCategory: boolean;
+    generatingTags: boolean;
 
     // Socrata
     socrataDatasetId: string;
@@ -166,6 +177,12 @@ interface AppContextType {
     handleGenerateRowLabel: () => Promise<void>;
     handleEditDatasetTitle: (newTitle: string) => void;
     handleGenerateDatasetTitle: () => Promise<void>;
+    handleEditCategory: (newCategory: string) => void;
+    handleGenerateCategory: () => Promise<void>;
+    handleEditTags: (newTags: string[]) => void;
+    handleAddTag: (tag: string) => void;
+    handleRemoveTag: (tag: string) => void;
+    handleGenerateTags: () => Promise<void>;
     handlePushToSocrata: () => Promise<void>;
     handleCloseDataset: () => void;
     closeTab: (id: string) => void;
@@ -221,6 +238,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
             column: DEFAULT_COLUMN_PROMPT,
             rowLabel: DEFAULT_ROW_LABEL_PROMPT,
             datasetTitle: DEFAULT_DATASET_TITLE_PROMPT,
+            category: DEFAULT_CATEGORY_PROMPT,
+            tags: DEFAULT_TAGS_PROMPT,
             datasetSuggestion: DEFAULT_DATASET_SUGGESTION_PROMPT,
             columnSuggestion: DEFAULT_COLUMN_SUGGESTION_PROMPT,
         };
@@ -237,6 +256,22 @@ export function AppProvider({ children }: {children: ReactNode}) {
         localStorage.setItem('prompt_templates', JSON.stringify(templates));
     }, []);
 
+    const [allowedCategories, setAllowedCategories] = useState<string[]>([]);
+
+    useEffect(() => {
+        let cancelled = false;
+        fetchSocrataCategories()
+            .then((list) => {
+                if (!cancelled) setAllowedCategories(list);
+            })
+            .catch((err) => {
+                console.warn('Failed to load Socrata categories:', err);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     const [csvData, setCsvData] = useState<CsvRow[] | null>(null);
     const [fileName, setFileName] = useState('');
     const [columnStats, setColumnStats] = useState<Record<string, ColumnInfo>>({});
@@ -244,6 +279,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         datasetTitle: '',
         datasetDescription: '',
         rowLabel: '',
+        category: '',
+        tags: [],
         columnDescriptions: {},
     });
 
@@ -278,6 +315,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const [isGeneratingEmpty, setIsGeneratingEmpty] = useState(false);
     const [generatingRowLabel, setGeneratingRowLabel] = useState(false);
     const [generatingDatasetTitle, setGeneratingDatasetTitle] = useState(false);
+    const [generatingCategory, setGeneratingCategory] = useState(false);
+    const [generatingTags, setGeneratingTags] = useState(false);
 
     // --- Multi-dataset tab support ---
     const [datasetTabs, setDatasetTabs] = useState<DatasetTabInfo[]>([]);
@@ -333,6 +372,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setIsGeneratingEmpty(false);
         setGeneratingRowLabel(false);
         setGeneratingDatasetTitle(false);
+        setGeneratingCategory(false);
+        setGeneratingTags(false);
         setIsPushingSocrata(false);
         setCurrentPage(saved.page);
         setCurrentFieldName(saved.fieldName);
@@ -650,6 +691,74 @@ export function AppProvider({ children }: {children: ReactNode}) {
         [openaiConfig, promptTemplates.systemPrompt, buildDatasetTitlePrompt, callOpenAIStream, addTokenUsage]
     );
 
+    const buildCategoryPrompt = useCallback((
+        data: CsvRow[],
+        name: string,
+        stats: Record<string, ColumnInfo>,
+        rowCountOverride?: number,
+    ): string => {
+        const base = buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.category, '', undefined, rowCountOverride);
+        return base.replace('{categoryList}', buildNumberedCategoryList(allowedCategories));
+    }, [promptTemplates.category, buildDatasetPromptFromTemplate, allowedCategories]);
+
+    const buildTagsPrompt = useCallback((
+        data: CsvRow[],
+        name: string,
+        stats: Record<string, ColumnInfo>,
+        rowCountOverride?: number,
+    ): string => {
+        return buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.tags, '', undefined, rowCountOverride);
+    }, [promptTemplates.tags, buildDatasetPromptFromTemplate]);
+
+    const generateCategory = useCallback(
+        async (
+            data: CsvRow[],
+            name: string,
+            stats: Record<string, ColumnInfo>,
+            rowCountOverride?: number,
+        ): Promise<{content: string}> => {
+            const prompt = buildCategoryPrompt(data, name, stats, rowCountOverride);
+            let fullContent = '';
+            const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
+                fullContent += chunk;
+            });
+            addTokenUsage(result.usage);
+            const matched = parseCategoryIndex(fullContent, allowedCategories);
+            if (!matched) {
+                setStatus({
+                    message: 'AI did not return a valid category — please select one manually.',
+                    type: 'warning',
+                });
+                return { content: '' };
+            }
+            setGeneratedResults((prev) => ({ ...prev, category: matched }));
+            return { content: matched };
+        },
+        [openaiConfig, promptTemplates.systemPrompt, buildCategoryPrompt, callOpenAIStream, addTokenUsage, allowedCategories]
+    );
+
+    const generateTags = useCallback(
+        async (
+            data: CsvRow[],
+            name: string,
+            stats: Record<string, ColumnInfo>,
+            rowCountOverride?: number,
+        ): Promise<{tags: string[]}> => {
+            const prompt = buildTagsPrompt(data, name, stats, rowCountOverride);
+            let fullContent = '';
+            const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
+                fullContent += chunk;
+                const streaming = parseTagsFromResponse(fullContent);
+                setGeneratedResults((prev) => ({ ...prev, tags: streaming }));
+            });
+            addTokenUsage(result.usage);
+            const finalTags = parseTagsFromResponse(fullContent);
+            setGeneratedResults((prev) => ({ ...prev, tags: finalTags }));
+            return { tags: finalTags };
+        },
+        [openaiConfig, promptTemplates.systemPrompt, buildTagsPrompt, callOpenAIStream, addTokenUsage]
+    );
+
     const handleAnalyze = useCallback(
         async (file: File) => {
             setIsProcessing(true);
@@ -679,7 +788,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setFileName(result.fileName);
                 setShowResults(true);
                 setImportedRowCount(0);
-                setGeneratedResults({ datasetTitle: '', datasetDescription: '', rowLabel: '', columnDescriptions: {} });
+                setGeneratedResults({ datasetTitle: '', datasetDescription: '', rowLabel: '', category: '', tags: [], columnDescriptions: {} });
                 setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
                 setSocrataDatasetId('');
                 setSocrataFieldNameMap({});
@@ -743,7 +852,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setCsvData(null);
             setFileName('');
             setColumnStats({});
-            setGeneratedResults({ datasetTitle: '', datasetDescription: '', rowLabel: '', columnDescriptions: {} });
+            setGeneratedResults({ datasetTitle: '', datasetDescription: '', rowLabel: '', category: '', tags: [], columnDescriptions: {} });
             setShowResults(false);
             setImportedRowCount(0);
             setGeneratingColumns(new Set());
@@ -756,6 +865,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setIsGeneratingEmpty(false);
             setGeneratingRowLabel(false);
             setGeneratingDatasetTitle(false);
+            setGeneratingCategory(false);
+            setGeneratingTags(false);
             setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
             setSocrataDatasetId('');
             setSocrataFieldNameMap({});
@@ -1114,6 +1225,82 @@ FORMAT RULES:
         }
     }, [csvData, fileName, columnStats, importedRowCount, generateDatasetTitle]);
 
+    const handleEditCategory = useCallback((newCategory: string) => {
+        setGeneratedResults((prev) => ({ ...prev, category: newCategory }));
+    }, []);
+
+    const handleGenerateCategory = useCallback(async () => {
+        if (!csvData) return;
+        if (allowedCategories.length === 0) {
+            setStatus({
+                message: 'Categories are unavailable right now — cannot generate.',
+                type: 'warning',
+            });
+            return;
+        }
+        setGeneratingCategory(true);
+        try {
+            const result = await generateCategory(csvData, fileName, columnStats, importedRowCount || undefined);
+            if (result.content) {
+                setStatus({ message: 'Successfully generated category!', type: 'success' });
+            }
+        } catch (error) {
+            setStatus({
+                message: `Error generating category: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                type: 'error',
+            });
+        } finally {
+            setGeneratingCategory(false);
+        }
+    }, [csvData, fileName, columnStats, importedRowCount, generateCategory, allowedCategories]);
+
+    const handleEditTags = useCallback((newTags: string[]) => {
+        const seen = new Set<string>();
+        const deduped: string[] = [];
+        for (const raw of newTags) {
+            const tag = raw.trim();
+            if (!tag) continue;
+            const key = tag.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            deduped.push(tag);
+        }
+        setGeneratedResults((prev) => ({ ...prev, tags: deduped }));
+    }, []);
+
+    const handleAddTag = useCallback((tag: string) => {
+        const clean = tag.trim();
+        if (!clean) return;
+        setGeneratedResults((prev) => {
+            const key = clean.toLowerCase();
+            if (prev.tags.some((t) => t.toLowerCase() === key)) return prev;
+            return { ...prev, tags: [...prev.tags, clean] };
+        });
+    }, []);
+
+    const handleRemoveTag = useCallback((tag: string) => {
+        setGeneratedResults((prev) => ({
+            ...prev,
+            tags: prev.tags.filter((t) => t !== tag),
+        }));
+    }, []);
+
+    const handleGenerateTags = useCallback(async () => {
+        if (!csvData) return;
+        setGeneratingTags(true);
+        try {
+            await generateTags(csvData, fileName, columnStats, importedRowCount || undefined);
+            setStatus({ message: 'Successfully generated tags!', type: 'success' });
+        } catch (error) {
+            setStatus({
+                message: `Error generating tags: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                type: 'error',
+            });
+        } finally {
+            setGeneratingTags(false);
+        }
+    }, [csvData, fileName, columnStats, importedRowCount, generateTags]);
+
     const handleSocrataImport = useCallback(
         async (datasetId: string, keyId?: string, keySecret?: string) => {
             setIsProcessing(true);
@@ -1184,6 +1371,8 @@ FORMAT RULES:
                     datasetTitle: result.datasetName || '',
                     datasetDescription: result.datasetDescription || '',
                     rowLabel: result.rowLabel || '',
+                    category: result.category || '',
+                    tags: result.tags || [],
                     columnDescriptions,
                 });
 
@@ -1263,6 +1452,8 @@ FORMAT RULES:
                 generatedResults.datasetTitle || undefined,
                 generatedResults.datasetDescription || undefined,
                 generatedResults.rowLabel || undefined,
+                generatedResults.category || undefined,
+                generatedResults.tags.length > 0 ? generatedResults.tags : undefined,
                 columnUpdates,
                 socrataOAuthToken || undefined,
                 socrataApiKeyId || undefined,
@@ -1316,6 +1507,7 @@ FORMAT RULES:
         setPromptTemplates,
         handleOpenAIConfigChange,
         handleOpenAIConfigClear,
+        allowedCategories,
         csvData,
         fileName,
         columnStats,
@@ -1334,6 +1526,8 @@ FORMAT RULES:
         isGeneratingEmpty,
         generatingRowLabel,
         generatingDatasetTitle,
+        generatingCategory,
+        generatingTags,
         socrataDatasetId,
         isPushingSocrata,
         socrataOAuthToken,
@@ -1369,6 +1563,12 @@ FORMAT RULES:
         handleGenerateRowLabel,
         handleEditDatasetTitle,
         handleGenerateDatasetTitle,
+        handleEditCategory,
+        handleGenerateCategory,
+        handleEditTags,
+        handleAddTag,
+        handleRemoveTag,
+        handleGenerateTags,
         handlePushToSocrata,
         handleCloseDataset,
         closeTab,

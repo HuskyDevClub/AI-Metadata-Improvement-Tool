@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { SuggestionItem } from '../../utils/prompts';
+import { type SuggestionItem } from '../../utils/prompts';
 import { EditableDescription } from '../EditableDescription/EditableDescription';
 import './DatasetDescription.css';
 
@@ -23,6 +23,16 @@ interface DatasetDescriptionProps {
     onEditRowLabel?: (newLabel: string) => void;
     onGenerateRowLabel?: () => void;
     isGeneratingRowLabel?: boolean;
+    category?: string;
+    allowedCategories?: string[];
+    onEditCategory?: (newCategory: string) => void;
+    onGenerateCategory?: () => void;
+    isGeneratingCategory?: boolean;
+    tags?: string[];
+    onAddTag?: (tag: string) => void;
+    onRemoveTag?: (tag: string) => void;
+    onGenerateTags?: () => void;
+    isGeneratingTags?: boolean;
 }
 
 export function DatasetDescription({
@@ -45,9 +55,32 @@ export function DatasetDescription({
                                        onEditRowLabel,
                                        onGenerateRowLabel,
                                        isGeneratingRowLabel = false,
+                                       category = '',
+                                       allowedCategories = [],
+                                       onEditCategory,
+                                       onGenerateCategory,
+                                       isGeneratingCategory = false,
+                                       tags = [],
+                                       onAddTag,
+                                       onRemoveTag,
+                                       onGenerateTags,
+                                       isGeneratingTags = false,
                                    }: DatasetDescriptionProps) {
     const [isEditingRowLabel, setIsEditingRowLabel] = useState(false);
     const [rowLabelEditValue, setRowLabelEditValue] = useState(rowLabel);
+    const [newTagInput, setNewTagInput] = useState('');
+
+    const categoriesUnavailable = allowedCategories.length === 0;
+    const categoryOptions = allowedCategories.includes(category) || !category
+        ? allowedCategories
+        : [...allowedCategories, category];
+
+    const commitNewTag = () => {
+        const value = newTagInput.trim();
+        if (!value) return;
+        onAddTag?.(value);
+        setNewTagInput('');
+    };
 
     const handleRowLabelSave = () => {
         onEditRowLabel?.(rowLabelEditValue);
@@ -139,6 +172,112 @@ export function DatasetDescription({
                                 )}
                             </div>
                         )}
+                    </div>
+                )}
+
+                {onEditCategory && (
+                    <div className="dataset-category">
+                        <span className="dataset-category-title">Category</span>
+                        <div className="dataset-category-display">
+                            <select
+                                className="dataset-category-select"
+                                value={category}
+                                onChange={(e) => onEditCategory(e.target.value)}
+                                disabled={isGeneratingCategory || categoriesUnavailable}
+                            >
+                                <option value="">Not set</option>
+                                {categoryOptions.map((option) => (
+                                    <option key={option} value={option}>
+                                        {option}
+                                    </option>
+                                ))}
+                            </select>
+                            {!categoriesUnavailable && category && !allowedCategories.includes(category) && (
+                                <span
+                                    className="dataset-category-warning"
+                                    title="This category is not in the list from data.wa.gov. Pick one from the dropdown to use a recognized value."
+                                >
+                                    not in data.wa.gov list
+                                </span>
+                            )}
+                            <button
+                                className="dataset-row-label-btn generate"
+                                onClick={onGenerateCategory}
+                                disabled={isGeneratingCategory || categoriesUnavailable}
+                                title="Pick a category with AI (from the data.wa.gov list only)"
+                            >
+                                {isGeneratingCategory ? 'Generating...' : 'Generate'}
+                            </button>
+                        </div>
+                        {categoriesUnavailable && (
+                            <div className="dataset-category-unavailable">
+                                Categories unavailable — try again after connection is restored
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {onAddTag && onRemoveTag && (
+                    <div className="dataset-tags">
+                        <div className="dataset-tags-header">
+                            <span className="dataset-category-title">Tags and Keywords</span>
+                            <button
+                                className="dataset-row-label-btn generate"
+                                onClick={onGenerateTags}
+                                disabled={isGeneratingTags}
+                                title="Generate tags with AI"
+                            >
+                                {isGeneratingTags ? 'Generating...' : 'Generate'}
+                            </button>
+                        </div>
+                        <div className="dataset-tags-chips">
+                            {tags.length === 0 && !isGeneratingTags && (
+                                <em className="dataset-row-label-empty">No tags yet</em>
+                            )}
+                            {tags.map((tag) => (
+                                <span key={tag} className="dataset-tag-chip">
+                                    {tag}
+                                    <button
+                                        type="button"
+                                        className="dataset-tag-chip-remove"
+                                        onClick={() => onRemoveTag(tag)}
+                                        aria-label={`Remove tag ${tag}`}
+                                    >
+                                        &times;
+                                    </button>
+                                </span>
+                            ))}
+                            {isGeneratingTags && tags.length === 0 && (
+                                <span className="dataset-row-label-generating">
+                                    Generating...
+                                    <span className="ed-cursor">|</span>
+                                </span>
+                            )}
+                        </div>
+                        <div className="dataset-tags-add">
+                            <input
+                                type="text"
+                                className="dataset-row-label-input"
+                                placeholder="Add a tag and press Enter"
+                                value={newTagInput}
+                                onChange={(e) => setNewTagInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        commitNewTag();
+                                    }
+                                }}
+                                disabled={isGeneratingTags}
+                            />
+                            <button
+                                type="button"
+                                className="dataset-row-label-btn save"
+                                onClick={commitNewTag}
+                                disabled={!newTagInput.trim() || isGeneratingTags}
+                            >
+                                Add
+                            </button>
+                        </div>
                     </div>
                 )}
 

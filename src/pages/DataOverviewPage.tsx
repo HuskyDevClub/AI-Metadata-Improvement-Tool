@@ -29,6 +29,14 @@ export function DataOverviewPage() {
         handleEditRowLabel,
         handleGenerateRowLabel,
         generatingRowLabel,
+        handleEditCategory,
+        handleGenerateCategory,
+        generatingCategory,
+        allowedCategories,
+        handleAddTag,
+        handleRemoveTag,
+        handleGenerateTags,
+        generatingTags,
         renderTokenUsage,
     } = useAppContext();
 
@@ -103,6 +111,16 @@ export function DataOverviewPage() {
                     onEditRowLabel={handleEditRowLabel}
                     onGenerateRowLabel={handleGenerateRowLabel}
                     isGeneratingRowLabel={generatingRowLabel}
+                    category={generatedResults.category}
+                    allowedCategories={allowedCategories}
+                    onEditCategory={handleEditCategory}
+                    onGenerateCategory={handleGenerateCategory}
+                    isGeneratingCategory={generatingCategory}
+                    tags={generatedResults.tags}
+                    onAddTag={handleAddTag}
+                    onRemoveTag={handleRemoveTag}
+                    onGenerateTags={handleGenerateTags}
+                    isGeneratingTags={generatingTags}
                 />
             )}
 

@@ -70,6 +70,8 @@ class SocrataImportResponse(BaseModel):
     datasetName: str
     datasetDescription: str
     rowLabel: str
+    category: str
+    tags: list[str]
     columns: list[SocrataColumnMetadata]
     columnStats: dict[str, ColumnStats]
 
@@ -96,6 +98,8 @@ class SocrataExportRequest(BaseModel):
     datasetTitle: str | None = None
     datasetDescription: str | None = None
     rowLabel: str | None = None
+    category: str | None = None
+    tags: list[str] | None = None
     columns: list[SocrataColumnUpdate] = []
 
 
@@ -105,6 +109,17 @@ class SocrataExportResponse(BaseModel):
     success: bool
     message: str
     updatedColumns: int
+
+
+# ============================================================================
+# Socrata Categories Models
+# ============================================================================
+
+
+class SocrataCategoriesResponse(BaseModel):
+    """Response with the list of live categories advertised by data.wa.gov."""
+
+    categories: list[str]
 
 
 # ============================================================================

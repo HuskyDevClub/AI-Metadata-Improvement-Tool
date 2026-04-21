@@ -87,6 +87,44 @@ Rules:
 
 Return ONLY the title text — nothing else.`;
 
+export const DEFAULT_CATEGORY_PROMPT = `Pick the single best Category for this government dataset on data.wa.gov. You MUST choose exactly one entry from the numbered list below.
+
+Dataset Name: {fileName}
+Number of Rows: {rowCount}
+Columns (name — type):
+{columnInfo}
+
+Sample Data (first {sampleCount} rows):
+{sampleRows}
+
+Allowed categories (choose EXACTLY ONE by number):
+{categoryList}
+
+Rules:
+- Return ONLY the number (e.g., 3) of the single best-fit category from the list above. No text, no punctuation, no explanation.
+- If the dataset could plausibly fit multiple categories, choose the one that best reflects the primary subject of the data (what each row is about), not a secondary attribute.
+- If no category fits well, still pick the closest one by number — you MUST return a valid index.
+
+Return ONLY the number — nothing else.`;
+
+export const DEFAULT_TAGS_PROMPT = `Generate a concise set of Tags and Keywords for this government dataset on data.wa.gov. Tags help users search and filter datasets.
+
+Dataset Name: {fileName}
+Number of Rows: {rowCount}
+Columns (name — type):
+{columnInfo}
+
+Sample Data (first {sampleCount} rows):
+{sampleRows}
+
+Quality rules:
+- Return 4–8 tags total.
+- Tags must describe the subject matter, scope, and distinguishing features of the data. Prefer specific terms (e.g., "ferry ridership") over generic ones (e.g., "transportation").
+- Tags should be lowercase, 1–3 words each, use spaces (not hyphens or underscores), and contain no punctuation.
+- Do not duplicate tags. Do not include the dataset title as a tag. Do not include generic filler like "data", "dataset", or "information".
+
+Return ONLY a comma-separated list of tags on a single line — no bullets, no numbering, no explanation, no quotes around individual tags.`;
+
 export const DEFAULT_ROW_LABEL_PROMPT = `Determine the most accurate and concise Row Label for this government dataset on data.wa.gov. The Row Label should describe what a single row represents in plain language.
 
 Dataset Name: {fileName}
@@ -169,6 +207,55 @@ export interface SuggestionItem {
     text: string;
     selected: boolean;
     edited: boolean;
+}
+
+export function normalizeTag(raw: string): string {
+    return raw
+        .trim()
+        .toLowerCase()
+        .replace(/^["'`]+|["'`]+$/g, '')
+        .replace(/[.,;]+$/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+export function parseTagsFromResponse(text: string): string[] {
+    if (!text) return [];
+    // Strip any leading bullet/list markers per line, then split on commas/newlines.
+    const cleaned = text
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^\s*(?:\d+[.)]|[-*•])\s*/, ''))
+        .join(',');
+    const seen = new Set<string>();
+    const tags: string[] = [];
+    for (const piece of cleaned.split(/[,\n]+/)) {
+        const tag = normalizeTag(piece);
+        if (!tag) continue;
+        if (seen.has(tag)) continue;
+        seen.add(tag);
+        tags.push(tag);
+    }
+    return tags;
+}
+
+export function buildNumberedCategoryList(categories: string[]): string {
+    return categories.map((c, i) => `${i + 1}. ${c}`).join('\n');
+}
+
+export function parseCategoryIndex(raw: string, allowed: string[]): string {
+    if (!raw || allowed.length === 0) return '';
+
+    const match = raw.match(/\b(\d+)\b/);
+    if (match) {
+        const idx = parseInt(match[1], 10) - 1;
+        if (idx >= 0 && idx < allowed.length) return allowed[idx];
+    }
+
+    // Fallback: the model ignored the "number only" instruction — scan for a
+    // category name in the free text.
+    const lower = raw.toLowerCase();
+    const mentioned = allowed.find((c) => lower.includes(c.toLowerCase()));
+    return mentioned ?? '';
 }
 
 export function buildRegenerateWithSuggestionsPrompt(

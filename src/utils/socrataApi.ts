@@ -40,6 +40,8 @@ interface SocrataImportResult {
     datasetName: string;
     datasetDescription: string;
     rowLabel: string;
+    category: string;
+    tags: string[];
     columns: SocrataColumnMeta[];
     columnStats: Record<string, ColumnInfo>;
 }
@@ -55,6 +57,8 @@ export async function pushSocrataMetadata(
     datasetTitle: string | undefined,
     datasetDescription: string | undefined,
     rowLabel: string | undefined,
+    category: string | undefined,
+    tags: string[] | undefined,
     columns: {fieldName: string; description: string}[],
     oauthToken?: string,
     apiKeyId?: string,
@@ -71,6 +75,8 @@ export async function pushSocrataMetadata(
             datasetTitle,
             datasetDescription,
             rowLabel,
+            category,
+            tags,
             columns
         }),
     });
@@ -103,6 +109,8 @@ export async function fetchSocrataImport(
         datasetName: result.datasetName,
         datasetDescription: result.datasetDescription,
         rowLabel: result.rowLabel || '',
+        category: result.category || '',
+        tags: Array.isArray(result.tags) ? result.tags : [],
         columns: result.columns,
         columnStats: result.columnStats,
     };

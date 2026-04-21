@@ -28,6 +28,7 @@ from .models import (
     ChatRequest,
     ColumnStats,
     HealthResponse,
+    SocrataCategoriesResponse,
     SocrataColumnMetadata,
     SocrataExportRequest,
     SocrataExportResponse,
@@ -267,6 +268,11 @@ CATEGORICAL_SOCRATA_TYPES = {"checkbox", "flag"}
 
 # Limit concurrent SODA requests to avoid rate-limiting / 429s
 _soda_semaphore = asyncio.Semaphore(10)
+
+# Cache for the live category list fetched from the Socrata catalog API.
+# Populated lazily on first request; refreshed after TTL expires.
+_categories_cache: dict[str, Any] = {"value": None, "fetched_at": 0.0}
+_CATEGORIES_TTL_SECONDS = 24 * 60 * 60
 
 
 def build_socrata_auth(
@@ -557,6 +563,12 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
                 or metadata.get("rowLabel", "")
                 or ""
             )
+            category = metadata.get("category") or ""
+            raw_tags = metadata.get("tags")
+            if isinstance(raw_tags, list):
+                tags = [str(t) for t in raw_tags if t]
+            else:
+                tags = []
 
             total_rows = int(count_rows[0]["total"]) if count_rows else 0
 
@@ -612,6 +624,8 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
                 datasetName=dataset_name,
                 datasetDescription=dataset_description,
                 rowLabel=row_label,
+                category=category,
+                tags=tags,
                 columns=columns,
                 columnStats=column_stats,
             )
@@ -667,6 +681,12 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
             if request.datasetDescription is not None:
                 update_payload["description"] = request.datasetDescription
 
+            if request.category is not None:
+                update_payload["category"] = request.category
+
+            if request.tags is not None:
+                update_payload["tags"] = request.tags
+
             metadata_changed = False
 
             if request.rowLabel is not None:
@@ -719,6 +739,10 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
                 parts.append("dataset description")
             if request.rowLabel is not None:
                 parts.append("row label")
+            if request.category is not None:
+                parts.append("category")
+            if request.tags is not None:
+                parts.append(f"{len(request.tags)} tag{'s' if len(request.tags) != 1 else ''}")
             if updated_col_count > 0:
                 parts.append(
                     f"{updated_col_count} column description{'s' if updated_col_count != 1 else ''}"
@@ -738,6 +762,61 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
         raise HTTPException(
             status_code=500, detail=f"Failed to push metadata to data.wa.gov: {str(e)}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Socrata categories endpoint — live list of domain categories from data.wa.gov
+# ---------------------------------------------------------------------------
+
+
+async def _fetch_socrata_categories() -> list[str]:
+    """Fetch the live domain category list from Socrata's public catalog API."""
+    url = "https://api.us.socrata.com/api/catalog/v1/domain_categories"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(url, params={"domains": "data.wa.gov"})
+        resp.raise_for_status()
+        data = resp.json()
+
+    results = data.get("results") or []
+    seen: set[str] = set()
+    categories: list[str] = []
+    for entry in results:
+        raw = entry.get("domain_category") or entry.get("category")
+        if not raw:
+            continue
+        name = str(raw).strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        categories.append(name)
+    categories.sort(key=str.casefold)
+    return categories
+
+
+@app.get("/api/socrata/categories", response_model=SocrataCategoriesResponse)
+async def socrata_categories() -> SocrataCategoriesResponse:
+    """Return the live list of data.wa.gov categories, cached for 24 hours."""
+    now = time.time()
+    cached = _categories_cache["value"]
+    fetched_at = _categories_cache["fetched_at"]
+
+    if cached is not None and (now - fetched_at) < _CATEGORIES_TTL_SECONDS:
+        return SocrataCategoriesResponse(categories=cached)
+
+    try:
+        categories = await _fetch_socrata_categories()
+    except Exception as e:
+        logger.warning("Failed to fetch Socrata categories: %s", e)
+        if cached is not None:
+            return SocrataCategoriesResponse(categories=cached)
+        raise HTTPException(
+            status_code=503,
+            detail="Could not reach Socrata catalog API to load categories.",
+        )
+
+    _categories_cache["value"] = categories
+    _categories_cache["fetched_at"] = now
+    return SocrataCategoriesResponse(categories=categories)
 
 
 # OpenAI streaming chat endpoint

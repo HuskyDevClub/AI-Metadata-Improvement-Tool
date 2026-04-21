@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { OpenAIConfig, PromptTemplates } from '../../types';
 import { useOpenAI } from '../../hooks/useOpenAI';
 import {
+    DEFAULT_CATEGORY_PROMPT,
     DEFAULT_COLUMN_PROMPT,
     DEFAULT_COLUMN_SUGGESTION_PROMPT,
     DEFAULT_DATASET_PROMPT,
@@ -9,6 +10,7 @@ import {
     DEFAULT_DATASET_TITLE_PROMPT,
     DEFAULT_ROW_LABEL_PROMPT,
     DEFAULT_SYSTEM_PROMPT,
+    DEFAULT_TAGS_PROMPT,
 } from '../../utils/prompts';
 import './PromptEditor.css';
 
@@ -32,6 +34,14 @@ const PROMPT_INFO: Record<string, {description: string; placeholders?: string}> 
         description: 'Template for generating a short, descriptive title for the dataset (e.g. "Washington State Vehicle Registrations").',
         placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
     },
+    category: {
+        description: 'Template for picking exactly one category from the list. The AI is asked to return a number from the list; the backend maps it to the category name.',
+        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}, {categoryList}',
+    },
+    tags: {
+        description: 'Template for generating keyword tags. No vocabulary constraint — the AI produces free-form tags based on the dataset content.',
+        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+    },
     datasetSuggestion: {
         description: 'Template for reviewing an existing dataset description and returning actionable improvement suggestions.',
         placeholders: '{currentDescription}',
@@ -48,6 +58,8 @@ const DEFAULTS: Record<keyof PromptTemplates, string> = {
     column: DEFAULT_COLUMN_PROMPT,
     rowLabel: DEFAULT_ROW_LABEL_PROMPT,
     datasetTitle: DEFAULT_DATASET_TITLE_PROMPT,
+    category: DEFAULT_CATEGORY_PROMPT,
+    tags: DEFAULT_TAGS_PROMPT,
     datasetSuggestion: DEFAULT_DATASET_SUGGESTION_PROMPT,
     columnSuggestion: DEFAULT_COLUMN_SUGGESTION_PROMPT,
 };
@@ -58,6 +70,8 @@ const PROMPT_FIELDS: {key: keyof PromptTemplates; label: string}[] = [
     { key: 'column', label: 'Column Description Prompt' },
     { key: 'rowLabel', label: 'Row Label Prompt' },
     { key: 'datasetTitle', label: 'Dataset Title Prompt' },
+    { key: 'category', label: 'Category Prompt' },
+    { key: 'tags', label: 'Tags Prompt' },
     { key: 'datasetSuggestion', label: 'Dataset Description Suggestion Prompt' },
     { key: 'columnSuggestion', label: 'Column Description Suggestion Prompt' },
 ];
