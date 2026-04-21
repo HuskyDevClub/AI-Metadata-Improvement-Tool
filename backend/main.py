@@ -10,7 +10,7 @@ import time
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 from urllib.parse import urlencode
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,7 @@ from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from openai import APIStatusError, AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
+from starlette.middleware.base import RequestResponseEndpoint
 
 from .models import (
     ChatRequest,
@@ -56,16 +57,15 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
-# Secret for signing OAuth state tokens (used to prevent CSRF)
-_OAUTH_STATE_SECRET = (
-    os.getenv("OAUTH_STATE_SECRET") or SOCRATA_SECRET_TOKEN or secrets.token_hex(32)
-)
+# Secret for signing OAuth state tokens (used to prevent CSRF).
+# Generated fresh on every server start — if the server restarts, users simply
+# re-initiate the OAuth flow.  This is stronger than deriving from SOCRATA_SECRET_TOKEN.
+_OAUTH_STATE_SECRET = secrets.token_hex(32)
 
-# Fernet key for encrypting the OAuth session cookie. Generate with
-# `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
-# and set in the environment. Cookies are invalidated on key rotation.
-_SESSION_ENCRYPTION_KEY = os.getenv("SESSION_ENCRYPTION_KEY", "")
-_fernet: Fernet | None = Fernet(_SESSION_ENCRYPTION_KEY.encode()) if _SESSION_ENCRYPTION_KEY else None
+# Fernet key for encrypting the OAuth session cookie. Generated fresh on every
+# server start — sessions are invalidated on restart.
+_SESSION_ENCRYPTION_KEY = Fernet.generate_key().decode()
+_fernet = Fernet(_SESSION_ENCRYPTION_KEY.encode())
 
 SESSION_COOKIE_NAME = "socrata_session"
 SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
@@ -73,7 +73,12 @@ SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 # Cookies need SameSite=None;Secure for cross-site (e.g. Databricks app URL)
 # and Lax/Secure for same-origin. Default Lax; Databricks deployment is HTTPS.
 _COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "true").lower() != "false"
-_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "lax")
+_samesite_raw = os.getenv("SESSION_COOKIE_SAMESITE", "lax").lower()
+_COOKIE_SAMESITE: Literal["lax", "strict", "none"] = (
+    "strict"
+    if _samesite_raw == "strict"
+    else "none" if _samesite_raw == "none" else "lax"
+)
 
 # For Databricks Apps, the port is typically provided via environment variable
 PORT = int(os.getenv("PORT", "8000"))
@@ -94,9 +99,26 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(
+    request: Request, call_next: RequestResponseEndpoint
+) -> Response:
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains"
+    )
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+    )
+    return response
 
 
 # Health check endpoint
@@ -118,11 +140,6 @@ def _set_session_payload(response: Response, payload: dict[str, str]) -> None:
         {"kind": "oauth", "token": "..."}
         {"kind": "api_key", "id": "...", "secret": "..."}
     """
-    if not _fernet:
-        raise HTTPException(
-            status_code=500,
-            detail="SESSION_ENCRYPTION_KEY not configured on the server.",
-        )
     encrypted = _fernet.encrypt(json.dumps(payload).encode()).decode()
     response.set_cookie(
         SESSION_COOKIE_NAME,
@@ -137,8 +154,6 @@ def _set_session_payload(response: Response, payload: dict[str, str]) -> None:
 
 def _read_session(request: Request) -> dict[str, str] | None:
     """Decrypt the session cookie. Returns the payload dict or None."""
-    if not _fernet:
-        return None
     raw = request.cookies.get(SESSION_COOKIE_NAME)
     if not raw:
         return None
@@ -202,7 +217,7 @@ async def socrata_oauth_callback(
     code: str | None = None,
     error: str | None = None,
     state: str | None = None,
-):
+) -> RedirectResponse:
     """OAuth callback — exchanges authorization code for access token, redirects to frontend."""
     base = FRONTEND_URL.rstrip("/") if FRONTEND_URL else ""
 
@@ -454,7 +469,7 @@ async def _soda_get(
             resp.text[:300],
         )
         return []
-    return resp.json()
+    return cast(list[dict[str, Any]], resp.json())
 
 
 async def _compute_numeric_stats(
@@ -877,7 +892,9 @@ async def socrata_export(
             if request.category is not None:
                 parts.append("category")
             if request.tags is not None:
-                parts.append(f"{len(request.tags)} tag{'s' if len(request.tags) != 1 else ''}")
+                parts.append(
+                    f"{len(request.tags)} tag{'s' if len(request.tags) != 1 else ''}"
+                )
             if updated_col_count > 0:
                 parts.append(
                     f"{updated_col_count} column description{'s' if updated_col_count != 1 else ''}"
