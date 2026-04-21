@@ -11,7 +11,6 @@ export function ImportPage() {
         showResults,
         navigate,
         socrataApiKeyId,
-        socrataApiKeySecret,
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
     } = useAppContext();
@@ -22,9 +21,9 @@ export function ImportPage() {
     const [datasetId, setDatasetId] = useState('');
     const [showApiKey, setShowApiKey] = useState(!!socrataApiKeyId);
     const [apiKeyIdInput, setApiKeyIdInput] = useState(socrataApiKeyId);
-    const [apiKeySecretInput, setApiKeySecretInput] = useState(socrataApiKeySecret);
+    const [apiKeySecretInput, setApiKeySecretInput] = useState('');
     const [rememberKey, setRememberKey] = useState(true);
-    const apiKeysSaved = !!(socrataApiKeyId && socrataApiKeySecret);
+    const apiKeysSaved = !!socrataApiKeyId;
 
     const csvFileRef = useRef<HTMLInputElement>(null);
     const prevShowResults = useRef(showResults);
@@ -59,7 +58,7 @@ export function ImportPage() {
 
         if (rememberKey && hasCredentials) {
             handleSocrataApiKeySave(trimmedKeyId, trimmedKeySecret);
-        } else if (!rememberKey && (socrataApiKeyId || socrataApiKeySecret)) {
+        } else if (!rememberKey && (socrataApiKeyId)) {
             handleSocrataApiKeyClear();
         }
 

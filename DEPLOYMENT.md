@@ -50,6 +50,11 @@ cd ..
    # Must match the Callback Prefix domain registered on data.wa.gov
    SOCRATA_OAUTH_REDIRECT_URI=https://your-ngrok-url.ngrok-free.app/api/auth/socrata/callback
 
+   # Fernet key for encrypting the session cookie. Generate once with:
+   #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+   # Required for "Sign in with data.wa.gov" and API key auth.
+   SESSION_ENCRYPTION_KEY=your-fernet-key
+
    # Default LLM endpoint (optional — can also be set via frontend UI)
    # Works with any OpenAI-compatible API (OpenAI, Azure, HuggingFace, etc.)
    LLM_ENDPOINT=https://api.openai.com/v1
@@ -78,6 +83,8 @@ npm run dev
 ### Socrata OAuth Setup (Sign in with data.wa.gov)
 
 OAuth login allows users to authenticate with data.wa.gov instead of manually entering API credentials.
+
+> **Alternative — API Key (Basic Auth):** If you don't want to use OAuth, you can also authenticate by entering your Socrata API key directly in the app (Import page → "Enter API Key" tab). The key is stored in the same encrypted session cookie as OAuth tokens, so no sensitive data touches localStorage.
 
 #### 1. Register an OAuth App on data.wa.gov
 
@@ -120,12 +127,14 @@ SOCRATA_APP_TOKEN=your-app-token
 SOCRATA_SECRET_TOKEN=your-secret-token
 SOCRATA_OAUTH_REDIRECT_URI=https://abc123.ngrok-free.app/api/auth/socrata/callback
 FRONTEND_URL=http://localhost:5173
+SESSION_ENCRYPTION_KEY=your-fernet-key
 ```
 
 - `SOCRATA_APP_TOKEN`: The App Token from step 1 (also used as the OAuth `client_id`)
 - `SOCRATA_SECRET_TOKEN`: The Secret Token from step 1
 - `SOCRATA_OAUTH_REDIRECT_URI`: Must match the Callback Prefix domain registered on data.wa.gov
 - `FRONTEND_URL`: Where the browser redirects after OAuth (your frontend dev server)
+- `SESSION_ENCRYPTION_KEY`: Fernet key for encrypting the session cookie — generate one with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
 
 #### 4. Test the Flow
 
@@ -223,6 +232,11 @@ LLM_MODEL=your-model-name
 SOCRATA_SECRET_TOKEN=your-socrata-secret-token
 SOCRATA_OAUTH_REDIRECT_URI=https://your-databricks-app-url/api/auth/socrata/callback
 FRONTEND_URL=https://your-databricks-app-url
+
+# Fernet key for encrypting the session cookie. Generate once with:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Required for Socrata OAuth and API key auth. Rotating invalidates all sessions.
+SESSION_ENCRYPTION_KEY=
 ```
 
 > **Important:** `.env.databricks` contains secrets and is gitignored. Only `.env.databricks.example` (with placeholder values) is committed. Do not commit `.env.databricks` to the repository.

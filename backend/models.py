@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any
+from typing import Any, Literal
 
 
 # ============================================================================
@@ -35,12 +35,12 @@ class HealthResponse(BaseModel):
 
 
 class SocrataImportRequest(BaseModel):
-    """Request to import a dataset from data.wa.gov by dataset ID."""
+    """Request to import a dataset from data.wa.gov by dataset ID.
+
+    Auth (OAuth token or API key) is read from the encrypted session cookie.
+    """
 
     datasetId: str
-    oauthToken: str | None = None
-    apiKeyId: str | None = None
-    apiKeySecret: str | None = None
 
 
 class SocrataColumnMetadata(BaseModel):
@@ -89,12 +89,12 @@ class SocrataColumnUpdate(BaseModel):
 
 
 class SocrataExportRequest(BaseModel):
-    """Request to push updated metadata back to data.wa.gov."""
+    """Request to push updated metadata back to data.wa.gov.
+
+    Auth (OAuth token or API key) is read from the encrypted session cookie.
+    """
 
     datasetId: str
-    oauthToken: str | None = None
-    apiKeyId: str | None = None
-    apiKeySecret: str | None = None
     datasetTitle: str | None = None
     datasetDescription: str | None = None
     rowLabel: str | None = None
@@ -133,15 +133,33 @@ class SocrataOAuthLoginResponse(BaseModel):
     authUrl: str
 
 
-class SocrataOAuthUserInfoRequest(BaseModel):
-    """Request to fetch user info using an OAuth token."""
-
-    oauthToken: str
-
-
 class SocrataOAuthUserInfo(BaseModel):
     """Current user info from Socrata after OAuth authentication."""
 
     id: str
     displayName: str
     email: str | None = None
+
+
+# ============================================================================
+# Session Models (covers both OAuth and API Key auth)
+# ============================================================================
+
+
+class SocrataApiKeyRequest(BaseModel):
+    """Request body for saving an API key to the session cookie."""
+
+    apiKeyId: str
+    apiKeySecret: str
+
+
+class SocrataSessionResponse(BaseModel):
+    """State of the current Socrata auth session.
+
+    The `kind` field is null when no session is active. The API key secret is
+    never returned — only the id, for display purposes.
+    """
+
+    kind: Literal["oauth", "api_key"] | None = None
+    user: SocrataOAuthUserInfo | None = None
+    apiKeyId: str | None = None
