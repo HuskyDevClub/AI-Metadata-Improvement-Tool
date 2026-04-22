@@ -12,7 +12,6 @@ export function SettingsPage() {
         promptTemplates,
         setPromptTemplates,
         socrataApiKeyId,
-        socrataApiKeySecret,
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
     } = useAppContext();
@@ -30,7 +29,7 @@ export function SettingsPage() {
             <div className="settings-page-section">
                 <SocrataApiConfig
                     keyId={socrataApiKeyId}
-                    keySecret={socrataApiKeySecret}
+                    keySecret=""
                     onSave={handleSocrataApiKeySave}
                     onClear={handleSocrataApiKeyClear}
                 />

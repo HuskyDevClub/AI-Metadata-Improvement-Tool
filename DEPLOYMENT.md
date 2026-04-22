@@ -58,6 +58,10 @@ cd ..
 
    # Server Configuration
    PORT=8000
+
+   # Session cookie lifetime in seconds. Default 86400 (1 day). Applies to both
+   # the browser cookie Max-Age and the server-side Fernet TTL check.
+   # SESSION_COOKIE_MAX_AGE_SECONDS=86400
    ```
 
 ### Running the App
@@ -78,6 +82,8 @@ npm run dev
 ### Socrata OAuth Setup (Sign in with data.wa.gov)
 
 OAuth login allows users to authenticate with data.wa.gov instead of manually entering API credentials.
+
+> **Alternative — API Key (Basic Auth):** If you don't want to use OAuth, you can also authenticate by entering your Socrata API key directly in the app (Import page → "Enter API Key" tab). The key is stored in the same encrypted session cookie as OAuth tokens, so no sensitive data touches localStorage.
 
 #### 1. Register an OAuth App on data.wa.gov
 

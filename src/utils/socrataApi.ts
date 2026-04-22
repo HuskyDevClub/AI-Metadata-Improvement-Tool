@@ -70,9 +70,6 @@ export interface PushSocrataMetadataOptions {
     periodOfTime?: string;
     postingFrequency?: string;
     columns: {fieldName: string; description: string}[];
-    oauthToken?: string;
-    apiKeyId?: string;
-    apiKeySecret?: string;
 }
 
 export async function pushSocrataMetadata(
@@ -89,16 +86,12 @@ export async function pushSocrataMetadata(
     return response.json();
 }
 
-export async function fetchSocrataImport(
-    datasetId: string,
-    oauthToken?: string,
-    apiKeyId?: string,
-    apiKeySecret?: string,
-): Promise<SocrataImportResult> {
+export async function fetchSocrataImport(datasetId: string): Promise<SocrataImportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datasetId, oauthToken, apiKeyId, apiKeySecret }),
+        credentials: 'include',
+        body: JSON.stringify({ datasetId }),
     });
 
     await assertResponseOk(response, 'Failed to import dataset');
@@ -131,14 +124,39 @@ export async function fetchSocrataOAuthLoginUrl(): Promise<string> {
     return result.authUrl;
 }
 
-export async function fetchSocrataOAuthUserInfo(
-    oauthToken: string,
-): Promise<{id: string; displayName: string; email?: string}> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/socrata/userinfo`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oauthToken }),
+export type SocrataSession =
+    | {kind: 'oauth'; user: {id: string; displayName: string; email?: string}}
+    | {kind: 'api_key'; apiKeyId: string}
+    | {kind: null};
+
+export async function fetchSocrataSession(): Promise<SocrataSession> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/socrata/session`, {
+        credentials: 'include',
     });
-    await assertResponseOk(response, 'Failed to fetch user info');
-    return response.json();
+    if (!response.ok) return { kind: null };
+    const data = await response.json();
+    if (data?.kind === 'oauth' && data.user) {
+        return { kind: 'oauth', user: data.user };
+    }
+    if (data?.kind === 'api_key' && data.apiKeyId) {
+        return { kind: 'api_key', apiKeyId: data.apiKeyId };
+    }
+    return { kind: null };
+}
+
+export async function saveSocrataApiKey(apiKeyId: string, apiKeySecret: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/socrata/api-key`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ apiKeyId, apiKeySecret }),
+    });
+    await assertResponseOk(response, 'Failed to save API key');
+}
+
+export async function logoutSocrata(): Promise<void> {
+    await fetch(`${API_BASE_URL}/api/auth/socrata/logout`, {
+        method: 'POST',
+        credentials: 'include',
+    });
 }

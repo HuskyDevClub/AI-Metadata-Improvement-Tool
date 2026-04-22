@@ -6,9 +6,11 @@ import { fetchSocrataLicenses } from '../utils/licensesApi';
 import {
     fetchSocrataImport,
     fetchSocrataOAuthLoginUrl,
-    fetchSocrataOAuthUserInfo,
+    fetchSocrataSession,
+    logoutSocrata,
     parseFile,
     pushSocrataMetadata,
+    saveSocrataApiKey,
 } from '../utils/socrataApi';
 import {
     analyzeColumn,
@@ -144,18 +146,14 @@ interface AppContextType {
     socrataDatasetId: string;
     isPushingSocrata: boolean;
 
-    // Socrata OAuth
-    socrataOAuthToken: string | null;
+    // Socrata auth (credentials live in an HttpOnly cookie — never exposed to JS)
     socrataOAuthUser: {id: string; displayName: string; email?: string} | null;
+    socrataApiKeyId: string;  // present only when kind === 'api_key'; never the secret
     isSocrataOAuthAuthenticating: boolean;
     handleSocrataOAuthLogin: () => Promise<void>;
-    handleSocrataOAuthLogout: () => void;
-
-    // Socrata API Key
-    socrataApiKeyId: string;
-    socrataApiKeySecret: string;
-    handleSocrataApiKeySave: (keyId: string, keySecret: string) => void;
-    handleSocrataApiKeyClear: () => void;
+    handleSocrataOAuthLogout: () => Promise<void>;
+    handleSocrataApiKeySave: (keyId: string, keySecret: string) => Promise<void>;
+    handleSocrataApiKeyClear: () => Promise<void>;
 
     // Handlers
     handleAnalyze: (file: File) => Promise<void>;
@@ -330,13 +328,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const [socrataDatasetId, setSocrataDatasetId] = useState('');
     const [socrataFieldNameMap, setSocrataFieldNameMap] = useState<Record<string, string>>({});
     const [isPushingSocrata, setIsPushingSocrata] = useState(false);
-    const [socrataOAuthToken, setSocrataOAuthToken] = useState<string | null>(null);
     const [socrataOAuthUser, setSocrataOAuthUser] = useState<{
         id: string; displayName: string; email?: string;
     } | null>(null);
+    const [socrataApiKeyId, setSocrataApiKeyId] = useState<string>('');
     const [isSocrataOAuthAuthenticating, setIsSocrataOAuthAuthenticating] = useState(false);
-    const [socrataApiKeyId, setSocrataApiKeyId] = useState(() => localStorage.getItem('socrata_api_key_id') || '');
-    const [socrataApiKeySecret, setSocrataApiKeySecret] = useState(() => localStorage.getItem('socrata_api_key_secret') || '');
     const [isGeneratingEmpty, setIsGeneratingEmpty] = useState(false);
     const [generatingRowLabel, setGeneratingRowLabel] = useState(false);
     const [generatingDatasetTitle, setGeneratingDatasetTitle] = useState(false);
@@ -429,60 +425,43 @@ export function AppProvider({ children }: {children: ReactNode}) {
         savedDatasetsRef.current.delete(id);
     }, [saveCurrentDataset, restoreDataset]);
 
-    // Socrata OAuth: detect token in URL fragment on mount, or restore from localStorage
+    // Hydrate the Socrata auth session from the backend on mount. Credentials
+    // live in an HttpOnly cookie — the browser never sees the raw token/secret.
     useEffect(() => {
         const hash = window.location.hash;
-        if (hash.startsWith('#oauth_token=')) {
-            const token = hash.slice('#oauth_token='.length);
-            window.history.replaceState(null, '', window.location.pathname);
-
-            setSocrataOAuthToken(token);
-            setIsSocrataOAuthAuthenticating(true);
-
-            fetchSocrataOAuthUserInfo(token)
-                .then((user) => {
-                    setSocrataOAuthUser(user);
-                    localStorage.setItem('socrata_oauth_token', token);
-                    localStorage.setItem('socrata_oauth_user', JSON.stringify(user));
-                    setStatus({ message: `Signed in to data.wa.gov as ${user.displayName}`, type: 'success' });
-                })
-                .catch(() => {
-                    setSocrataOAuthToken(null);
-                    localStorage.removeItem('socrata_oauth_token');
-                    localStorage.removeItem('socrata_oauth_user');
-                    setStatus({ message: 'OAuth sign-in failed: could not verify token', type: 'error' });
-                })
-                .finally(() => setIsSocrataOAuthAuthenticating(false));
-        } else if (hash.startsWith('#oauth_error=')) {
+        if (hash.startsWith('#oauth_error=')) {
             const error = decodeURIComponent(hash.slice('#oauth_error='.length));
             window.history.replaceState(null, '', window.location.pathname);
             setStatus({ message: `OAuth sign-in failed: ${error}`, type: 'error' });
-        } else {
-            // Restore session from localStorage
-            const savedToken = localStorage.getItem('socrata_oauth_token');
-            const savedUser = localStorage.getItem('socrata_oauth_user');
-            if (savedToken && savedUser) {
-                setSocrataOAuthToken(savedToken);
-                setSocrataOAuthUser(JSON.parse(savedUser));
-                setIsSocrataOAuthAuthenticating(true);
-
-                // Verify the saved token is still valid
-                fetchSocrataOAuthUserInfo(savedToken)
-                    .then((user) => {
-                        setSocrataOAuthUser(user);
-                        localStorage.setItem('socrata_oauth_user', JSON.stringify(user));
-                    })
-                    .catch(() => {
-                        // Token expired or invalid — clear session
-                        setSocrataOAuthToken(null);
-                        setSocrataOAuthUser(null);
-                        localStorage.removeItem('socrata_oauth_token');
-                        localStorage.removeItem('socrata_oauth_user');
-                        setStatus({ message: 'Session expired. Please sign in again.', type: 'info' });
-                    })
-                    .finally(() => setIsSocrataOAuthAuthenticating(false));
-            }
+        } else if (hash.startsWith('#oauth_token=')) {
+            // Legacy callback format — strip it from URL. Fresh deploys use cookie-only.
+            window.history.replaceState(null, '', window.location.pathname);
         }
+
+        // Clean up localStorage from previous token-based versions
+        localStorage.removeItem('socrata_oauth_token');
+        localStorage.removeItem('socrata_oauth_user');
+        localStorage.removeItem('socrata_api_key_id');
+        localStorage.removeItem('socrata_api_key_secret');
+
+        setIsSocrataOAuthAuthenticating(true);
+        fetchSocrataSession()
+            .then((session) => {
+                if (session.kind === 'oauth') {
+                    setSocrataOAuthUser(session.user);
+                    setSocrataApiKeyId('');
+                } else if (session.kind === 'api_key') {
+                    setSocrataApiKeyId(session.apiKeyId);
+                    setSocrataOAuthUser(null);
+                } else {
+                    setSocrataOAuthUser(null);
+                    setSocrataApiKeyId('');
+                }
+            })
+            .catch(() => {
+                // No active session — silent, this is the default state
+            })
+            .finally(() => setIsSocrataOAuthAuthenticating(false));
     }, []);
 
     const handleSocrataOAuthLogin = useCallback(async () => {
@@ -497,25 +476,38 @@ export function AppProvider({ children }: {children: ReactNode}) {
         }
     }, []);
 
-    const handleSocrataApiKeySave = useCallback((keyId: string, keySecret: string) => {
-        setSocrataApiKeyId(keyId);
-        setSocrataApiKeySecret(keySecret);
-        localStorage.setItem('socrata_api_key_id', keyId);
-        localStorage.setItem('socrata_api_key_secret', keySecret);
-    }, []);
+    const handleSocrataApiKeySave = useCallback(
+        async (keyId: string, keySecret: string) => {
+            try {
+                await saveSocrataApiKey(keyId, keySecret);
+                setSocrataApiKeyId(keyId);
+                // Saving an API key replaces any OAuth session on the backend.
+                setSocrataOAuthUser(null);
+                setStatus({ message: 'API key saved', type: 'success' });
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : 'Unknown error';
+                setStatus({ message: `Failed to save API key: ${detail}`, type: 'error' });
+            }
+        },
+        [],
+    );
 
-    const handleSocrataApiKeyClear = useCallback(() => {
+    const handleSocrataApiKeyClear = useCallback(async () => {
+        try {
+            await logoutSocrata();
+        } catch {
+            // Ignore — we still clear local state below
+        }
         setSocrataApiKeyId('');
-        setSocrataApiKeySecret('');
-        localStorage.removeItem('socrata_api_key_id');
-        localStorage.removeItem('socrata_api_key_secret');
     }, []);
 
-    const handleSocrataOAuthLogout = useCallback(() => {
-        setSocrataOAuthToken(null);
+    const handleSocrataOAuthLogout = useCallback(async () => {
+        try {
+            await logoutSocrata();
+        } catch {
+            // Ignore — we still clear local state below
+        }
         setSocrataOAuthUser(null);
-        localStorage.removeItem('socrata_oauth_token');
-        localStorage.removeItem('socrata_oauth_user');
         setStatus({ message: 'Signed out from data.wa.gov', type: 'info' });
     }, []);
 
@@ -1423,20 +1415,12 @@ FORMAT RULES:
     }, [csvData, fileName, columnStats, importedRowCount, generatePeriodOfTime]);
 
     const handleSocrataImport = useCallback(
-        async (datasetId: string, keyId?: string, keySecret?: string) => {
+        async (datasetId: string) => {
             setIsProcessing(true);
             setStatus({ message: 'Importing dataset from data.wa.gov...', type: 'info' });
 
-            const effectiveKeyId = keyId !== undefined ? keyId : socrataApiKeyId;
-            const effectiveKeySecret = keySecret !== undefined ? keySecret : socrataApiKeySecret;
-
             try {
-                const result = await fetchSocrataImport(
-                    datasetId,
-                    socrataOAuthToken || undefined,
-                    effectiveKeyId || undefined,
-                    effectiveKeySecret || undefined,
-                );
+                const result = await fetchSocrataImport(datasetId);
 
                 if (!result.sampleRows || result.sampleRows.length === 0) {
                     setStatus({ message: 'No data found in dataset', type: 'error' });
@@ -1520,7 +1504,7 @@ FORMAT RULES:
                 setIsProcessing(false);
             }
         },
-        [socrataOAuthToken, socrataApiKeyId, socrataApiKeySecret, saveCurrentDataset]
+        [saveCurrentDataset]
     );
 
     // Auto-import dataset from ?dataset_id=<id> query parameter on mount
@@ -1586,9 +1570,6 @@ FORMAT RULES:
                 periodOfTime: generatedResults.periodOfTime || undefined,
                 postingFrequency: generatedResults.postingFrequency || undefined,
                 columns: columnUpdates,
-                oauthToken: socrataOAuthToken || undefined,
-                apiKeyId: socrataApiKeyId || undefined,
-                apiKeySecret: socrataApiKeySecret || undefined,
             });
 
             setStatus({ message: result.message, type: 'success' });
@@ -1598,7 +1579,7 @@ FORMAT RULES:
         } finally {
             setIsPushingSocrata(false);
         }
-    }, [socrataDatasetId, generatedResults, socrataFieldNameMap, socrataOAuthToken, socrataApiKeyId, socrataApiKeySecret]);
+    }, [socrataDatasetId, generatedResults, socrataFieldNameMap]);
 
     const renderTokenUsage = useCallback(() => {
         if (tokenUsage.totalTokens > 0) {
@@ -1663,13 +1644,11 @@ FORMAT RULES:
         generatingPeriodOfTime,
         socrataDatasetId,
         isPushingSocrata,
-        socrataOAuthToken,
         socrataOAuthUser,
         isSocrataOAuthAuthenticating,
         handleSocrataOAuthLogin,
         handleSocrataOAuthLogout,
         socrataApiKeyId,
-        socrataApiKeySecret,
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
         handleAnalyze,

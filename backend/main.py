@@ -10,24 +10,27 @@ import time
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 from urllib.parse import urlencode
 
 logger = logging.getLogger(__name__)
 
 import httpx
+from cryptography.fernet import Fernet, InvalidToken
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from openai import APIStatusError, AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
+from starlette.middleware.base import RequestResponseEndpoint
 
 from .models import (
     ChatRequest,
     ColumnStats,
     HealthResponse,
+    SocrataApiKeyRequest,
     SocrataCategoriesResponse,
     SocrataColumnMetadata,
     SocrataExportRequest,
@@ -37,8 +40,8 @@ from .models import (
     SocrataLicenseInfo,
     SocrataLicensesResponse,
     SocrataOAuthLoginResponse,
-    SocrataOAuthUserInfoRequest,
     SocrataOAuthUserInfo,
+    SocrataSessionResponse,
 )
 
 # Load environment variables from .env file (local dev) and .env.databricks (Databricks deployment)
@@ -56,9 +59,36 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
-# Secret for signing OAuth state tokens (used to prevent CSRF)
-_OAUTH_STATE_SECRET = (
-    os.getenv("OAUTH_STATE_SECRET") or SOCRATA_SECRET_TOKEN or secrets.token_hex(32)
+# Secret for signing OAuth state tokens (used to prevent CSRF).
+# Generated fresh on every server start — if the server restarts, users simply
+# re-initiate the OAuth flow.  This is stronger than deriving from SOCRATA_SECRET_TOKEN.
+_OAUTH_STATE_SECRET = secrets.token_hex(32)
+
+# Fernet key for encrypting the OAuth session cookie. Generated fresh on every
+# server start — sessions are invalidated on restart.
+_SESSION_ENCRYPTION_KEY = Fernet.generate_key().decode()
+_fernet = Fernet(_SESSION_ENCRYPTION_KEY.encode())
+
+SESSION_COOKIE_NAME = "socrata_session"
+try:
+    SESSION_COOKIE_MAX_AGE = int(
+        os.getenv("SESSION_COOKIE_MAX_AGE_SECONDS", str(60 * 60 * 24))
+    )
+except ValueError as exc:
+    raise RuntimeError(
+        "SESSION_COOKIE_MAX_AGE_SECONDS must be a positive integer"
+    ) from exc
+if SESSION_COOKIE_MAX_AGE <= 0:
+    raise RuntimeError("SESSION_COOKIE_MAX_AGE_SECONDS must be a positive integer")
+
+# Cookies need SameSite=None;Secure for cross-site (e.g. Databricks app URL)
+# and Lax/Secure for same-origin. Default Lax; Databricks deployment is HTTPS.
+_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "true").lower() != "false"
+_samesite_raw = os.getenv("SESSION_COOKIE_SAMESITE", "lax").lower()
+_COOKIE_SAMESITE: Literal["lax", "strict", "none"] = (
+    "strict"
+    if _samesite_raw == "strict"
+    else "none" if _samesite_raw == "none" else "lax"
 )
 
 # For Databricks Apps, the port is typically provided via environment variable
@@ -70,14 +100,43 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS middleware - more permissive for Databricks Apps
+# CORS: cookie-based sessions require a concrete allowed origin (wildcard +
+# credentials is rejected by browsers). In production the backend and frontend
+# are same-origin (Databricks Apps), so no CORS preflight fires. In dev, the
+# Vite proxy forwards /api/* same-origin, so this mainly guards against direct
+# cross-origin calls. FRONTEND_URL is the canonical allowed origin.
+_cors_origins = (
+    [FRONTEND_URL]
+    if FRONTEND_URL
+    else ["http://localhost:5173", "http://localhost:8000"]
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Databricks Apps handles auth
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(
+    request: Request, call_next: RequestResponseEndpoint
+) -> Response:
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    # SAMEORIGIN (not DENY): Databricks Apps serves frontend + backend at the
+    # same origin and documents an optional iframe embedding path. CSP
+    # frame-ancestors 'self' is the modern equivalent.
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains"
+    )
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; frame-ancestors 'self'"
+    )
+    return response
 
 
 # Health check endpoint
@@ -90,6 +149,44 @@ async def health_check() -> HealthResponse:
 
 
 # Socrata OAuth endpoints
+
+
+def _set_session_payload(response: Response, payload: dict[str, str]) -> None:
+    """Encrypt an auth payload into the session cookie.
+
+    Payload shapes:
+        {"kind": "oauth", "token": "..."}
+        {"kind": "api_key", "id": "...", "secret": "..."}
+    """
+    encrypted = _fernet.encrypt(json.dumps(payload).encode()).decode()
+    response.set_cookie(
+        SESSION_COOKIE_NAME,
+        encrypted,
+        max_age=SESSION_COOKIE_MAX_AGE,
+        httponly=True,
+        secure=_COOKIE_SECURE,
+        samesite=_COOKIE_SAMESITE,
+        path="/",
+    )
+
+
+def _read_session(request: Request) -> dict[str, str] | None:
+    """Decrypt the session cookie. Returns the payload dict or None."""
+    raw = request.cookies.get(SESSION_COOKIE_NAME)
+    if not raw:
+        return None
+    try:
+        decrypted = _fernet.decrypt(raw.encode(), ttl=SESSION_COOKIE_MAX_AGE).decode()
+        data = json.loads(decrypted)
+        if not isinstance(data, dict) or "kind" not in data:
+            return None
+        return data
+    except (InvalidToken, ValueError, json.JSONDecodeError):
+        return None
+
+
+def _clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(SESSION_COOKIE_NAME, path="/")
 
 
 def _build_oauth_authorize_url(is_retry: bool = False) -> str:
@@ -138,7 +235,7 @@ async def socrata_oauth_callback(
     code: str | None = None,
     error: str | None = None,
     state: str | None = None,
-):
+) -> RedirectResponse:
     """OAuth callback — exchanges authorization code for access token, redirects to frontend."""
     base = FRONTEND_URL.rstrip("/") if FRONTEND_URL else ""
 
@@ -218,45 +315,106 @@ async def socrata_oauth_callback(
             if not access_token:
                 return RedirectResponse(url=f"{base}/#oauth_error=no_access_token")
 
-            return RedirectResponse(url=f"{base}/#oauth_token={access_token}")
+            # Success: set encrypted HttpOnly cookie, redirect to frontend home.
+            # The frontend calls /api/auth/socrata/session on load to discover the session.
+            redirect = RedirectResponse(url=base or "/")
+            _set_session_payload(redirect, {"kind": "oauth", "token": access_token})
+            return redirect
 
     except Exception as e:
         logger.exception("OAuth callback error: %s", str(e))
         return RedirectResponse(url=f"{base}/#oauth_error=server_error")
 
 
-@app.post("/api/auth/socrata/userinfo", response_model=SocrataOAuthUserInfo)
-async def socrata_oauth_userinfo(
-    body: SocrataOAuthUserInfoRequest,
-) -> SocrataOAuthUserInfo:
-    """Fetch the current authenticated user's info from data.wa.gov."""
-    token = body.oauthToken
+@app.get("/api/auth/socrata/session", response_model=SocrataSessionResponse)
+async def socrata_session(request: Request) -> SocrataSessionResponse:
+    """Return the state of the current auth session (OAuth or API key)."""
+    session = _read_session(request)
+    if not session:
+        return SocrataSessionResponse(kind=None)
 
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get(
-                "https://data.wa.gov/api/users/current.json",
-                headers={"Authorization": f"OAuth {token}"},
-            )
+    kind = session.get("kind")
 
-            if resp.status_code != 200:
-                raise HTTPException(
-                    status_code=401, detail="Invalid or expired OAuth token"
+    if kind == "oauth":
+        token = session.get("token") or ""
+        if not token:
+            return SocrataSessionResponse(kind=None)
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(
+                    "https://data.wa.gov/api/users/current.json",
+                    headers={"Authorization": f"OAuth {token}"},
                 )
+                if resp.status_code != 200:
+                    return SocrataSessionResponse(kind=None)
+                user_data = resp.json()
+                return SocrataSessionResponse(
+                    kind="oauth",
+                    user=SocrataOAuthUserInfo(
+                        id=user_data.get("id", ""),
+                        displayName=user_data.get("displayName", ""),
+                        email=user_data.get("email"),
+                    ),
+                )
+        except Exception as e:
+            logger.exception("Session OAuth lookup failed: %s", str(e))
+            return SocrataSessionResponse(kind=None)
 
-            user_data = resp.json()
-            return SocrataOAuthUserInfo(
-                id=user_data.get("id", ""),
-                displayName=user_data.get("displayName", ""),
-                email=user_data.get("email"),
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception("OAuth userinfo error: %s", str(e))
+    if kind == "api_key":
+        return SocrataSessionResponse(kind="api_key", apiKeyId=session.get("id", ""))
+
+    return SocrataSessionResponse(kind=None)
+
+
+@app.put("/api/auth/socrata/api-key", status_code=204)
+async def socrata_api_key_save(
+    body: SocrataApiKeyRequest, response: Response
+) -> Response:
+    """Store a Socrata API key (id + secret) in the encrypted session cookie.
+
+    Replaces any existing OAuth or API key session.
+    """
+    key_id = body.apiKeyId.strip()
+    key_secret = body.apiKeySecret.strip()
+    if not key_id or not key_secret:
         raise HTTPException(
-            status_code=500, detail=f"Failed to fetch user info: {str(e)}"
+            status_code=400, detail="Both apiKeyId and apiKeySecret are required."
         )
+    _set_session_payload(
+        response, {"kind": "api_key", "id": key_id, "secret": key_secret}
+    )
+    response.status_code = 204
+    return response
+
+
+@app.post("/api/auth/socrata/logout", status_code=204)
+async def socrata_logout(request: Request, response: Response) -> Response:
+    """Clear the session cookie. For OAuth sessions, also revoke upstream."""
+    session = _read_session(request)
+    if (
+        session
+        and session.get("kind") == "oauth"
+        and SOCRATA_APP_TOKEN
+        and SOCRATA_SECRET_TOKEN
+    ):
+        token = session.get("token")
+        if token:
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    await client.post(
+                        "https://data.wa.gov/oauth/revoke_token",
+                        data={
+                            "access_token": token,
+                            "client_id": SOCRATA_APP_TOKEN,
+                            "client_secret": SOCRATA_SECRET_TOKEN,
+                        },
+                    )
+            except Exception:
+                # Revoke is best-effort — the cookie is still invalidated below.
+                logger.exception("Upstream token revoke failed")
+    _clear_session_cookie(response)
+    response.status_code = 204
+    return response
 
 
 # ---------------------------------------------------------------------------
@@ -280,12 +438,12 @@ _licenses_cache: dict[str, Any] = {"value": None, "fetched_at": 0.0}
 _LICENSES_TTL_SECONDS = 24 * 60 * 60
 
 
-def build_socrata_auth(
-    request: SocrataImportRequest | SocrataExportRequest,
-) -> dict[str, str]:
-    """Build auth headers from import/export request.
+def build_socrata_auth(session: dict[str, str] | None) -> dict[str, str]:
+    """Build auth headers from an encrypted session payload.
 
-    Priority: OAuth token > API Key (Basic Auth) > app token only.
+    `session` is the decrypted cookie payload (OAuth or API key) or None.
+    Falls back to X-App-Token-only auth (read-only, public datasets) when no
+    session is present.
     """
     if not SOCRATA_APP_TOKEN:
         raise HTTPException(
@@ -295,13 +453,15 @@ def build_socrata_auth(
 
     headers: dict[str, str] = {"X-App-Token": SOCRATA_APP_TOKEN}
 
-    if request.oauthToken:
-        headers["Authorization"] = f"OAuth {request.oauthToken}"
-    elif request.apiKeyId and request.apiKeySecret:
-        credentials = base64.b64encode(
-            f"{request.apiKeyId}:{request.apiKeySecret}".encode()
-        ).decode()
-        headers["Authorization"] = f"Basic {credentials}"
+    if session:
+        kind = session.get("kind")
+        if kind == "oauth" and session.get("token"):
+            headers["Authorization"] = f"OAuth {session['token']}"
+        elif kind == "api_key" and session.get("id") and session.get("secret"):
+            credentials = base64.b64encode(
+                f"{session['id']}:{session['secret']}".encode()
+            ).decode()
+            headers["Authorization"] = f"Basic {credentials}"
 
     return headers
 
@@ -330,7 +490,7 @@ async def _soda_get(
             resp.text[:300],
         )
         return []
-    return resp.json()
+    return cast(list[dict[str, Any]], resp.json())
 
 
 async def _compute_numeric_stats(
@@ -535,12 +695,15 @@ async def _compute_column_stats(
 
 
 @app.post("/api/socrata/import", response_model=SocrataImportResponse)
-async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse:
+async def socrata_import(
+    request: SocrataImportRequest, http_request: Request
+) -> SocrataImportResponse:
     if not request.datasetId or not request.datasetId.strip():
         raise HTTPException(status_code=400, detail="Dataset ID is required")
 
     dataset_id = request.datasetId.strip()
-    headers = build_socrata_auth(request)
+    session = _read_session(http_request)
+    headers = build_socrata_auth(session)
 
     metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
     soda_base = f"https://data.wa.gov/resource/{dataset_id}.json"
@@ -668,21 +831,24 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
 
 # Socrata export endpoint — pushes updated metadata back to data.wa.gov
 @app.post("/api/socrata/export", response_model=SocrataExportResponse)
-async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse:
+async def socrata_export(
+    request: SocrataExportRequest, http_request: Request
+) -> SocrataExportResponse:
     if not request.datasetId or not request.datasetId.strip():
         raise HTTPException(status_code=400, detail="Dataset ID is required")
 
     dataset_id = request.datasetId.strip()
+    session = _read_session(http_request)
 
-    # Build auth — write operations require authentication (OAuth or API Key)
-    if not request.oauthToken and not (request.apiKeyId and request.apiKeySecret):
+    # Write operations require authentication — OAuth or API key
+    if not session or session.get("kind") not in ("oauth", "api_key"):
         raise HTTPException(
-            status_code=400,
+            status_code=401,
             detail="Authentication required to update metadata on data.wa.gov. "
-            "Please sign in with OAuth or provide API Key credentials.",
+            "Please sign in with OAuth or save an API key.",
         )
 
-    headers = build_socrata_auth(request)
+    headers = build_socrata_auth(session)
     headers["Content-Type"] = "application/json"
 
     metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
