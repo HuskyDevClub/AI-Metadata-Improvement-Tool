@@ -145,6 +145,26 @@ Rules:
 
 Return ONLY the row label text — nothing else.`;
 
+export const DEFAULT_PERIOD_OF_TIME_PROMPT = `Determine the Period of Time covered by this government dataset on data.wa.gov. This describes the real-world time span the data represents (not when the dataset was last updated).
+
+Dataset Name: {fileName}
+Number of Rows: {rowCount}
+Columns (name — type):
+{columnInfo}
+
+Sample Data (first {sampleCount} rows):
+{sampleRows}
+
+Rules:
+- Write a short plain-language sentence (typically 10-25 words).
+- If the data contains dated records, describe the span in human terms (e.g. "January 2020 through December 2023", "fiscal years 2018-2024", "as of March 31, 2026").
+- If the data is a point-in-time snapshot, say so (e.g. "Current employees as of the publication date.").
+- If no time scope can be inferred from the columns or sample values, respond with: "Time period not specified in the data."
+- Do NOT guess specific dates that are not supported by the sample data.
+- Do NOT include update cadence — that belongs in Posting Frequency.
+
+Return ONLY the Period of Time text — no quotes, no labels, no leading phrases like "Period of Time:".`;
+
 export const DEFAULT_DATASET_SUGGESTION_PROMPT = `You are a metadata quality reviewer for data.wa.gov. Analyze the following dataset description and provide specific, actionable suggestions to improve it.
 
 Evaluate against these criteria:

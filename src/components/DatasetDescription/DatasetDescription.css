@@ -262,3 +262,36 @@
     border-radius: var(--radius-sm, 4px);
     margin-top: 6px;
 }
+
+/* Licensing, Temporal, Contact sections share the tag/category block styling */
+.dataset-license,
+.dataset-temporal,
+.dataset-contact {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.dataset-license-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.dataset-license-label {
+    min-width: 140px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.dataset-license-input {
+    flex: 1;
+    max-width: 480px;
+    border-color: var(--border);
+}
+
+.dataset-license-input:focus {
+    border-color: var(--accent, #1a73e8);
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { type SuggestionItem } from '../../utils/prompts';
+import type { SocrataLicense } from '../../types';
 import { EditableDescription } from '../EditableDescription/EditableDescription';
 import './DatasetDescription.css';
 
@@ -33,6 +34,19 @@ interface DatasetDescriptionProps {
     onRemoveTag?: (tag: string) => void;
     onGenerateTags?: () => void;
     isGeneratingTags?: boolean;
+    licenseId?: string;
+    allowedLicenses?: SocrataLicense[];
+    onEditLicenseId?: (newLicenseId: string) => void;
+    attribution?: string;
+    onEditAttribution?: (newAttribution: string) => void;
+    contactEmail?: string;
+    onEditContactEmail?: (newContactEmail: string) => void;
+    periodOfTime?: string;
+    onEditPeriodOfTime?: (newPeriodOfTime: string) => void;
+    onGeneratePeriodOfTime?: () => void;
+    isGeneratingPeriodOfTime?: boolean;
+    postingFrequency?: string;
+    onEditPostingFrequency?: (newPostingFrequency: string) => void;
 }
 
 export function DatasetDescription({
@@ -65,6 +79,19 @@ export function DatasetDescription({
                                        onRemoveTag,
                                        onGenerateTags,
                                        isGeneratingTags = false,
+                                       licenseId = '',
+                                       allowedLicenses = [],
+                                       onEditLicenseId,
+                                       attribution = '',
+                                       onEditAttribution,
+                                       contactEmail = '',
+                                       onEditContactEmail,
+                                       periodOfTime = '',
+                                       onEditPeriodOfTime,
+                                       onGeneratePeriodOfTime,
+                                       isGeneratingPeriodOfTime = false,
+                                       postingFrequency = '',
+                                       onEditPostingFrequency,
                                    }: DatasetDescriptionProps) {
     const [isEditingRowLabel, setIsEditingRowLabel] = useState(false);
     const [rowLabelEditValue, setRowLabelEditValue] = useState(rowLabel);
@@ -74,6 +101,12 @@ export function DatasetDescription({
     const categoryOptions = allowedCategories.includes(category) || !category
         ? allowedCategories
         : [...allowedCategories, category];
+
+    const licensesUnavailable = allowedLicenses.length === 0;
+    const selectedLicenseKnown = allowedLicenses.some((l) => l.id === licenseId);
+    const licenseOptions = licenseId && !selectedLicenseKnown
+        ? [...allowedLicenses, { id: licenseId, name: licenseId }]
+        : allowedLicenses;
 
     const commitNewTag = () => {
         const value = newTagInput.trim();
@@ -277,6 +310,99 @@ export function DatasetDescription({
                             >
                                 Add
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                {onEditLicenseId && onEditAttribution && (
+                    <div className="dataset-license">
+                        <span className="dataset-category-title">Licensing and Attribution</span>
+                        <div className="dataset-license-row">
+                            <label className="dataset-license-label">License</label>
+                            <select
+                                className="dataset-category-select"
+                                value={licenseId}
+                                onChange={(e) => onEditLicenseId(e.target.value)}
+                                disabled={licensesUnavailable}
+                            >
+                                <option value="">Not set</option>
+                                {licenseOptions.map((option) => (
+                                    <option key={option.id} value={option.id}>
+                                        {option.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        {licensesUnavailable && (
+                            <div className="dataset-category-unavailable">
+                                Licenses unavailable — try again after connection is restored
+                            </div>
+                        )}
+                        <div className="dataset-license-row">
+                            <label className="dataset-license-label">Attribution</label>
+                            <input
+                                type="text"
+                                className="dataset-row-label-input dataset-license-input"
+                                placeholder="Issuing organization (e.g. Department of Licensing)"
+                                value={attribution}
+                                onChange={(e) => onEditAttribution(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {(onEditPeriodOfTime || onEditPostingFrequency) && (
+                    <div className="dataset-temporal">
+                        <span className="dataset-category-title">Temporal</span>
+                        {onEditPeriodOfTime && (
+                            <div className="dataset-license-row">
+                                <label className="dataset-license-label">Period of Time</label>
+                                <input
+                                    type="text"
+                                    className="dataset-row-label-input dataset-license-input"
+                                    placeholder="e.g. January 2020 through December 2023"
+                                    value={periodOfTime}
+                                    onChange={(e) => onEditPeriodOfTime(e.target.value)}
+                                    disabled={isGeneratingPeriodOfTime}
+                                />
+                                {onGeneratePeriodOfTime && (
+                                    <button
+                                        className="dataset-row-label-btn generate"
+                                        onClick={onGeneratePeriodOfTime}
+                                        disabled={isGeneratingPeriodOfTime}
+                                        title="Generate Period of Time with AI"
+                                    >
+                                        {isGeneratingPeriodOfTime ? 'Generating...' : 'Generate'}
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                        {onEditPostingFrequency && (
+                            <div className="dataset-license-row">
+                                <label className="dataset-license-label">Posting Frequency</label>
+                                <input
+                                    type="text"
+                                    className="dataset-row-label-input dataset-license-input"
+                                    placeholder="e.g. Monthly, Quarterly, As needed"
+                                    value={postingFrequency}
+                                    onChange={(e) => onEditPostingFrequency(e.target.value)}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {onEditContactEmail && (
+                    <div className="dataset-contact">
+                        <span className="dataset-category-title">Contact Email</span>
+                        <div className="dataset-license-row">
+                            <input
+                                type="email"
+                                className="dataset-row-label-input dataset-license-input"
+                                placeholder="e.g. opendata@example.wa.gov"
+                                value={contactEmail}
+                                onChange={(e) => onEditContactEmail(e.target.value)}
+                            />
                         </div>
                     </div>
                 )}

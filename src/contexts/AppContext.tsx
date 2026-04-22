@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useOpenAI } from '../hooks/useOpenAI';
 import { fetchSocrataCategories } from '../utils/categoriesApi';
+import { fetchSocrataLicenses } from '../utils/licensesApi';
 import {
     fetchSocrataImport,
     fetchSocrataOAuthLoginUrl,
@@ -32,6 +33,7 @@ import {
     DEFAULT_DATASET_PROMPT,
     DEFAULT_DATASET_SUGGESTION_PROMPT,
     DEFAULT_DATASET_TITLE_PROMPT,
+    DEFAULT_PERIOD_OF_TIME_PROMPT,
     DEFAULT_ROW_LABEL_PROMPT,
     DEFAULT_SYSTEM_PROMPT,
     DEFAULT_TAGS_PROMPT,
@@ -46,6 +48,7 @@ import type {
     GeneratedResults,
     OpenAIConfig as OpenAIConfigType,
     PromptTemplates,
+    SocrataLicense,
     Status,
     TokenUsage,
 } from '../types';
@@ -112,6 +115,7 @@ interface AppContextType {
 
     // Live data from data.wa.gov
     allowedCategories: string[];
+    allowedLicenses: SocrataLicense[];
 
     // CSV Data
     csvData: CsvRow[] | null;
@@ -136,6 +140,7 @@ interface AppContextType {
     generatingDatasetTitle: boolean;
     generatingCategory: boolean;
     generatingTags: boolean;
+    generatingPeriodOfTime: boolean;
 
     // Socrata
     socrataDatasetId: string;
@@ -181,6 +186,12 @@ interface AppContextType {
     handleAddTag: (tag: string) => void;
     handleRemoveTag: (tag: string) => void;
     handleGenerateTags: () => Promise<void>;
+    handleEditLicenseId: (newLicenseId: string) => void;
+    handleEditAttribution: (newAttribution: string) => void;
+    handleEditContactEmail: (newContactEmail: string) => void;
+    handleEditPeriodOfTime: (newPeriodOfTime: string) => void;
+    handleGeneratePeriodOfTime: () => Promise<void>;
+    handleEditPostingFrequency: (newPostingFrequency: string) => void;
     handlePushToSocrata: () => Promise<void>;
     handleCloseDataset: () => void;
     closeTab: (id: string) => void;
@@ -238,6 +249,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             datasetTitle: DEFAULT_DATASET_TITLE_PROMPT,
             category: DEFAULT_CATEGORY_PROMPT,
             tags: DEFAULT_TAGS_PROMPT,
+            periodOfTime: DEFAULT_PERIOD_OF_TIME_PROMPT,
             datasetSuggestion: DEFAULT_DATASET_SUGGESTION_PROMPT,
             columnSuggestion: DEFAULT_COLUMN_SUGGESTION_PROMPT,
         };
@@ -255,6 +267,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     }, []);
 
     const [allowedCategories, setAllowedCategories] = useState<string[]>([]);
+    const [allowedLicenses, setAllowedLicenses] = useState<SocrataLicense[]>([]);
 
     useEffect(() => {
         let cancelled = false;
@@ -264,6 +277,13 @@ export function AppProvider({ children }: {children: ReactNode}) {
             })
             .catch((err) => {
                 console.warn('Failed to load Socrata categories:', err);
+            });
+        fetchSocrataLicenses()
+            .then((list) => {
+                if (!cancelled) setAllowedLicenses(list);
+            })
+            .catch((err) => {
+                console.warn('Failed to load Socrata licenses:', err);
             });
         return () => {
             cancelled = true;
@@ -279,6 +299,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
         rowLabel: '',
         category: '',
         tags: [],
+        licenseId: '',
+        attribution: '',
+        contactEmail: '',
+        periodOfTime: '',
+        postingFrequency: '',
         columnDescriptions: {},
     });
 
@@ -313,6 +338,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const [generatingDatasetTitle, setGeneratingDatasetTitle] = useState(false);
     const [generatingCategory, setGeneratingCategory] = useState(false);
     const [generatingTags, setGeneratingTags] = useState(false);
+    const [generatingPeriodOfTime, setGeneratingPeriodOfTime] = useState(false);
 
     // --- Multi-dataset tab support ---
     const [datasetTabs, setDatasetTabs] = useState<DatasetTabInfo[]>([]);
@@ -370,6 +396,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setGeneratingDatasetTitle(false);
         setGeneratingCategory(false);
         setGeneratingTags(false);
+        setGeneratingPeriodOfTime(false);
         setIsPushingSocrata(false);
         setCurrentPage(saved.page);
         setCurrentFieldName(saved.fieldName);
@@ -780,7 +807,19 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setFileName(result.fileName);
                 setShowResults(true);
                 setImportedRowCount(0);
-                setGeneratedResults({ datasetTitle: '', datasetDescription: '', rowLabel: '', category: '', tags: [], columnDescriptions: {} });
+                setGeneratedResults({
+                    datasetTitle: '',
+                    datasetDescription: '',
+                    rowLabel: '',
+                    category: '',
+                    tags: [],
+                    licenseId: '',
+                    attribution: '',
+                    contactEmail: '',
+                    periodOfTime: '',
+                    postingFrequency: '',
+                    columnDescriptions: {}
+                });
                 setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
                 setSocrataDatasetId('');
                 setSocrataFieldNameMap({});
@@ -844,7 +883,19 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setCsvData(null);
             setFileName('');
             setColumnStats({});
-            setGeneratedResults({ datasetTitle: '', datasetDescription: '', rowLabel: '', category: '', tags: [], columnDescriptions: {} });
+            setGeneratedResults({
+                datasetTitle: '',
+                datasetDescription: '',
+                rowLabel: '',
+                category: '',
+                tags: [],
+                licenseId: '',
+                attribution: '',
+                contactEmail: '',
+                periodOfTime: '',
+                postingFrequency: '',
+                columnDescriptions: {}
+            });
             setShowResults(false);
             setImportedRowCount(0);
             setGeneratingColumns(new Set());
@@ -859,6 +910,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setGeneratingDatasetTitle(false);
             setGeneratingCategory(false);
             setGeneratingTags(false);
+            setGeneratingPeriodOfTime(false);
             setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
             setSocrataDatasetId('');
             setSocrataFieldNameMap({});
@@ -1293,6 +1345,75 @@ FORMAT RULES:
         }
     }, [csvData, fileName, columnStats, importedRowCount, generateTags]);
 
+    const buildPeriodOfTimePrompt = useCallback((
+        data: CsvRow[],
+        name: string,
+        stats: Record<string, ColumnInfo>,
+        rowCountOverride?: number,
+    ): string => {
+        return buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.periodOfTime, '', undefined, rowCountOverride);
+    }, [promptTemplates.periodOfTime, buildDatasetPromptFromTemplate]);
+
+    const generatePeriodOfTime = useCallback(
+        async (
+            data: CsvRow[],
+            name: string,
+            stats: Record<string, ColumnInfo>,
+            rowCountOverride?: number,
+        ): Promise<{content: string}> => {
+            const prompt = buildPeriodOfTimePrompt(data, name, stats, rowCountOverride);
+            let fullContent = '';
+            const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
+                fullContent += chunk;
+                setGeneratedResults((prev) => ({
+                    ...prev,
+                    periodOfTime: fullContent.trim().replace(/^["']|["']$/g, ''),
+                }));
+            });
+            addTokenUsage(result.usage);
+            const cleaned = fullContent.trim().replace(/^["']|["']$/g, '');
+            setGeneratedResults((prev) => ({ ...prev, periodOfTime: cleaned }));
+            return { content: cleaned };
+        },
+        [openaiConfig, promptTemplates.systemPrompt, buildPeriodOfTimePrompt, callOpenAIStream, addTokenUsage]
+    );
+
+    const handleEditLicenseId = useCallback((newLicenseId: string) => {
+        setGeneratedResults((prev) => ({ ...prev, licenseId: newLicenseId }));
+    }, []);
+
+    const handleEditAttribution = useCallback((newAttribution: string) => {
+        setGeneratedResults((prev) => ({ ...prev, attribution: newAttribution }));
+    }, []);
+
+    const handleEditContactEmail = useCallback((newContactEmail: string) => {
+        setGeneratedResults((prev) => ({ ...prev, contactEmail: newContactEmail }));
+    }, []);
+
+    const handleEditPeriodOfTime = useCallback((newPeriodOfTime: string) => {
+        setGeneratedResults((prev) => ({ ...prev, periodOfTime: newPeriodOfTime }));
+    }, []);
+
+    const handleEditPostingFrequency = useCallback((newPostingFrequency: string) => {
+        setGeneratedResults((prev) => ({ ...prev, postingFrequency: newPostingFrequency }));
+    }, []);
+
+    const handleGeneratePeriodOfTime = useCallback(async () => {
+        if (!csvData) return;
+        setGeneratingPeriodOfTime(true);
+        try {
+            await generatePeriodOfTime(csvData, fileName, columnStats, importedRowCount || undefined);
+            setStatus({ message: 'Successfully generated Period of Time!', type: 'success' });
+        } catch (error) {
+            setStatus({
+                message: `Error generating Period of Time: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                type: 'error',
+            });
+        } finally {
+            setGeneratingPeriodOfTime(false);
+        }
+    }, [csvData, fileName, columnStats, importedRowCount, generatePeriodOfTime]);
+
     const handleSocrataImport = useCallback(
         async (datasetId: string) => {
             setIsProcessing(true);
@@ -1357,6 +1478,11 @@ FORMAT RULES:
                     rowLabel: result.rowLabel || '',
                     category: result.category || '',
                     tags: result.tags || [],
+                    licenseId: result.licenseId || '',
+                    attribution: result.attribution || '',
+                    contactEmail: result.contactEmail || '',
+                    periodOfTime: result.periodOfTime || '',
+                    postingFrequency: result.postingFrequency || '',
                     columnDescriptions,
                 });
 
@@ -1431,15 +1557,23 @@ FORMAT RULES:
                     description: desc,
                 }));
 
-            const result = await pushSocrataMetadata(
-                socrataDatasetId,
-                generatedResults.datasetTitle || undefined,
-                generatedResults.datasetDescription || undefined,
-                generatedResults.rowLabel || undefined,
-                generatedResults.category || undefined,
-                generatedResults.tags.length > 0 ? generatedResults.tags : undefined,
-                columnUpdates,
-            );
+            const result = await pushSocrataMetadata({
+                datasetId: socrataDatasetId,
+                datasetTitle: generatedResults.datasetTitle || undefined,
+                datasetDescription: generatedResults.datasetDescription || undefined,
+                rowLabel: generatedResults.rowLabel || undefined,
+                category: generatedResults.category || undefined,
+                tags: generatedResults.tags.length > 0 ? generatedResults.tags : undefined,
+                licenseId: generatedResults.licenseId || undefined,
+                attribution: generatedResults.attribution || undefined,
+                contactEmail: generatedResults.contactEmail || undefined,
+                periodOfTime: generatedResults.periodOfTime || undefined,
+                postingFrequency: generatedResults.postingFrequency || undefined,
+                columns: columnUpdates,
+                oauthToken: socrataOAuthToken || undefined,
+                apiKeyId: socrataApiKeyId || undefined,
+                apiKeySecret: socrataApiKeySecret || undefined,
+            });
 
             setStatus({ message: result.message, type: 'success' });
         } catch (error) {
@@ -1489,6 +1623,7 @@ FORMAT RULES:
         handleOpenAIConfigChange,
         handleOpenAIConfigClear,
         allowedCategories,
+        allowedLicenses,
         csvData,
         fileName,
         columnStats,
@@ -1509,6 +1644,7 @@ FORMAT RULES:
         generatingDatasetTitle,
         generatingCategory,
         generatingTags,
+        generatingPeriodOfTime,
         socrataDatasetId,
         isPushingSocrata,
         socrataOAuthUser,
@@ -1548,6 +1684,12 @@ FORMAT RULES:
         handleAddTag,
         handleRemoveTag,
         handleGenerateTags,
+        handleEditLicenseId,
+        handleEditAttribution,
+        handleEditContactEmail,
+        handleEditPeriodOfTime,
+        handleGeneratePeriodOfTime,
+        handleEditPostingFrequency,
         handlePushToSocrata,
         handleCloseDataset,
         closeTab,

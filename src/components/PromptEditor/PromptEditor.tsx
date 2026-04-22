@@ -8,6 +8,7 @@ import {
     DEFAULT_DATASET_PROMPT,
     DEFAULT_DATASET_SUGGESTION_PROMPT,
     DEFAULT_DATASET_TITLE_PROMPT,
+    DEFAULT_PERIOD_OF_TIME_PROMPT,
     DEFAULT_ROW_LABEL_PROMPT,
     DEFAULT_SYSTEM_PROMPT,
     DEFAULT_TAGS_PROMPT,
@@ -42,6 +43,10 @@ const PROMPT_INFO: Record<string, {description: string; placeholders?: string}> 
         description: 'Template for generating keyword tags. No vocabulary constraint — the AI produces free-form tags based on the dataset content.',
         placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
     },
+    periodOfTime: {
+        description: 'Template for inferring the real-world time span the data covers (not the update cadence).',
+        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+    },
     datasetSuggestion: {
         description: 'Template for reviewing an existing dataset description and returning actionable improvement suggestions.',
         placeholders: '{currentDescription}',
@@ -60,6 +65,7 @@ const DEFAULTS: Record<keyof PromptTemplates, string> = {
     datasetTitle: DEFAULT_DATASET_TITLE_PROMPT,
     category: DEFAULT_CATEGORY_PROMPT,
     tags: DEFAULT_TAGS_PROMPT,
+    periodOfTime: DEFAULT_PERIOD_OF_TIME_PROMPT,
     datasetSuggestion: DEFAULT_DATASET_SUGGESTION_PROMPT,
     columnSuggestion: DEFAULT_COLUMN_SUGGESTION_PROMPT,
 };
@@ -72,6 +78,7 @@ const PROMPT_FIELDS: {key: keyof PromptTemplates; label: string}[] = [
     { key: 'datasetTitle', label: 'Dataset Title Prompt' },
     { key: 'category', label: 'Category Prompt' },
     { key: 'tags', label: 'Tags Prompt' },
+    { key: 'periodOfTime', label: 'Period of Time Prompt' },
     { key: 'datasetSuggestion', label: 'Dataset Description Suggestion Prompt' },
     { key: 'columnSuggestion', label: 'Column Description Suggestion Prompt' },
 ];

@@ -42,6 +42,11 @@ interface SocrataImportResult {
     rowLabel: string;
     category: string;
     tags: string[];
+    licenseId: string;
+    attribution: string;
+    contactEmail: string;
+    periodOfTime: string;
+    postingFrequency: string;
     columns: SocrataColumnMeta[];
     columnStats: Record<string, ColumnInfo>;
 }
@@ -52,28 +57,31 @@ interface SocrataExportResult {
     updatedColumns: number;
 }
 
+export interface PushSocrataMetadataOptions {
+    datasetId: string;
+    datasetTitle?: string;
+    datasetDescription?: string;
+    rowLabel?: string;
+    category?: string;
+    tags?: string[];
+    licenseId?: string;
+    attribution?: string;
+    contactEmail?: string;
+    periodOfTime?: string;
+    postingFrequency?: string;
+    columns: {fieldName: string; description: string}[];
+    oauthToken?: string;
+    apiKeyId?: string;
+    apiKeySecret?: string;
+}
+
 export async function pushSocrataMetadata(
-    datasetId: string,
-    datasetTitle: string | undefined,
-    datasetDescription: string | undefined,
-    rowLabel: string | undefined,
-    category: string | undefined,
-    tags: string[] | undefined,
-    columns: {fieldName: string; description: string}[],
+    options: PushSocrataMetadataOptions,
 ): Promise<SocrataExportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-            datasetId,
-            datasetTitle,
-            datasetDescription,
-            rowLabel,
-            category,
-            tags,
-            columns
-        }),
+        body: JSON.stringify(options),
     });
 
     await assertResponseOk(response, 'Failed to push metadata');
@@ -102,6 +110,11 @@ export async function fetchSocrataImport(datasetId: string): Promise<SocrataImpo
         rowLabel: result.rowLabel || '',
         category: result.category || '',
         tags: Array.isArray(result.tags) ? result.tags : [],
+        licenseId: result.licenseId || '',
+        attribution: result.attribution || '',
+        contactEmail: result.contactEmail || '',
+        periodOfTime: result.periodOfTime || '',
+        postingFrequency: result.postingFrequency || '',
         columns: result.columns,
         columnStats: result.columnStats,
     };
