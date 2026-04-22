@@ -37,6 +37,14 @@ export function DataOverviewPage() {
         handleRemoveTag,
         handleGenerateTags,
         generatingTags,
+        allowedLicenses,
+        handleEditLicenseId,
+        handleEditAttribution,
+        handleEditContactEmail,
+        handleEditPeriodOfTime,
+        handleGeneratePeriodOfTime,
+        generatingPeriodOfTime,
+        handleEditPostingFrequency,
         renderTokenUsage,
     } = useAppContext();
 
@@ -121,6 +129,19 @@ export function DataOverviewPage() {
                     onRemoveTag={handleRemoveTag}
                     onGenerateTags={handleGenerateTags}
                     isGeneratingTags={generatingTags}
+                    licenseId={generatedResults.licenseId}
+                    allowedLicenses={allowedLicenses}
+                    onEditLicenseId={handleEditLicenseId}
+                    attribution={generatedResults.attribution}
+                    onEditAttribution={handleEditAttribution}
+                    contactEmail={generatedResults.contactEmail}
+                    onEditContactEmail={handleEditContactEmail}
+                    periodOfTime={generatedResults.periodOfTime}
+                    onEditPeriodOfTime={handleEditPeriodOfTime}
+                    onGeneratePeriodOfTime={handleGeneratePeriodOfTime}
+                    isGeneratingPeriodOfTime={generatingPeriodOfTime}
+                    postingFrequency={generatedResults.postingFrequency}
+                    onEditPostingFrequency={handleEditPostingFrequency}
                 />
             )}
 

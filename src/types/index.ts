@@ -45,7 +45,18 @@ export interface GeneratedResults {
     rowLabel: string;
     category: string;
     tags: string[];
+    licenseId: string;
+    attribution: string;
+    contactEmail: string;
+    periodOfTime: string;
+    postingFrequency: string;
     columnDescriptions: Record<string, string>;
+}
+
+export interface SocrataLicense {
+    id: string;
+    name: string;
+    termsLink?: string;
 }
 
 export type StatusType = 'info' | 'success' | 'error' | 'warning';
@@ -64,6 +75,7 @@ export interface PromptTemplates {
     datasetTitle: string;
     category: string;
     tags: string;
+    periodOfTime: string;
     datasetSuggestion: string;
     columnSuggestion: string;
 }

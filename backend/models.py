@@ -72,6 +72,11 @@ class SocrataImportResponse(BaseModel):
     rowLabel: str
     category: str
     tags: list[str]
+    licenseId: str = ""
+    attribution: str = ""
+    contactEmail: str = ""
+    periodOfTime: str = ""
+    postingFrequency: str = ""
     columns: list[SocrataColumnMetadata]
     columnStats: dict[str, ColumnStats]
 
@@ -100,6 +105,11 @@ class SocrataExportRequest(BaseModel):
     rowLabel: str | None = None
     category: str | None = None
     tags: list[str] | None = None
+    licenseId: str | None = None
+    attribution: str | None = None
+    contactEmail: str | None = None
+    periodOfTime: str | None = None
+    postingFrequency: str | None = None
     columns: list[SocrataColumnUpdate] = []
 
 
@@ -120,6 +130,20 @@ class SocrataCategoriesResponse(BaseModel):
     """Response with the list of live categories advertised by data.wa.gov."""
 
     categories: list[str]
+
+
+class SocrataLicenseInfo(BaseModel):
+    """A single license option advertised by data.wa.gov."""
+
+    id: str
+    name: str
+    termsLink: str | None = None
+
+
+class SocrataLicensesResponse(BaseModel):
+    """Response with the live list of licenses advertised by data.wa.gov."""
+
+    licenses: list[SocrataLicenseInfo]
 
 
 # ============================================================================

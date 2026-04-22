@@ -34,6 +34,8 @@ from .models import (
     SocrataExportResponse,
     SocrataImportRequest,
     SocrataImportResponse,
+    SocrataLicenseInfo,
+    SocrataLicensesResponse,
     SocrataOAuthLoginResponse,
     SocrataOAuthUserInfoRequest,
     SocrataOAuthUserInfo,
@@ -273,6 +275,9 @@ _soda_semaphore = asyncio.Semaphore(10)
 # Populated lazily on first request; refreshed after TTL expires.
 _categories_cache: dict[str, Any] = {"value": None, "fetched_at": 0.0}
 _CATEGORIES_TTL_SECONDS = 24 * 60 * 60
+
+_licenses_cache: dict[str, Any] = {"value": None, "fetched_at": 0.0}
+_LICENSES_TTL_SECONDS = 24 * 60 * 60
 
 
 def build_socrata_auth(
@@ -570,6 +575,23 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
             else:
                 tags = []
 
+            license_id = metadata.get("licenseId") or ""
+            attribution = metadata.get("attribution") or ""
+
+            nested_metadata = metadata.get("metadata") or {}
+            if not isinstance(nested_metadata, dict):
+                nested_metadata = {}
+            contact_email = nested_metadata.get("contactEmail") or ""
+
+            custom_fields = nested_metadata.get("custom_fields") or {}
+            if not isinstance(custom_fields, dict):
+                custom_fields = {}
+            temporal_fields = custom_fields.get("Temporal") or {}
+            if not isinstance(temporal_fields, dict):
+                temporal_fields = {}
+            period_of_time = str(temporal_fields.get("Period of Time") or "")
+            posting_frequency = str(temporal_fields.get("Posting Frequency") or "")
+
             total_rows = int(count_rows[0]["total"]) if count_rows else 0
 
             # Extract column metadata (skip system columns starting with ':')
@@ -626,6 +648,11 @@ async def socrata_import(request: SocrataImportRequest) -> SocrataImportResponse
                 rowLabel=row_label,
                 category=category,
                 tags=tags,
+                licenseId=license_id,
+                attribution=attribution,
+                contactEmail=contact_email,
+                periodOfTime=period_of_time,
+                postingFrequency=posting_frequency,
                 columns=columns,
                 columnStats=column_stats,
             )
@@ -687,10 +714,35 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
             if request.tags is not None:
                 update_payload["tags"] = request.tags
 
+            if request.licenseId is not None:
+                update_payload["licenseId"] = request.licenseId
+
+            if request.attribution is not None:
+                update_payload["attribution"] = request.attribution
+
             metadata_changed = False
 
             if request.rowLabel is not None:
                 existing_metadata["rowLabel"] = request.rowLabel
+                metadata_changed = True
+
+            if request.contactEmail is not None:
+                existing_metadata["contactEmail"] = request.contactEmail
+                metadata_changed = True
+
+            if request.periodOfTime is not None or request.postingFrequency is not None:
+                existing_custom = existing_metadata.get("custom_fields") or {}
+                if not isinstance(existing_custom, dict):
+                    existing_custom = {}
+                existing_temporal = existing_custom.get("Temporal") or {}
+                if not isinstance(existing_temporal, dict):
+                    existing_temporal = {}
+                if request.periodOfTime is not None:
+                    existing_temporal["Period of Time"] = request.periodOfTime
+                if request.postingFrequency is not None:
+                    existing_temporal["Posting Frequency"] = request.postingFrequency
+                existing_custom["Temporal"] = existing_temporal
+                existing_metadata["custom_fields"] = existing_custom
                 metadata_changed = True
 
             if metadata_changed:
@@ -742,7 +794,19 @@ async def socrata_export(request: SocrataExportRequest) -> SocrataExportResponse
             if request.category is not None:
                 parts.append("category")
             if request.tags is not None:
-                parts.append(f"{len(request.tags)} tag{'s' if len(request.tags) != 1 else ''}")
+                parts.append(
+                    f"{len(request.tags)} tag{'s' if len(request.tags) != 1 else ''}"
+                )
+            if request.licenseId is not None:
+                parts.append("license")
+            if request.attribution is not None:
+                parts.append("attribution")
+            if request.contactEmail is not None:
+                parts.append("contact email")
+            if request.periodOfTime is not None:
+                parts.append("period of time")
+            if request.postingFrequency is not None:
+                parts.append("posting frequency")
             if updated_col_count > 0:
                 parts.append(
                     f"{updated_col_count} column description{'s' if updated_col_count != 1 else ''}"
@@ -791,6 +855,62 @@ async def _fetch_socrata_categories() -> list[str]:
         categories.append(name)
     categories.sort(key=str.casefold)
     return categories
+
+
+async def _fetch_socrata_licenses() -> list[SocrataLicenseInfo]:
+    """Fetch the live license list from data.wa.gov."""
+    url = "https://data.wa.gov/api/licenses.json"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
+        data = resp.json()
+
+    licenses: list[SocrataLicenseInfo] = []
+    seen: set[str] = set()
+    for entry in data or []:
+        if not isinstance(entry, dict):
+            continue
+        lic_id = str(entry.get("id") or "").strip()
+        name = str(entry.get("name") or "").strip()
+        if not lic_id or not name or lic_id in seen:
+            continue
+        seen.add(lic_id)
+        terms = entry.get("termsLink")
+        licenses.append(
+            SocrataLicenseInfo(
+                id=lic_id,
+                name=name,
+                termsLink=str(terms) if terms else None,
+            )
+        )
+    licenses.sort(key=lambda l: l.name.casefold())
+    return licenses
+
+
+@app.get("/api/socrata/licenses", response_model=SocrataLicensesResponse)
+async def socrata_licenses() -> SocrataLicensesResponse:
+    """Return the live list of data.wa.gov licenses, cached for 24 hours."""
+    now = time.time()
+    cached = _licenses_cache["value"]
+    fetched_at = _licenses_cache["fetched_at"]
+
+    if cached is not None and (now - fetched_at) < _LICENSES_TTL_SECONDS:
+        return SocrataLicensesResponse(licenses=cached)
+
+    try:
+        licenses = await _fetch_socrata_licenses()
+    except Exception as e:
+        logger.warning("Failed to fetch Socrata licenses: %s", e)
+        if cached is not None:
+            return SocrataLicensesResponse(licenses=cached)
+        raise HTTPException(
+            status_code=503,
+            detail="Could not reach data.wa.gov to load licenses.",
+        )
+
+    _licenses_cache["value"] = licenses
+    _licenses_cache["fetched_at"] = now
+    return SocrataLicensesResponse(licenses=licenses)
 
 
 @app.get("/api/socrata/categories", response_model=SocrataCategoriesResponse)
