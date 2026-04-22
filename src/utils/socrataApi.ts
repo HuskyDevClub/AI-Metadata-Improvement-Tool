@@ -70,9 +70,6 @@ export interface PushSocrataMetadataOptions {
     periodOfTime?: string;
     postingFrequency?: string;
     columns: {fieldName: string; description: string}[];
-    oauthToken?: string;
-    apiKeyId?: string;
-    apiKeySecret?: string;
 }
 
 export async function pushSocrataMetadata(
@@ -128,9 +125,9 @@ export async function fetchSocrataOAuthLoginUrl(): Promise<string> {
 }
 
 export type SocrataSession =
-    | { kind: 'oauth'; user: { id: string; displayName: string; email?: string } }
-    | { kind: 'api_key'; apiKeyId: string }
-    | { kind: null };
+    | {kind: 'oauth'; user: {id: string; displayName: string; email?: string}}
+    | {kind: 'api_key'; apiKeyId: string}
+    | {kind: null};
 
 export async function fetchSocrataSession(): Promise<SocrataSession> {
     const response = await fetch(`${API_BASE_URL}/api/auth/socrata/session`, {

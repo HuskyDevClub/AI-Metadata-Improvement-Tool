@@ -1570,9 +1570,6 @@ FORMAT RULES:
                 periodOfTime: generatedResults.periodOfTime || undefined,
                 postingFrequency: generatedResults.postingFrequency || undefined,
                 columns: columnUpdates,
-                oauthToken: socrataOAuthToken || undefined,
-                apiKeyId: socrataApiKeyId || undefined,
-                apiKeySecret: socrataApiKeySecret || undefined,
             });
 
             setStatus({ message: result.message, type: 'success' });
