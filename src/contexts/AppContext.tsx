@@ -389,6 +389,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 models: Array(comparisonSlotCount).fill(null).map(() => ({ ...EMPTY_TOKEN_USAGE })),
                 judge: { ...EMPTY_TOKEN_USAGE },
                 total: { ...EMPTY_TOKEN_USAGE },
+                modelsCost: Array(comparisonSlotCount).fill(0),
+                judgeCost: 0,
+                totalCost: 0,
             });
         }
     }, [setComparisonEnabled, setComparisonTokenUsage, comparisonSlotCount]);
@@ -552,7 +555,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ): Promise<void> => {
         const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
         const judgeResult = await callJudge(context, outputs, judgeConfig, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories);
-        addComparisonTokenUsage({ type: 'judge' }, judgeResult.usage);
+        addComparisonTokenUsage({ type: 'judge', model: comparisonConfig.judgeModel }, judgeResult.usage);
         setDatasetComparison((prev) => ({
             ...prev,
             judgeResult: judgeResult.result,
@@ -567,7 +570,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ): Promise<void> => {
         const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
         const judgeResult = await callJudge(context, outputs, judgeConfig, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories);
-        addComparisonTokenUsage({ type: 'judge' }, judgeResult.usage);
+        addComparisonTokenUsage({ type: 'judge', model: comparisonConfig.judgeModel }, judgeResult.usage);
         setColumnComparisons((prev) => ({
             ...prev,
             [columnName]: {
@@ -620,7 +623,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
             const result = await generateParallel(prompts, configs, systemPrompts, onChunks, abortSignal);
             result.usages.forEach((usage, i) => {
-                addComparisonTokenUsage({ type: 'model', index: i }, usage);
+                addComparisonTokenUsage({ type: 'model', index: i, model: comparisonConfig.models[i] }, usage);
             });
             for (let i = 0; i < slotCount; i++) {
                 setGeneratingDatasetModel(i, false);
@@ -728,7 +731,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
             const result = await generateParallel(prompts, configs, systemPrompts, onChunks, abortSignal);
             result.usages.forEach((usage, i) => {
-                addComparisonTokenUsage({ type: 'model', index: i }, usage);
+                addComparisonTokenUsage({ type: 'model', index: i, model: comparisonConfig.models[i] }, usage);
             });
             for (let i = 0; i < slotCount; i++) {
                 setGeneratingColumnModel(i, columnName, false);
@@ -1348,7 +1351,7 @@ FORMAT RULES:
                     });
                 });
 
-                addComparisonTokenUsage({ type: 'model', index: slotIndex }, result.usage);
+                addComparisonTokenUsage({ type: 'model', index: slotIndex, model: comparisonConfig.models[slotIndex] }, result.usage);
 
                 if (result.aborted) {
                     setStatus({ message: 'Regeneration stopped.', type: 'info' });
@@ -1423,7 +1426,7 @@ FORMAT RULES:
                     });
                 });
 
-                addComparisonTokenUsage({ type: 'model', index: slotIndex }, result.usage);
+                addComparisonTokenUsage({ type: 'model', index: slotIndex, model: comparisonConfig.models[slotIndex] }, result.usage);
 
                 if (result.aborted) {
                     setStatus({ message: 'Regeneration stopped.', type: 'info' });

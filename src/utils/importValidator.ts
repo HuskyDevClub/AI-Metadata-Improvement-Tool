@@ -273,6 +273,9 @@ function parseComparisonImport(data: ComparisonExport): ImportResult {
         models: Array(slotCount).fill(null).map(() => ({ ...EMPTY_TOKEN_USAGE })),
         judge: { ...EMPTY_TOKEN_USAGE },
         total: { ...EMPTY_TOKEN_USAGE },
+        modelsCost: Array(slotCount).fill(0),
+        judgeCost: 0,
+        totalCost: 0,
     };
 
     return {

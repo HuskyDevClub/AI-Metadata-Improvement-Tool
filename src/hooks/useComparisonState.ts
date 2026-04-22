@@ -8,6 +8,7 @@ import type {
     ScoringCategory,
     TokenUsage,
 } from '../types';
+import { getEstimatedCost } from '../utils/pricing';
 import { EMPTY_TOKEN_USAGE } from '../utils/config';
 
 const DEFAULT_SCORING_CATEGORIES: ScoringCategory[] = [
@@ -138,6 +139,9 @@ function createInitialTokenUsage(slotCount: number): ComparisonTokenUsage {
         models: Array(slotCount).fill(null).map(() => ({ ...EMPTY_TOKEN_USAGE })),
         judge: { ...EMPTY_TOKEN_USAGE },
         total: { ...EMPTY_TOKEN_USAGE },
+        modelsCost: Array(slotCount).fill(0),
+        judgeCost: 0,
+        totalCost: 0,
     };
 }
 
@@ -213,7 +217,7 @@ export function useComparisonState() {
     }, [comparisonSlotCount]);
 
     const addComparisonTokenUsage = useCallback((
-        slot: { type: 'model'; index: number } | { type: 'judge' },
+        slot: { type: 'model'; index: number; model: string } | { type: 'judge'; model: string },
         usage: TokenUsage
     ) => {
         setComparisonTokenUsage((prev) => {
@@ -221,6 +225,9 @@ export function useComparisonState() {
                 models: prev.models.map(m => ({ ...m })),
                 judge: { ...prev.judge },
                 total: { ...prev.total },
+                modelsCost: prev.modelsCost ? [...prev.modelsCost] : prev.models.map(() => 0),
+                judgeCost: prev.judgeCost || 0,
+                totalCost: prev.totalCost || 0,
             };
             if (slot.type === 'model') {
                 const i = slot.index;
@@ -231,18 +238,25 @@ export function useComparisonState() {
                         totalTokens: newUsage.models[i].totalTokens + usage.totalTokens,
                     };
                 }
+                // Calculate cost for this model
+                const cost = getEstimatedCost(slot.model, usage.promptTokens, usage.completionTokens) || 0;
+                newUsage.modelsCost[i] = (newUsage.modelsCost[i] || 0) + cost;
             } else {
                 newUsage.judge = {
                     promptTokens: newUsage.judge.promptTokens + usage.promptTokens,
                     completionTokens: newUsage.judge.completionTokens + usage.completionTokens,
                     totalTokens: newUsage.judge.totalTokens + usage.totalTokens,
                 };
+                // Calculate cost for judge model
+                const cost = getEstimatedCost(slot.model, usage.promptTokens, usage.completionTokens) || 0;
+                newUsage.judgeCost = (newUsage.judgeCost || 0) + cost;
             }
             newUsage.total = {
                 promptTokens: newUsage.total.promptTokens + usage.promptTokens,
                 completionTokens: newUsage.total.completionTokens + usage.completionTokens,
                 totalTokens: newUsage.total.totalTokens + usage.totalTokens,
             };
+            newUsage.totalCost = (newUsage.totalCost || 0) + (getEstimatedCost(slot.model, usage.promptTokens, usage.completionTokens) || 0);
             return newUsage;
         });
     }, []);

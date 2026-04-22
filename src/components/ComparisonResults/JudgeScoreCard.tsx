@@ -1,4 +1,4 @@
-import type { JudgeResult, ScoringCategory } from '../../types';
+import type { JudgeResult, ScoringCategory, ComparisonTokenUsage } from '../../types';
 import { getModelColor } from '../../utils/modelColors';
 import { MetricBar } from './MetricBar';
 import './JudgeScoreCard.css';
@@ -11,6 +11,7 @@ interface JudgeScoreCardProps {
     isReJudging?: boolean;
     modelNames?: string[];
     scoringCategories?: ScoringCategory[];
+    comparisonTokenUsage?: ComparisonTokenUsage;
 }
 
 export function JudgeScoreCard({
@@ -21,6 +22,7 @@ export function JudgeScoreCard({
                                    isReJudging = false,
                                    modelNames,
                                    scoringCategories,
+                                   comparisonTokenUsage,
                                }: JudgeScoreCardProps) {
     if (isJudging || isReJudging) {
         return (
@@ -305,6 +307,41 @@ export function JudgeScoreCard({
                                 <span className="metric-label">Outlier Ratio</span>
                                 <span className="metric-value">{(result.confidenceMetrics.outlier_ratio * 100).toFixed(1)}%</span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {comparisonTokenUsage && (
+                <div className="cost-summary">
+                    <div className="cost-header">
+                        <span className="cost-title">Cost Summary</span>
+                    </div>
+                    <div className="cost-details">
+                        <div className="cost-breakdown">
+                            <div className="cost-item">
+                                <span className="cost-label">Model Generation:</span>
+                                <span className="cost-value">${comparisonTokenUsage.modelsCost.reduce((sum, cost) => sum + cost, 0).toFixed(4)}</span>
+                            </div>
+                            <div className="cost-item">
+                                <span className="cost-label">Judge Evaluation:</span>
+                                <span className="cost-value">${comparisonTokenUsage.judgeCost.toFixed(4)}</span>
+                            </div>
+                            <div className="cost-item total">
+                                <span className="cost-label">Total Cost:</span>
+                                <span className="cost-value">${comparisonTokenUsage.totalCost.toFixed(4)}</span>
+                            </div>
+                        </div>
+                        <div className="cost-per-model">
+                            {comparisonTokenUsage.modelsCost.map((cost, i) => {
+                                const name = modelNames?.[i] || `Slot ${i + 1}`;
+                                return (
+                                    <div key={i} className="cost-model-item">
+                                        <span className="cost-model-label">{name}:</span>
+                                        <span className="cost-model-value">${cost.toFixed(4)}</span>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

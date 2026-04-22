@@ -1,4 +1,4 @@
-import type { DatasetComparisonResult, ScoringCategory } from '../../types';
+import type { DatasetComparisonResult, ScoringCategory, ComparisonTokenUsage } from '../../types';
 import type { RegenerationModifier } from '../ComparisonResults/RegenerationControls';
 import { SideBySideView } from '../ComparisonResults/SideBySideView';
 import { JudgeScoreCard } from '../ComparisonResults/JudgeScoreCard';
@@ -16,6 +16,7 @@ interface DatasetComparisonProps {
     onReJudge?: () => void;
     isReJudging?: boolean;
     scoringCategories?: ScoringCategory[];
+    comparisonTokenUsage?: ComparisonTokenUsage;
 }
 
 export function DatasetComparison({
@@ -30,6 +31,7 @@ export function DatasetComparison({
                                       onReJudge,
                                       isReJudging = false,
                                       scoringCategories,
+                                      comparisonTokenUsage,
                                   }: DatasetComparisonProps) {
     return (
         <div className="dataset-comparison-section">
@@ -59,6 +61,7 @@ export function DatasetComparison({
                 isReJudging={isReJudging}
                 modelNames={modelNames}
                 scoringCategories={scoringCategories}
+                comparisonTokenUsage={comparisonTokenUsage}
             />
         </div>
     );

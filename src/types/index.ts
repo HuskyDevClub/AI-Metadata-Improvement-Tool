@@ -158,6 +158,9 @@ export interface ComparisonTokenUsage {
     models: TokenUsage[];
     judge: TokenUsage;
     total: TokenUsage;
+    modelsCost: number[];
+    judgeCost: number;
+    totalCost: number;
 }
 
 // Validation Types

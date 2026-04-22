@@ -1,4 +1,4 @@
-import type { ColumnComparisonResult, ColumnInfo, ScoringCategory } from '../../types';
+import type { ColumnComparisonResult, ColumnInfo, ScoringCategory, ComparisonTokenUsage } from '../../types';
 import type { RegenerationModifier } from '../ComparisonResults/RegenerationControls';
 import { SideBySideView } from '../ComparisonResults/SideBySideView';
 import { JudgeScoreCard } from '../ComparisonResults/JudgeScoreCard';
@@ -16,6 +16,7 @@ interface ColumnComparisonProps {
     onReJudge?: () => void;
     isReJudging?: boolean;
     scoringCategories?: ScoringCategory[];
+    comparisonTokenUsage?: ComparisonTokenUsage;
 }
 
 export function ColumnComparison({
@@ -29,6 +30,7 @@ export function ColumnComparison({
                                      onReJudge,
                                      isReJudging = false,
                                      scoringCategories,
+                                     comparisonTokenUsage,
                                  }: ColumnComparisonProps) {
     return (
         <div className="column-comparison-card">
@@ -61,6 +63,7 @@ export function ColumnComparison({
                 isReJudging={isReJudging}
                 modelNames={modelNames}
                 scoringCategories={scoringCategories}
+                comparisonTokenUsage={comparisonTokenUsage}
             />
         </div>
     );

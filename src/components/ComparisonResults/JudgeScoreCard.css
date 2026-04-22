@@ -399,3 +399,91 @@
         grid-template-columns: 1fr !important;
     }
 }
+
+.cost-summary {
+    margin-bottom: 12px;
+    padding: 12px;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+}
+
+.cost-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.cost-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.cost-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cost-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cost-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.cost-item.total {
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    margin-top: 4px;
+}
+
+.cost-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.cost-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.cost-item.total .cost-value {
+    color: #7c3aed;
+    font-size: 14px;
+}
+
+.cost-per-model {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: var(--surface-secondary);
+    border-radius: var(--radius-sm);
+}
+
+.cost-model-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+}
+
+.cost-model-label {
+    color: var(--text-secondary);
+}
+
+.cost-model-value {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    color: var(--text);
+}

@@ -28,6 +28,7 @@ export function ComparePage() {
         reJudgingColumns,
         isAnyModelGenerating,
         promptTemplates,
+        comparisonTokenUsage,
         navigate,
         handleComparisonToggle,
         handleComparisonConfigChange,
@@ -105,6 +106,7 @@ export function ComparePage() {
                             onReJudge={handleReJudgeDataset}
                             isReJudging={reJudgingDataset}
                             scoringCategories={comparisonConfig.scoringCategories}
+                            comparisonTokenUsage={comparisonTokenUsage}
                         />
                     )}
 
@@ -130,6 +132,7 @@ export function ComparePage() {
                                     onReJudge={() => handleReJudgeColumn(name)}
                                     isReJudging={reJudgingColumns.has(name)}
                                     scoringCategories={comparisonConfig.scoringCategories}
+                                    comparisonTokenUsage={comparisonTokenUsage}
                                 />
                             ))}
                         </div>
