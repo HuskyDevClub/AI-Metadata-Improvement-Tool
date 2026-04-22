@@ -110,13 +110,16 @@ async def add_security_headers(
 ) -> Response:
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
+    # SAMEORIGIN (not DENY): Databricks Apps serves frontend + backend at the
+    # same origin and documents an optional iframe embedding path. CSP
+    # frame-ancestors 'self' is the modern equivalent.
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["Strict-Transport-Security"] = (
         "max-age=31536000; includeSubDomains"
     )
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+        "default-src 'self'; script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; frame-ancestors 'self'"
     )
     return response
 

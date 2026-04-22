@@ -128,7 +128,6 @@ FRONTEND_URL=http://localhost:5173
 - `SOCRATA_SECRET_TOKEN`: The Secret Token from step 1
 - `SOCRATA_OAUTH_REDIRECT_URI`: Must match the Callback Prefix domain registered on data.wa.gov
 - `FRONTEND_URL`: Where the browser redirects after OAuth (your frontend dev server)
-- `SESSION_ENCRYPTION_KEY`: Fernet key for encrypting the session cookie — generate one with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
 
 #### 4. Test the Flow
 

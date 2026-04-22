@@ -49,20 +49,31 @@ export function ImportPage() {
         }
     };
 
-    const handleSocrataSubmit = () => {
+    const handleSocrataSubmit = async () => {
         if (!datasetId.trim()) return;
 
         const trimmedKeyId = apiKeyIdInput.trim();
         const trimmedKeySecret = apiKeySecretInput.trim();
-        const hasCredentials = !!(trimmedKeyId && trimmedKeySecret);
+        const hasNewCredentials = !!(trimmedKeyId && trimmedKeySecret);
 
-        if (rememberKey && hasCredentials) {
-            handleSocrataApiKeySave(trimmedKeyId, trimmedKeySecret);
-        } else if (!rememberKey && (socrataApiKeyId)) {
-            handleSocrataApiKeyClear();
+        // Auth lives in an HttpOnly cookie, so the key must be saved to the
+        // cookie before import can use it. When "Remember" is off we clear
+        // the cookie after the import completes, making it effectively single-use.
+        if (hasNewCredentials) {
+            await handleSocrataApiKeySave(trimmedKeyId, trimmedKeySecret);
+        } else if (!rememberKey && socrataApiKeyId) {
+            await handleSocrataApiKeyClear();
         }
 
-        handleSocrataImport(datasetId.trim(), trimmedKeyId, trimmedKeySecret);
+        try {
+            await handleSocrataImport(datasetId.trim());
+        } finally {
+            if (hasNewCredentials && !rememberKey) {
+                await handleSocrataApiKeyClear();
+                setApiKeyIdInput('');
+                setApiKeySecretInput('');
+            }
+        }
     };
 
     const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -171,7 +182,8 @@ export function ImportPage() {
                         Remember this API key on this browser
                     </label>
                     <span className="import-form-hint">
-                        Generate API keys from your data.wa.gov profile &gt; Developer Settings
+                        Generate API keys from your data.wa.gov profile &gt; Developer Settings.
+                        Saved keys live in an encrypted HttpOnly session cookie.
                     </span>
                 </div>
             )}
