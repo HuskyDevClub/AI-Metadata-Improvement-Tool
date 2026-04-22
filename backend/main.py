@@ -68,7 +68,16 @@ _SESSION_ENCRYPTION_KEY = Fernet.generate_key().decode()
 _fernet = Fernet(_SESSION_ENCRYPTION_KEY.encode())
 
 SESSION_COOKIE_NAME = "socrata_session"
-SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
+try:
+    SESSION_COOKIE_MAX_AGE = int(
+        os.getenv("SESSION_COOKIE_MAX_AGE_SECONDS", str(60 * 60 * 24))
+    )
+except ValueError as exc:
+    raise RuntimeError(
+        "SESSION_COOKIE_MAX_AGE_SECONDS must be a positive integer"
+    ) from exc
+if SESSION_COOKIE_MAX_AGE <= 0:
+    raise RuntimeError("SESSION_COOKIE_MAX_AGE_SECONDS must be a positive integer")
 
 # Cookies need SameSite=None;Secure for cross-site (e.g. Databricks app URL)
 # and Lax/Secure for same-origin. Default Lax; Databricks deployment is HTTPS.
@@ -94,7 +103,11 @@ app = FastAPI(
 # are same-origin (Databricks Apps), so no CORS preflight fires. In dev, the
 # Vite proxy forwards /api/* same-origin, so this mainly guards against direct
 # cross-origin calls. FRONTEND_URL is the canonical allowed origin.
-_cors_origins = [FRONTEND_URL] if FRONTEND_URL else []
+_cors_origins = (
+    [FRONTEND_URL]
+    if FRONTEND_URL
+    else ["http://localhost:5173", "http://localhost:8000"]
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
@@ -161,7 +174,7 @@ def _read_session(request: Request) -> dict[str, str] | None:
     if not raw:
         return None
     try:
-        decrypted = _fernet.decrypt(raw.encode()).decode()
+        decrypted = _fernet.decrypt(raw.encode(), ttl=SESSION_COOKIE_MAX_AGE).decode()
         data = json.loads(decrypted)
         if not isinstance(data, dict) or "kind" not in data:
             return None

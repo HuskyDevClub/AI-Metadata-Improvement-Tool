@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # ============================================================================
 # Chat/Streaming Models
@@ -149,8 +149,8 @@ class SocrataOAuthUserInfo(BaseModel):
 class SocrataApiKeyRequest(BaseModel):
     """Request body for saving an API key to the session cookie."""
 
-    apiKeyId: str
-    apiKeySecret: str
+    apiKeyId: str = Field(..., max_length=256)
+    apiKeySecret: str = Field(..., max_length=256)
 
 
 class SocrataSessionResponse(BaseModel):

@@ -58,6 +58,10 @@ cd ..
 
    # Server Configuration
    PORT=8000
+
+   # Session cookie lifetime in seconds. Default 86400 (1 day). Applies to both
+   # the browser cookie Max-Age and the server-side Fernet TTL check.
+   # SESSION_COOKIE_MAX_AGE_SECONDS=86400
    ```
 
 ### Running the App
