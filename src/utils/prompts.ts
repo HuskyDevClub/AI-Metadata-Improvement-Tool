@@ -182,7 +182,7 @@ Return a short bulleted list of specific suggestions. For each suggestion, quote
 
 export function buildDatasetImprovementPrompt(currentDescription: string, template?: string): string {
     return (template || DEFAULT_DATASET_SUGGESTION_PROMPT)
-        .replace(/\{currentDescription\}/g, currentDescription);
+        .replace(/\{currentDescription}/g, currentDescription);
 }
 
 export const DEFAULT_COLUMN_SUGGESTION_PROMPT = `You are a metadata quality reviewer for data.wa.gov. Analyze the following column description for "{columnName}" and provide specific, actionable suggestions to improve it.
@@ -202,8 +202,8 @@ Return a short bulleted list of specific suggestions. For each suggestion, quote
 
 export function buildColumnImprovementPrompt(columnName: string, currentDescription: string, template?: string): string {
     return (template || DEFAULT_COLUMN_SUGGESTION_PROMPT)
-        .replace(/\{columnName\}/g, columnName)
-        .replace(/\{currentDescription\}/g, currentDescription);
+        .replace(/\{columnName}/g, columnName)
+        .replace(/\{currentDescription}/g, currentDescription);
 }
 
 export function appendPromptModifiers(
@@ -229,7 +229,7 @@ export interface SuggestionItem {
     edited: boolean;
 }
 
-export function normalizeTag(raw: string): string {
+function normalizeTag(raw: string): string {
     return raw
         .trim()
         .toLowerCase()
@@ -271,7 +271,7 @@ export function parseCategoryIndex(raw: string, allowed: string[]): string {
         if (idx >= 0 && idx < allowed.length) return allowed[idx];
     }
 
-    // Fallback: the model ignored the "number only" instruction — scan for a
+    // Fallback: the model ignored the "number-only" instruction — scan for a
     // category name in the free text.
     const lower = raw.toLowerCase();
     const mentioned = allowed.find((c) => lower.includes(c.toLowerCase()));

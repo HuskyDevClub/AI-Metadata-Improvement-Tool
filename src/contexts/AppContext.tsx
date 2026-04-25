@@ -467,8 +467,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const handleSocrataOAuthLogin = useCallback(async () => {
         setIsSocrataOAuthAuthenticating(true);
         try {
-            const authUrl = await fetchSocrataOAuthLoginUrl();
-            window.location.href = authUrl;
+            window.location.href = await fetchSocrataOAuthLoginUrl();
         } catch (error) {
             const detail = error instanceof Error ? error.message : 'Unknown error';
             setStatus({ message: `OAuth error: ${detail}`, type: 'error' });
@@ -594,7 +593,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             ? ((nonNullCount / info.totalCount) * 100).toFixed(1)
             : '0.0';
         const prompt = template
-            .replace(/\{columnName\}/g, columnName)
+            .replace(/\{columnName}/g, columnName)
             .replace('{datasetDescription}', datasetDesc)
             .replace('{columnStats}', statsText)
             .replace('{dataType}', info.type)
@@ -1186,6 +1185,11 @@ FORMAT RULES:
         const info = columnStats[columnName];
         const colValues = csvData?.map((row) => row[columnName]);
         if (!info || colValues === undefined) return;
+
+        // Capture suggestions before clearing state — the closure reads a stale
+        // reference if we read from the state variable inside the async callback.
+        const suggestions = columnSuggestions[columnName] || [];
+
         setRegeneratingColumns((prev) => new Set(prev).add(columnName));
         setColumnSuggestions((prev) => {
             const next = { ...prev };
@@ -1196,7 +1200,7 @@ FORMAT RULES:
             const originalPrompt = buildColumnPrompt(
                 columnName, info, generatedResults.datasetDescription || '', colValues, '', undefined
             );
-            const prompt = buildRegenerateWithSuggestionsPrompt(originalPrompt, columnSuggestions[columnName] || []);
+            const prompt = buildRegenerateWithSuggestionsPrompt(originalPrompt, suggestions);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
@@ -1525,7 +1529,7 @@ FORMAT RULES:
             + window.location.hash;
         window.history.replaceState(null, '', newUrl);
 
-        handleSocrataImport(datasetIdFromUrl);
+        handleSocrataImport(datasetIdFromUrl).then();
     }, [handleSocrataImport]);
 
     const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {

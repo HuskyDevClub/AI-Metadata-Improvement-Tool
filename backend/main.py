@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 import httpx
 from cryptography.fernet import Fernet, InvalidToken
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -44,9 +44,11 @@ from .models import (
     SocrataSessionResponse,
 )
 
-# Load environment variables from .env file (local dev) and .env.databricks (Databricks deployment)
-load_dotenv()
-load_dotenv(Path(__file__).resolve().parent.parent / ".env.databricks", override=True)
+# Env load order: .env.databricks fills baseline values for the deployed app,
+# then local .env files override for local dev (backend/.env, then cwd .env).
+load_dotenv(Path(__file__).resolve().parent.parent / ".env.databricks")
+load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
+load_dotenv(override=True)
 
 # Configuration
 SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
@@ -149,6 +151,21 @@ async def health_check() -> HealthResponse:
 
 
 # Socrata OAuth endpoints
+
+
+def require_xhr_header(request: Request) -> None:
+    """CSRF guard for cookie-authenticated mutations.
+
+    Cross-site form POSTs cannot set custom request headers without a CORS
+    preflight. Requiring `X-Requested-With: XMLHttpRequest` (or any non-empty
+    value of that header) blocks classic CSRF without needing a server-side
+    token store — which fits the no-datastore design constraint.
+    """
+    if not request.headers.get("X-Requested-With"):
+        raise HTTPException(
+            status_code=403,
+            detail="Missing X-Requested-With header (CSRF protection).",
+        )
 
 
 def _set_session_payload(response: Response, payload: dict[str, str]) -> None:
@@ -261,8 +278,10 @@ async def socrata_oauth_callback(
         logger.warning("OAuth state parse failed: state=%s", state)
         return RedirectResponse(url=f"{base}/#oauth_error=state_invalid")
 
-    # Check expiry (10 minutes)
-    if abs(int(time.time()) - timestamp) > 600:
+    # Check expiry (10 minutes). Reject future timestamps too — a valid state
+    # token can never be issued in the future relative to the same server.
+    now = int(time.time())
+    if now < timestamp or now - timestamp > 600:
         logger.warning("OAuth state expired: timestamp=%s", timestamp)
         return RedirectResponse(url=f"{base}/#oauth_error=state_expired")
 
@@ -366,7 +385,11 @@ async def socrata_session(request: Request) -> SocrataSessionResponse:
     return SocrataSessionResponse(kind=None)
 
 
-@app.put("/api/auth/socrata/api-key", status_code=204)
+@app.put(
+    "/api/auth/socrata/api-key",
+    status_code=204,
+    dependencies=[Depends(require_xhr_header)],
+)
 async def socrata_api_key_save(
     body: SocrataApiKeyRequest, response: Response
 ) -> Response:
@@ -387,7 +410,11 @@ async def socrata_api_key_save(
     return response
 
 
-@app.post("/api/auth/socrata/logout", status_code=204)
+@app.post(
+    "/api/auth/socrata/logout",
+    status_code=204,
+    dependencies=[Depends(require_xhr_header)],
+)
 async def socrata_logout(request: Request, response: Response) -> Response:
     """Clear the session cookie. For OAuth sessions, also revoke upstream."""
     session = _read_session(request)
@@ -830,7 +857,11 @@ async def socrata_import(
 
 
 # Socrata export endpoint — pushes updated metadata back to data.wa.gov
-@app.post("/api/socrata/export", response_model=SocrataExportResponse)
+@app.post(
+    "/api/socrata/export",
+    response_model=SocrataExportResponse,
+    dependencies=[Depends(require_xhr_header)],
+)
 async def socrata_export(
     request: SocrataExportRequest, http_request: Request
 ) -> SocrataExportResponse:
@@ -1210,20 +1241,24 @@ if static_dir.exists():
         raise HTTPException(status_code=404, detail="Frontend not built")
 
     # Serve index.html for all non-API routes (SPA support)
+    _STATIC_ROOT = static_dir.resolve()
+
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str) -> FileResponse:
         # Don't interfere with API routes
         if full_path.startswith("api/") or full_path == "health":
             raise HTTPException(status_code=404, detail="Not found")
 
-        # Try to serve the exact file first
-        file_path = static_dir / full_path
-        if file_path.exists() and file_path.is_file():
+        # Resolve the requested path and confirm it stays inside static_dir.
+        # Prevents path-traversal (e.g. "../../etc/passwd") from escaping the
+        # static root.
+        file_path = (static_dir / full_path).resolve()
+        if file_path.is_relative_to(_STATIC_ROOT) and file_path.is_file():
             return FileResponse(file_path)
 
         # Fall back to index.html for SPA routing
-        index_path = static_dir / "index.html"
-        if index_path.exists():
+        index_path = _STATIC_ROOT / "index.html"
+        if index_path.is_file():
             return FileResponse(index_path)
 
         raise HTTPException(status_code=404, detail="Not found")

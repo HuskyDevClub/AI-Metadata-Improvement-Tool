@@ -77,7 +77,11 @@ export async function pushSocrataMetadata(
 ): Promise<SocrataExportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/export`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'include',
         body: JSON.stringify(options),
     });
 
@@ -147,7 +151,10 @@ export async function fetchSocrataSession(): Promise<SocrataSession> {
 export async function saveSocrataApiKey(apiKeyId: string, apiKeySecret: string): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/api/auth/socrata/api-key`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
         credentials: 'include',
         body: JSON.stringify({ apiKeyId, apiKeySecret }),
     });
@@ -157,6 +164,7 @@ export async function saveSocrataApiKey(apiKeyId: string, apiKeySecret: string):
 export async function logoutSocrata(): Promise<void> {
     await fetch(`${API_BASE_URL}/api/auth/socrata/logout`, {
         method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'include',
     });
 }
