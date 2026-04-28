@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { OpenAIConfig as OpenAIConfigType } from '../../types';
 import './OpenAIConfig.css';
 
@@ -20,12 +20,6 @@ export function OpenAIConfig({
     const [modelInput, setModelInput] = useState(config.model);
     const [showApiKey, setShowApiKey] = useState(false);
     const [justSaved, setJustSaved] = useState(false);
-
-    useEffect(() => {
-        setBaseURLInput(config.baseURL);
-        setApiKeyInput(config.apiKey);
-        setModelInput(config.model);
-    }, [config.baseURL, config.apiKey, config.model]);
 
     const dirty =
         baseURLInput !== config.baseURL ||

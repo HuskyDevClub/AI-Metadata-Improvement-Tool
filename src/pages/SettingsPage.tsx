@@ -20,6 +20,7 @@ export function SettingsPage() {
         <div className="settings-page">
             <div className="settings-page-section">
                 <OpenAIConfig
+                    key={`${openaiConfig.baseURL}-${openaiConfig.apiKey}-${openaiConfig.model}`}
                     config={openaiConfig}
                     onChange={handleOpenAIConfigChange}
                     onClear={handleOpenAIConfigClear}
@@ -28,6 +29,7 @@ export function SettingsPage() {
 
             <div className="settings-page-section">
                 <SocrataApiConfig
+                    key={socrataApiKeyId || 'none'}
                     keyId={socrataApiKeyId}
                     keySecret=""
                     onSave={handleSocrataApiKeySave}

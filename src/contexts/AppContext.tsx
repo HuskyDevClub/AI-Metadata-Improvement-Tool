@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useOpenAI } from '../hooks/useOpenAI';
-import { fetchSocrataCategories } from '../utils/categoriesApi';
-import { fetchSocrataLicenses } from '../utils/licensesApi';
 import {
+    fetchSocrataCategories,
     fetchSocrataImport,
+    fetchSocrataLicenses,
     fetchSocrataOAuthLoginUrl,
     fetchSocrataSession,
     logoutSocrata,

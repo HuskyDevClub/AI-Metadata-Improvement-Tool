@@ -13,9 +13,6 @@ export function StatusMessage({ status, isProcessing, onStop }: StatusMessagePro
     const [fading, setFading] = useState(false);
 
     useEffect(() => {
-        setHidden(false);
-        setFading(false);
-
         if (!status?.autoHide) return;
 
         const fadeTimer = setTimeout(() => setFading(true), status.autoHide);
@@ -24,7 +21,7 @@ export function StatusMessage({ status, isProcessing, onStop }: StatusMessagePro
             clearTimeout(fadeTimer);
             clearTimeout(hideTimer);
         };
-    }, [status]);
+    }, [status?.autoHide]);
 
     if (!status || hidden) return null;
 

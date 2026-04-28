@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import './SocrataApiConfig.css';
 
 interface SocrataApiConfigProps {
@@ -17,11 +17,6 @@ export function SocrataApiConfig({
     const [keyIdInput, setKeyIdInput] = useState(keyId);
     const [keySecretInput, setKeySecretInput] = useState(keySecret);
     const [showSecret, setShowSecret] = useState(false);
-
-    useEffect(() => {
-        setKeyIdInput(keyId);
-        setKeySecretInput(keySecret);
-    }, [keyId, keySecret]);
 
     const dirty = keyIdInput !== keyId || keySecretInput !== keySecret;
     const canSave = dirty && keyIdInput.trim() !== '' && keySecretInput.trim() !== '';

@@ -283,7 +283,8 @@ export function Layout() {
                 </div>
             )}
             <div className="content">
-                <StatusMessage status={status} isProcessing={isProcessing} onStop={handleStop}/>
+                <StatusMessage key={status ? `${status.type}-${status.message}` : 'none'} status={status}
+                               isProcessing={isProcessing} onStop={handleStop}/>
                 <CurrentPage/>
             </div>
             <FloatingActions/>

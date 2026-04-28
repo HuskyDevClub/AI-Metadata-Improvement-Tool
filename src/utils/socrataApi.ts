@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import type { ColumnInfo, CsvRow } from '../types';
+import type { ColumnInfo, CsvRow, SocrataLicense } from '../types';
 import { API_BASE_URL } from './config';
 import { assertResponseOk } from './api';
 
@@ -119,6 +119,20 @@ export async function fetchSocrataImport(datasetId: string): Promise<SocrataImpo
         columns: result.columns,
         columnStats: result.columnStats,
     };
+}
+
+export async function fetchSocrataCategories(): Promise<string[]> {
+    const response = await fetch(`${API_BASE_URL}/api/socrata/categories`);
+    await assertResponseOk(response, 'Failed to load categories');
+    const result = await response.json();
+    return Array.isArray(result.categories) ? result.categories : [];
+}
+
+export async function fetchSocrataLicenses(): Promise<SocrataLicense[]> {
+    const response = await fetch(`${API_BASE_URL}/api/socrata/licenses`);
+    await assertResponseOk(response, 'Failed to load licenses');
+    const result = await response.json();
+    return Array.isArray(result.licenses) ? result.licenses : [];
 }
 
 export async function fetchSocrataOAuthLoginUrl(): Promise<string> {
