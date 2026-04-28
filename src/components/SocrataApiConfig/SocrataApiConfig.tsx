@@ -3,28 +3,48 @@ import './SocrataApiConfig.css';
 
 interface SocrataApiConfigProps {
     keyId: string;
-    keySecret: string;
-    onSave: (keyId: string, keySecret: string) => void;
+    onSave: (keyId: string, keySecret: string) => Promise<void>;
     onClear: () => void;
 }
 
 export function SocrataApiConfig({
                                      keyId,
-                                     keySecret,
                                      onSave,
                                      onClear,
                                  }: SocrataApiConfigProps) {
     const [keyIdInput, setKeyIdInput] = useState(keyId);
-    const [keySecretInput, setKeySecretInput] = useState(keySecret);
+    const [keySecretInput, setKeySecretInput] = useState('');
     const [showSecret, setShowSecret] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
-    const dirty = keyIdInput !== keyId || keySecretInput !== keySecret;
-    const canSave = dirty && keyIdInput.trim() !== '' && keySecretInput.trim() !== '';
-    const hasSaved = !!(keyId && keySecret);
+    const isConfigured = !!keyId;
+    const dirty = keyIdInput !== keyId || keySecretInput !== '';
+    const canSave = !isSaving && (dirty || !isConfigured) && keyIdInput.trim() !== '' && (isConfigured ? true : keySecretInput.trim() !== '');
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await onSave(keyIdInput.trim(), keySecretInput.trim());
+            setKeySecretInput('');
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     return (
         <div className="socrata-api-config-section">
-            <div className="socrata-api-config-section-title">data.wa.gov API Credentials</div>
+            <div className="socrata-api-config-header">
+                <div className="socrata-api-config-section-title">data.wa.gov API Credentials</div>
+                {isConfigured && !dirty && (
+                    <span className="socrata-api-config-status-badge">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Configured
+                    </span>
+                )}
+            </div>
             <div className="socrata-api-config-grid">
                 <div className="socrata-api-config-input-group">
                     <label htmlFor="socrataSettingsApiKeyId">API Key ID *</label>
@@ -37,12 +57,12 @@ export function SocrataApiConfig({
                     />
                 </div>
                 <div className="socrata-api-config-input-group">
-                    <label htmlFor="socrataSettingsApiKeySecret">API Key Secret *</label>
+                    <label htmlFor="socrataSettingsApiKeySecret">API Key Secret {isConfigured ? '(Saved)' : '*'}</label>
                     <div className="socrata-api-config-input-wrapper">
                         <input
                             id="socrataSettingsApiKeySecret"
                             type={showSecret ? 'text' : 'password'}
-                            placeholder="Your Socrata API Key Secret"
+                            placeholder={isConfigured ? '••••••••••••••••' : 'Your Socrata API Key Secret'}
                             value={keySecretInput}
                             onChange={(e) => setKeySecretInput(e.target.value)}
                         />
@@ -50,6 +70,7 @@ export function SocrataApiConfig({
                             type="button"
                             className="socrata-api-config-reveal-btn"
                             onClick={() => setShowSecret((v) => !v)}
+                            disabled={!keySecretInput}
                             aria-label={showSecret ? 'Hide API key secret' : 'Show API key secret'}
                             title={showSecret ? 'Hide API key secret' : 'Show API key secret'}
                         >
@@ -75,28 +96,31 @@ export function SocrataApiConfig({
                 <button
                     type="button"
                     className="socrata-api-config-save-btn"
-                    onClick={() => onSave(keyIdInput.trim(), keySecretInput.trim())}
+                    onClick={handleSave}
                     disabled={!canSave}
                 >
-                    {hasSaved ? 'Update keys' : 'Save keys'}
+                    {isSaving ? 'Saving...' : isConfigured ? 'Update keys' : 'Save keys'}
                 </button>
                 <button
                     type="button"
                     className="socrata-api-config-clear-btn"
                     onClick={() => {
-                        if (window.confirm('Clear saved Socrata API credentials? This will remove the API Key ID and Secret from this browser.')) {
+                        if (window.confirm('Clear saved Socrata API credentials? This will remove the API configuration from the server-side session.')) {
                             onClear();
                             setKeyIdInput('');
                             setKeySecretInput('');
                         }
                     }}
-                    disabled={!hasSaved && keyIdInput === '' && keySecretInput === ''}
+                    disabled={!isConfigured && keyIdInput === '' && keySecretInput === ''}
                 >
                     Clear
                 </button>
+                {dirty && !isSaving && (
+                    <span className="socrata-api-config-dirty-hint">Unsaved changes</span>
+                )}
             </div>
             <span className="socrata-api-config-help-text">
-                Generate API keys from your data.wa.gov profile &gt; Developer Settings. Keys are stored locally in your browser.
+                Generate API keys from your data.wa.gov profile &gt; Developer Settings. Keys are stored in an encrypted server-side session cookie.
             </span>
         </div>
     );

@@ -7,7 +7,8 @@ import './SettingsPage.css';
 export function SettingsPage() {
     const {
         openaiConfig,
-        handleOpenAIConfigChange,
+        isOpenAIConfigured,
+        handleOpenAIConfigSave,
         handleOpenAIConfigClear,
         promptTemplates,
         setPromptTemplates,
@@ -20,9 +21,10 @@ export function SettingsPage() {
         <div className="settings-page">
             <div className="settings-page-section">
                 <OpenAIConfig
-                    key={`${openaiConfig.baseURL}-${openaiConfig.apiKey}-${openaiConfig.model}`}
+                    key={`${openaiConfig.baseURL}-${isOpenAIConfigured}-${openaiConfig.model}`}
                     config={openaiConfig}
-                    onChange={handleOpenAIConfigChange}
+                    isConfigured={isOpenAIConfigured}
+                    onSave={handleOpenAIConfigSave}
                     onClear={handleOpenAIConfigClear}
                 />
             </div>
@@ -31,7 +33,6 @@ export function SettingsPage() {
                 <SocrataApiConfig
                     key={socrataApiKeyId || 'none'}
                     keyId={socrataApiKeyId}
-                    keySecret=""
                     onSave={handleSocrataApiKeySave}
                     onClear={handleSocrataApiKeyClear}
                 />

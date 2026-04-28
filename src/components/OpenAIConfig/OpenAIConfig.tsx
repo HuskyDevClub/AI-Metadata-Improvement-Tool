@@ -4,47 +4,68 @@ import './OpenAIConfig.css';
 
 interface OpenAIConfigProps {
     config: OpenAIConfigType;
-    onChange: (config: OpenAIConfigType) => void;
+    isConfigured: boolean;
+    onSave: (baseURL: string, apiKey: string, model: string) => Promise<void>;
     onClear?: () => void;
     showModel?: boolean;
 }
 
 export function OpenAIConfig({
                                  config,
-                                 onChange,
+                                 isConfigured,
+                                 onSave,
                                  onClear,
                                  showModel = true,
                              }: OpenAIConfigProps) {
     const [baseURLInput, setBaseURLInput] = useState(config.baseURL);
-    const [apiKeyInput, setApiKeyInput] = useState(config.apiKey);
+    const [apiKeyInput, setApiKeyInput] = useState('');
     const [modelInput, setModelInput] = useState(config.model);
     const [showApiKey, setShowApiKey] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [justSaved, setJustSaved] = useState(false);
 
     const dirty =
         baseURLInput !== config.baseURL ||
-        apiKeyInput !== config.apiKey ||
+        apiKeyInput !== '' ||
         modelInput !== config.model;
 
     const canSave =
-        dirty &&
+        !isSaving &&
+        (dirty || !isConfigured) &&
         baseURLInput.trim() !== '' &&
-        apiKeyInput.trim() !== '' &&
+        (isConfigured ? true : apiKeyInput.trim() !== '') &&
         (!showModel || modelInput.trim() !== '');
 
-    const handleSave = () => {
-        onChange({
-            baseURL: baseURLInput.trim(),
-            apiKey: apiKeyInput.trim(),
-            model: modelInput.trim(),
-        });
-        setJustSaved(true);
-        window.setTimeout(() => setJustSaved(false), 1500);
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await onSave(
+                baseURLInput.trim(),
+                apiKeyInput.trim(),
+                modelInput.trim(),
+            );
+            setApiKeyInput('');
+            setJustSaved(true);
+            window.setTimeout(() => setJustSaved(false), 2000);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
         <div className="openai-config-section">
-            <div className="openai-config-section-title">Custom API Configuration</div>
+            <div className="openai-config-header">
+                <div className="openai-config-section-title">Custom API Configuration</div>
+                {isConfigured && !dirty && (
+                    <span className="openai-config-status-badge">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Configured
+                    </span>
+                )}
+            </div>
             <div className="openai-config-grid">
                 <div className="openai-config-input-group">
                     <label htmlFor="openaiBaseURL">Base URL *</label>
@@ -58,12 +79,12 @@ export function OpenAIConfig({
                     <span className="openai-config-help-text">API base URL (use default for OpenAI, or custom for compatible APIs)</span>
                 </div>
                 <div className="openai-config-input-group">
-                    <label htmlFor="openaiKey">API Key *</label>
+                    <label htmlFor="openaiKey">API Key {isConfigured ? '(Saved)' : '*'}</label>
                     <div className="openai-config-input-wrapper">
                         <input
                             id="openaiKey"
                             type={showApiKey ? 'text' : 'password'}
-                            placeholder="Your API key"
+                            placeholder={isConfigured ? '••••••••••••••••' : 'Your API key'}
                             value={apiKeyInput}
                             onChange={(e) => setApiKeyInput(e.target.value)}
                         />
@@ -71,6 +92,7 @@ export function OpenAIConfig({
                             type="button"
                             className="openai-config-reveal-btn"
                             onClick={() => setShowApiKey((v) => !v)}
+                            disabled={!apiKeyInput}
                             aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
                             title={showApiKey ? 'Hide API key' : 'Show API key'}
                         >
@@ -113,14 +135,14 @@ export function OpenAIConfig({
                     onClick={handleSave}
                     disabled={!canSave}
                 >
-                    {justSaved ? 'Saved' : 'Save configuration'}
+                    {isSaving ? 'Saving...' : justSaved ? 'Saved' : 'Save configuration'}
                 </button>
                 {onClear && (
                     <button
                         type="button"
                         className="openai-config-clear-btn"
                         onClick={() => {
-                            if (window.confirm('Clear saved API configuration? This will remove the Base URL, API Key, and Model from this browser.')) {
+                            if (window.confirm('Clear saved API configuration? This will remove the configuration from the server-side session.')) {
                                 onClear();
                             }
                         }}

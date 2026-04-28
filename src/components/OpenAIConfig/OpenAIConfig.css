@@ -2,13 +2,38 @@
     margin-bottom: 24px;
 }
 
+.openai-config-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
 .openai-config-section-title {
     font-size: 16px;
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.openai-config-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.openai-config-status-badge svg {
+    stroke: currentColor;
 }
 
 .openai-config-grid {
@@ -88,6 +113,11 @@
 .openai-config-reveal-btn:hover {
     color: var(--text);
     background: rgba(0, 0, 0, 0.05);
+}
+
+.openai-config-reveal-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 
 .openai-config-help-text {

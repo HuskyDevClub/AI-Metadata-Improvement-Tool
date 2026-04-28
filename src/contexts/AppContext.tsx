@@ -13,6 +13,7 @@ import {
     pushSocrataMetadata,
     saveSocrataApiKey,
 } from '../utils/socrataApi';
+import { fetchOpenAISession, logoutOpenAI, saveOpenAIConfig, } from '../utils/openaiApi';
 import {
     analyzeColumn,
     buildSampleRows,
@@ -109,10 +110,11 @@ interface AppContextType {
 
     // API & Config
     openaiConfig: OpenAIConfigType;
+    isOpenAIConfigured: boolean;
     promptTemplates: PromptTemplates;
     setPromptTemplates: (templates: PromptTemplates) => void;
-    handleOpenAIConfigChange: (config: OpenAIConfigType) => void;
-    handleOpenAIConfigClear: () => void;
+    handleOpenAIConfigSave: (baseURL: string, apiKey: string, model: string) => Promise<void>;
+    handleOpenAIConfigClear: () => Promise<void>;
 
     // Live data from data.wa.gov
     allowedCategories: string[];
@@ -225,15 +227,13 @@ export function AppProvider({ children }: {children: ReactNode}) {
         }
     }, []);
 
-    // Shared API configuration for all modes (persisted to localStorage)
-    const [apiConfig, setApiConfig] = useState<APIConfig>(() => ({
-        baseURL: localStorage.getItem('openai_base_url') ?? '',
-        apiKey: localStorage.getItem('openai_api_key') ?? '',
-    }));
-
-    const [model, setModel] = useState<string>(
-        () => localStorage.getItem('openai_model') ?? ''
-    );
+    // OpenAI Configuration (persisted in encrypted session cookie on backend)
+    const [isOpenAIConfigured, setIsOpenAIConfigured] = useState(false);
+    const [apiConfig, setApiConfig] = useState<APIConfig>({
+        baseURL: '',
+        apiKey: '', // Always empty on the frontend after initial save
+    });
+    const [model, setModel] = useState<string>('');
 
     // Combined config for hooks that need the full OpenAIConfig
     const openaiConfig: OpenAIConfigType = useMemo(() => ({
@@ -286,6 +286,22 @@ export function AppProvider({ children }: {children: ReactNode}) {
             .catch((err) => {
                 console.warn('Failed to load Socrata licenses:', err);
             });
+
+        // Initialize OpenAI session
+        fetchOpenAISession()
+            .then((session) => {
+                if (!cancelled) {
+                    setIsOpenAIConfigured(session.isConfigured);
+                    if (session.isConfigured) {
+                        setApiConfig({ baseURL: session.baseURL || '', apiKey: '' });
+                        setModel(session.model || '');
+                    }
+                }
+            })
+            .catch((err) => {
+                console.warn('Failed to load OpenAI session:', err);
+            });
+
         return () => {
             cancelled = true;
         };
@@ -444,6 +460,9 @@ export function AppProvider({ children }: {children: ReactNode}) {
         localStorage.removeItem('socrata_oauth_user');
         localStorage.removeItem('socrata_api_key_id');
         localStorage.removeItem('socrata_api_key_secret');
+        localStorage.removeItem('openai_base_url');
+        localStorage.removeItem('openai_api_key');
+        localStorage.removeItem('openai_model');
 
         setIsSocrataOAuthAuthenticating(true);
         fetchSocrataSession()
@@ -1552,20 +1571,33 @@ FORMAT RULES:
         handleSocrataImport(datasetIdFromUrl).then();
     }, [handleSocrataImport]);
 
-    const handleOpenAIConfigChange = useCallback((newConfig: OpenAIConfigType) => {
-        setApiConfig({ baseURL: newConfig.baseURL, apiKey: newConfig.apiKey });
-        setModel(newConfig.model);
-        localStorage.setItem('openai_base_url', newConfig.baseURL);
-        localStorage.setItem('openai_api_key', newConfig.apiKey);
-        localStorage.setItem('openai_model', newConfig.model);
-    }, []);
+    const handleOpenAIConfigSave = useCallback(
+        async (baseURL: string, apiKey: string, model: string) => {
+            try {
+                await saveOpenAIConfig(baseURL, apiKey, model);
+                setIsOpenAIConfigured(true);
+                setApiConfig({ baseURL, apiKey: '' }); // Don't keep key in memory
+                setModel(model);
+                setStatus({ message: 'OpenAI configuration saved', type: 'success' });
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : 'Unknown error';
+                setStatus({ message: `Failed to save OpenAI config: ${detail}`, type: 'error' });
+            }
+        },
+        []
+    );
 
-    const handleOpenAIConfigClear = useCallback(() => {
-        setApiConfig({ baseURL: '', apiKey: '' });
-        setModel('');
-        localStorage.removeItem('openai_base_url');
-        localStorage.removeItem('openai_api_key');
-        localStorage.removeItem('openai_model');
+    const handleOpenAIConfigClear = useCallback(async () => {
+        try {
+            await logoutOpenAI();
+            setIsOpenAIConfigured(false);
+            setApiConfig({ baseURL: '', apiKey: '' });
+            setModel('');
+            setStatus({ message: 'OpenAI configuration cleared', type: 'success' });
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : 'Unknown error';
+            setStatus({ message: `Failed to clear OpenAI config: ${detail}`, type: 'error' });
+        }
     }, []);
 
     const handlePushToSocrata = useCallback(async () => {
@@ -1639,9 +1671,10 @@ FORMAT RULES:
         activeDatasetId,
         switchToDataset,
         openaiConfig,
+        isOpenAIConfigured,
         promptTemplates,
         setPromptTemplates,
-        handleOpenAIConfigChange,
+        handleOpenAIConfigSave,
         handleOpenAIConfigClear,
         allowedCategories,
         allowedLicenses,

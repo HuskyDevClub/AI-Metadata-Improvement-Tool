@@ -193,3 +193,27 @@ class SocrataSessionResponse(BaseModel):
     kind: Literal["oauth", "api_key"] | None = None
     user: SocrataOAuthUserInfo | None = None
     apiKeyId: str | None = None
+
+
+# ============================================================================
+# OpenAI Configuration Models
+# ============================================================================
+
+
+class OpenAIConfigRequest(BaseModel):
+    """Request body for saving OpenAI configuration to the session cookie."""
+
+    baseURL: str = Field(..., max_length=1024)
+    apiKey: str = Field(..., max_length=1024)
+    model: str = Field(..., max_length=256)
+
+
+class OpenAISessionResponse(BaseModel):
+    """State of the current OpenAI configuration in the session.
+
+    The apiKey is never returned.
+    """
+
+    isConfigured: bool
+    baseURL: str | None = None
+    model: str | None = None

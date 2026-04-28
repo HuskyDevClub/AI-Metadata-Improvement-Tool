@@ -30,6 +30,8 @@ from .models import (
     ChatRequest,
     ColumnStats,
     HealthResponse,
+    OpenAIConfigRequest,
+    OpenAISessionResponse,
     SocrataApiKeyRequest,
     SocrataCategoriesResponse,
     SocrataColumnMetadata,
@@ -170,13 +172,8 @@ def require_xhr_header(request: Request) -> None:
         )
 
 
-def _set_session_payload(response: Response, payload: dict[str, str]) -> None:
-    """Encrypt an auth payload into the session cookie.
-
-    Payload shapes:
-        {"kind": "oauth", "token": "..."}
-        {"kind": "api_key", "id": "...", "secret": "..."}
-    """
+def _set_session_payload(response: Response, payload: dict[str, Any]) -> None:
+    """Encrypt an auth payload into the session cookie."""
     encrypted = _fernet.encrypt(json.dumps(payload).encode()).decode()
     response.set_cookie(
         SESSION_COOKIE_NAME,
@@ -189,19 +186,27 @@ def _set_session_payload(response: Response, payload: dict[str, str]) -> None:
     )
 
 
-def _read_session(request: Request) -> dict[str, str] | None:
-    """Decrypt the session cookie. Returns the payload dict or None."""
+def _read_session(request: Request) -> dict[str, Any]:
+    """Decrypt the session cookie. Returns the payload dict (empty if missing/invalid)."""
     raw = request.cookies.get(SESSION_COOKIE_NAME)
     if not raw:
-        return None
+        return {}
     try:
         decrypted = _fernet.decrypt(raw.encode(), ttl=SESSION_COOKIE_MAX_AGE).decode()
         data = json.loads(decrypted)
-        if not isinstance(data, dict) or "kind" not in data:
-            return None
-        return data
+        return data if isinstance(data, dict) else {}
     except (InvalidToken, ValueError, json.JSONDecodeError):
-        return None
+        return {}
+
+
+def _update_session(
+    request: Request, response: Response, updates: dict[str, Any]
+) -> dict[str, Any]:
+    """Read current session, apply updates, and write back to the cookie."""
+    session = _read_session(request)
+    session.update(updates)
+    _set_session_payload(response, session)
+    return session
 
 
 def _clear_session_cookie(response: Response) -> None:
@@ -339,7 +344,7 @@ async def socrata_oauth_callback(
             # Success: set encrypted HttpOnly cookie, redirect to frontend home.
             # The frontend calls /api/auth/socrata/session on load to discover the session.
             redirect = RedirectResponse(url=base or "/")
-            _set_session_payload(redirect, {"kind": "oauth", "token": access_token})
+            _update_session(request, redirect, {"kind": "oauth", "token": access_token})
             return redirect
 
     except Exception as e:
@@ -351,9 +356,6 @@ async def socrata_oauth_callback(
 async def socrata_session(request: Request) -> SocrataSessionResponse:
     """Return the state of the current auth session (OAuth or API key)."""
     session = _read_session(request)
-    if not session:
-        return SocrataSessionResponse(kind=None)
-
     kind = session.get("kind")
 
     if kind == "oauth":
@@ -393,7 +395,7 @@ async def socrata_session(request: Request) -> SocrataSessionResponse:
     dependencies=[Depends(require_xhr_header)],
 )
 async def socrata_api_key_save(
-    body: SocrataApiKeyRequest, response: Response
+    body: SocrataApiKeyRequest, request: Request, response: Response
 ) -> Response:
     """Store a Socrata API key (id + secret) in the encrypted session cookie.
 
@@ -405,8 +407,8 @@ async def socrata_api_key_save(
         raise HTTPException(
             status_code=400, detail="Both apiKeyId and apiKeySecret are required."
         )
-    _set_session_payload(
-        response, {"kind": "api_key", "id": key_id, "secret": key_secret}
+    _update_session(
+        request, response, {"kind": "api_key", "id": key_id, "secret": key_secret}
     )
     response.status_code = 204
     return response
@@ -418,14 +420,9 @@ async def socrata_api_key_save(
     dependencies=[Depends(require_xhr_header)],
 )
 async def socrata_logout(request: Request, response: Response) -> Response:
-    """Clear the session cookie. For OAuth sessions, also revoke upstream."""
+    """Clear the Socrata auth from the session cookie. For OAuth sessions, also revoke upstream."""
     session = _read_session(request)
-    if (
-        session
-        and session.get("kind") == "oauth"
-        and SOCRATA_APP_TOKEN
-        and SOCRATA_SECRET_TOKEN
-    ):
+    if session.get("kind") == "oauth" and SOCRATA_APP_TOKEN and SOCRATA_SECRET_TOKEN:
         token = session.get("token")
         if token:
             try:
@@ -441,7 +438,70 @@ async def socrata_logout(request: Request, response: Response) -> Response:
             except Exception:
                 # Revoke is best-effort — the cookie is still invalidated below.
                 logger.exception("Upstream token revoke failed")
-    _clear_session_cookie(response)
+
+    # Only clear Socrata-related keys, keep OpenAI config
+    session.pop("kind", None)
+    session.pop("token", None)
+    session.pop("id", None)
+    session.pop("secret", None)
+    _set_session_payload(response, session)
+
+    response.status_code = 204
+    return response
+
+
+# OpenAI configuration endpoints
+
+
+@app.get("/api/auth/openai/session", response_model=OpenAISessionResponse)
+async def openai_session(request: Request) -> OpenAISessionResponse:
+    """Return whether OpenAI is configured in the session."""
+    session = _read_session(request)
+    config = session.get("openai_config")
+    if not config or not isinstance(config, dict):
+        return OpenAISessionResponse(isConfigured=False)
+
+    return OpenAISessionResponse(
+        isConfigured=True,
+        baseURL=config.get("baseURL"),
+        model=config.get("model"),
+    )
+
+
+@app.put(
+    "/api/auth/openai/config",
+    status_code=204,
+    dependencies=[Depends(require_xhr_header)],
+)
+async def openai_config_save(
+    body: OpenAIConfigRequest, request: Request, response: Response
+) -> Response:
+    """Store OpenAI configuration in the encrypted session cookie."""
+    _update_session(
+        request,
+        response,
+        {
+            "openai_config": {
+                "baseURL": body.baseURL.strip(),
+                "apiKey": body.apiKey.strip(),
+                "model": body.model.strip(),
+            }
+        },
+    )
+    response.status_code = 204
+    return response
+
+
+@app.post(
+    "/api/auth/openai/logout",
+    status_code=204,
+    dependencies=[Depends(require_xhr_header)],
+)
+async def openai_logout(request: Request, response: Response) -> Response:
+    """Clear OpenAI configuration from the session cookie."""
+    session = _read_session(request)
+    session.pop("openai_config", None)
+    _set_session_payload(response, session)
     response.status_code = 204
     return response
 
@@ -472,12 +532,12 @@ _TAGS_TTL_SECONDS = 24 * 60 * 60
 _TAGS_MAX_RETURN = 200
 
 
-def build_socrata_auth(session: dict[str, str] | None) -> dict[str, str]:
+def build_socrata_auth(session: dict[str, Any]) -> dict[str, str]:
     """Build auth headers from an encrypted session payload.
 
-    `session` is the decrypted cookie payload (OAuth or API key) or None.
+    `session` is the decrypted cookie payload (OAuth or API key).
     Falls back to X-App-Token-only auth (read-only, public datasets) when no
-    session is present.
+    valid auth keys are present.
     """
     if not SOCRATA_APP_TOKEN:
         raise HTTPException(
@@ -487,15 +547,14 @@ def build_socrata_auth(session: dict[str, str] | None) -> dict[str, str]:
 
     headers: dict[str, str] = {"X-App-Token": SOCRATA_APP_TOKEN}
 
-    if session:
-        kind = session.get("kind")
-        if kind == "oauth" and session.get("token"):
-            headers["Authorization"] = f"OAuth {session['token']}"
-        elif kind == "api_key" and session.get("id") and session.get("secret"):
-            credentials = base64.b64encode(
-                f"{session['id']}:{session['secret']}".encode()
-            ).decode()
-            headers["Authorization"] = f"Basic {credentials}"
+    kind = session.get("kind")
+    if kind == "oauth" and session.get("token"):
+        headers["Authorization"] = f"OAuth {session['token']}"
+    elif kind == "api_key" and session.get("id") and session.get("secret"):
+        credentials = base64.b64encode(
+            f"{session['id']}:{session['secret']}".encode()
+        ).decode()
+        headers["Authorization"] = f"Basic {credentials}"
 
     return headers
 
@@ -1209,25 +1268,31 @@ async def socrata_tags(category: str = "") -> SocrataTagsResponse:
 async def openai_chat_stream(
     request: ChatRequest, http_request: Request
 ) -> StreamingResponse:
-    # Get configuration from the request or environment
-    base_url = request.baseURL or LLM_ENDPOINT
-    api_key = request.apiKey or LLM_API_KEY
-    model = request.model or LLM_MODEL
+    # Resolve configuration. Priority:
+    # 1. Explicit request payload (from UI)
+    # 2. Encrypted session cookie
+    # 3. Server environment variables
+    session = _read_session(http_request)
+    config = session.get("openai_config") or {}
+
+    base_url = request.baseURL or config.get("baseURL") or LLM_ENDPOINT
+    api_key = request.apiKey or config.get("apiKey") or LLM_API_KEY
+    model = request.model or config.get("model") or LLM_MODEL
 
     # Validate configuration
     missing_config = []
     if not base_url:
-        missing_config.append("Base URL (LLM_ENDPOINT)")
+        missing_config.append("Base URL")
     if not api_key:
-        missing_config.append("API Key (LLM_API_KEY)")
+        missing_config.append("API Key")
     if not model:
-        missing_config.append("Model (LLM_MODEL)")
+        missing_config.append("Model")
 
     if missing_config:
         raise HTTPException(
             status_code=400,
             detail=f"Missing required configuration: {', '.join(missing_config)}. "
-            "Please set these in the environment or enter them in the UI.",
+            "Please enter them in the Settings page.",
         )
 
     # Build messages array, only include system prompt if provided
