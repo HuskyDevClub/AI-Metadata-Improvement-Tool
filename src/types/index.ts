@@ -34,6 +34,7 @@ export type ColumnType = 'numeric' | 'categorical' | 'text' | 'empty';
 
 export interface ColumnInfo {
     type: ColumnType;
+    originalType?: string;
     stats: NumericStats | CategoricalStats | TextStats | Record<string, never>;
     nullCount: number;
     totalCount: number;

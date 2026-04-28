@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { ColumnCard } from '../components/ColumnCard/ColumnCard';
+import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
 import { useAppContext } from '../contexts/AppContext';
 import { formatColumnStats } from '../utils/columnAnalyzer';
 import './FieldOverviewPage.css';
@@ -85,9 +86,7 @@ export function FieldOverviewPage() {
 
             <div className="field-overview-header">
                 <h2 className="field-overview-name">{fieldName}</h2>
-                <span className={`field-overview-type field-overview-type-${info.type}`}>
-                    {info.type}
-                </span>
+                <DataTypeBadge type={info.type} originalType={info.originalType} size="large"/>
             </div>
 
             <div className="field-overview-stats">
@@ -108,7 +107,7 @@ export function FieldOverviewPage() {
                     </div>
                     <div className="field-overview-stat">
                         <span className="field-overview-stat-label">Data Type</span>
-                        <span className="field-overview-stat-value">{info.type}</span>
+                        <span className="field-overview-stat-value">{info.originalType || info.type}</span>
                     </div>
                 </div>
                 {statsText && (
@@ -132,7 +131,6 @@ export function FieldOverviewPage() {
             )}
 
             <div className="field-overview-description">
-                <div className="field-overview-desc-title">Description</div>
                 <ColumnCard
                     name={fieldName}
                     info={info}

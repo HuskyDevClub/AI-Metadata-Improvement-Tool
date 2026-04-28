@@ -39,22 +39,11 @@ export function ColumnCard({
                                onAddSuggestion,
                                onApplySuggestions,
                            }: ColumnCardProps) {
-    const getTypeClass = () => {
-        switch (info.type) {
-            case 'numeric':
-                return 'column-card-type-numeric';
-            case 'categorical':
-                return 'column-card-type-categorical';
-            default:
-                return 'column-card-type-text';
-        }
-    };
 
     return (
         <div className="column-card" id={`column-${sanitizeId(name)}`}>
             <h4>
-                {name}
-                <span className={`column-card-type ${getTypeClass()}`}>{info.type}</span>
+                Description
             </h4>
             <div className="column-card-stats">{formatColumnStats(info)}</div>
 

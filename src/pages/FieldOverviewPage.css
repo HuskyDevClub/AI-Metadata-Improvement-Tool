@@ -88,36 +88,6 @@
     letter-spacing: -0.025em;
 }
 
-.field-overview-type {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: var(--radius-sm);
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-
-.field-overview-type-numeric {
-    background: #eff6ff;
-    color: #2563eb;
-}
-
-.field-overview-type-categorical {
-    background: #f5f3ff;
-    color: #7c3aed;
-}
-
-.field-overview-type-text {
-    background: #ecfdf5;
-    color: #059669;
-}
-
-.field-overview-type-empty {
-    background: var(--surface-tertiary);
-    color: var(--text-tertiary);
-}
-
 .field-overview-stats {
     background: var(--surface-secondary);
     border: 1px solid var(--border);

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { DatasetDescription } from '../components/DatasetDescription/DatasetDescription';
+import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
 import { useAppContext } from '../contexts/AppContext';
 import './DataOverviewPage.css';
 
@@ -82,19 +83,6 @@ export function DataOverviewPage() {
 
     const truncate = (text: string, max: number) =>
         text.length > max ? text.slice(0, max) + '...' : text;
-
-    const getTypeBadgeClass = (type: string) => {
-        switch (type) {
-            case 'numeric':
-                return 'field-type-numeric';
-            case 'categorical':
-                return 'field-type-categorical';
-            case 'text':
-                return 'field-type-text';
-            default:
-                return 'field-type-empty';
-        }
-    };
 
     return (
         <div className="data-overview-page">
@@ -217,9 +205,7 @@ export function DataOverviewPage() {
                                         </button>
                                     </td>
                                     <td>
-                                            <span className={`field-type-badge ${getTypeBadgeClass(info.type)}`}>
-                                                {info.type}
-                                            </span>
+                                        <DataTypeBadge type={info.type} originalType={info.originalType}/>
                                     </td>
                                     <td className="field-desc-cell">
                                         {isGenerating ? (

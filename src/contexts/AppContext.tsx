@@ -1450,9 +1450,16 @@ FORMAT RULES:
                 setSocrataDatasetId(datasetId);
 
                 // Use pre-computed stats from SODA API — no client-side analyzeColumn
-                setColumnStats(result.columnStats);
+                const enrichedColumnStats = { ...result.columnStats };
+                result.columns.forEach((c) => {
+                    const key = c.name || c.fieldName;
+                    if (enrichedColumnStats[key]) {
+                        enrichedColumnStats[key].originalType = c.dataTypeName;
+                    }
+                });
+                setColumnStats(enrichedColumnStats);
 
-                const columns = Object.keys(result.columnStats);
+                const columns = Object.keys(enrichedColumnStats);
                 const columnDescriptions: Record<string, string> = {};
                 const fieldNameSet = new Set(result.columns.map((c) => c.fieldName));
                 const nameToFieldName = new Map(
