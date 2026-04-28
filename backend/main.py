@@ -240,6 +240,7 @@ def _build_oauth_authorize_url(is_retry: bool = False) -> str:
             "response_type": "code",
             "redirect_uri": SOCRATA_OAUTH_REDIRECT_URI,
             "state": state,
+            "scope": "read_user_info read_site_content write_site_content",
         }
     )
     return f"https://data.wa.gov/oauth/authorize?{params}"
@@ -548,7 +549,11 @@ def build_socrata_auth(session: dict[str, Any]) -> dict[str, str]:
             detail="SOCRATA_APP_TOKEN is not configured on the server.",
         )
 
-    headers: dict[str, str] = {"X-App-Token": SOCRATA_APP_TOKEN}
+    headers: dict[str, str] = {
+        "X-App-Token": SOCRATA_APP_TOKEN,
+        "User-Agent": "data-wa-gov-AI-Metadata-Tool/1.0",
+        "X-App-Source": "AI-Metadata-Improvement-Tool",
+    }
 
     kind = session.get("kind")
     if kind == "oauth" and session.get("token"):
@@ -978,7 +983,28 @@ async def socrata_export(
                 update_payload["category"] = request.category
 
             if request.tags is not None:
-                update_payload["tags"] = request.tags
+                # Append the AI-Metadata-Tool tag for auditability if any metadata is changed
+                tags = list(request.tags)
+                if "AI-Metadata-Tool" not in tags:
+                    tags.append("AI-Metadata-Tool")
+                update_payload["tags"] = tags
+            elif any(
+                [
+                    request.datasetTitle,
+                    request.datasetDescription,
+                    request.category,
+                    request.rowLabel,
+                    request.columns,
+                ]
+            ):
+                # If tags weren't provided in the request but other things were,
+                # try to preserve existing tags and add our tool tag.
+                existing_tags = current_metadata.get("tags") or []
+                if (
+                    isinstance(existing_tags, list)
+                    and "AI-Metadata-Tool" not in existing_tags
+                ):
+                    update_payload["tags"] = existing_tags + ["AI-Metadata-Tool"]
 
             if request.licenseId is not None:
                 update_payload["licenseId"] = request.licenseId
