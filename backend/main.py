@@ -136,7 +136,8 @@ async def add_security_headers(
     )
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self'; "
-        "style-src 'self' 'unsafe-inline'; frame-ancestors 'self'"
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; frame-ancestors 'self'"
     )
     return response
 
