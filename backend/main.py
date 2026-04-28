@@ -69,9 +69,12 @@ LLM_MODEL = os.getenv("LLM_MODEL", "")
 # re-initiate the OAuth flow.  This is stronger than deriving from SOCRATA_SECRET_TOKEN.
 _OAUTH_STATE_SECRET = secrets.token_hex(32)
 
-# Fernet key for encrypting the OAuth session cookie. Generated fresh on every
-# server start — sessions are invalidated on restart.
-_SESSION_ENCRYPTION_KEY = Fernet.generate_key().decode()
+# Fernet key for encrypting the OAuth session cookie. Prefer a stable key from
+# the environment to keep users logged in across restarts; fall back to a
+# fresh ephemeral key if none is provided.
+_SESSION_ENCRYPTION_KEY = os.getenv("SESSION_ENCRYPTION_KEY")
+if not _SESSION_ENCRYPTION_KEY:
+    _SESSION_ENCRYPTION_KEY = Fernet.generate_key().decode()
 _fernet = Fernet(_SESSION_ENCRYPTION_KEY.encode())
 
 SESSION_COOKIE_NAME = "socrata_session"
