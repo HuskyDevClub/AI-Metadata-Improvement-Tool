@@ -117,6 +117,29 @@ ${placeholderLine}
 ${question}`;
 }
 
+function AutoResizeTextarea({ value, onChange }: {
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+}) {
+    const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        if (textAreaRef.current) {
+            textAreaRef.current.style.height = 'auto';
+            textAreaRef.current.style.height = textAreaRef.current.scrollHeight + 'px';
+        }
+    }, [value]);
+
+    return (
+        <textarea
+            ref={textAreaRef}
+            value={value}
+            onChange={onChange}
+            style={{ overflow: 'hidden' }}
+        />
+    );
+}
+
 function InfoIcon({ promptKey }: {promptKey: string}) {
     const info = PROMPT_INFO[promptKey];
     if (!info) return null;
@@ -286,7 +309,7 @@ export function PromptEditor({ templates, onChange, openaiConfig }: PromptEditor
                                     )}
                                 </div>
                             </div>
-                            <textarea
+                            <AutoResizeTextarea
                                 value={templates[key]}
                                 onChange={(e) => onChange({ ...templates, [key]: e.target.value })}
                             />

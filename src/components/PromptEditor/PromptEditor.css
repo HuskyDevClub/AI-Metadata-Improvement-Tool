@@ -31,9 +31,9 @@
 }
 
 .prompt-editor-content {
-    max-height: 2500px;
+    max-height: 8000px;
     overflow: hidden;
-    transition: max-height 0.3s ease-out;
+    transition: max-height 0.4s ease-out;
 }
 
 .prompt-editor-content.content-collapsed {
@@ -390,14 +390,14 @@
 
 .prompt-editor-box textarea {
     width: 100%;
-    min-height: 240px;
+    min-height: 120px;
     padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     font-family: 'SF Mono', 'Fira Code', monospace;
     font-size: 13px;
     color: var(--text);
-    resize: vertical;
+    resize: none;
 }
 
 .prompt-editor-box textarea:focus {
