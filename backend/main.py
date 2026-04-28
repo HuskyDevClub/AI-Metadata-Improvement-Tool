@@ -42,6 +42,7 @@ from .models import (
     SocrataOAuthLoginResponse,
     SocrataOAuthUserInfo,
     SocrataSessionResponse,
+    SocrataTagsResponse,
 )
 
 # Env load order: .env.databricks fills baseline values for the deployed app,
@@ -464,6 +465,11 @@ _CATEGORIES_TTL_SECONDS = 24 * 60 * 60
 
 _licenses_cache: dict[str, Any] = {"value": None, "fetched_at": 0.0}
 _LICENSES_TTL_SECONDS = 24 * 60 * 60
+
+# Tag list cache, keyed by category (empty string = no category filter).
+_tags_cache: dict[str, dict[str, Any]] = {}
+_TAGS_TTL_SECONDS = 24 * 60 * 60
+_TAGS_MAX_RETURN = 200
 
 
 def build_socrata_auth(session: dict[str, str] | None) -> dict[str, str]:
@@ -1135,6 +1141,67 @@ async def socrata_categories() -> SocrataCategoriesResponse:
     _categories_cache["value"] = categories
     _categories_cache["fetched_at"] = now
     return SocrataCategoriesResponse(categories=categories)
+
+
+async def _fetch_socrata_tags(category: str = "") -> list[str]:
+    """Fetch the live tag list from Socrata's catalog, optionally scoped to a category.
+
+    Returns tags sorted by descending usage count, capped at _TAGS_MAX_RETURN.
+    """
+    url = "https://api.us.socrata.com/api/catalog/v1/domain_tags"
+    params: dict[str, str] = {"domains": "data.wa.gov"}
+    if category:
+        params["categories"] = category
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(url, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+
+    results = data.get("results") or []
+    pairs: list[tuple[str, int]] = []
+    seen: set[str] = set()
+    for entry in results:
+        raw = entry.get("domain_tag") or entry.get("tag")
+        if not raw:
+            continue
+        name = str(raw).strip().lower()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        try:
+            count = int(entry.get("count") or 0)
+        except (TypeError, ValueError):
+            count = 0
+        pairs.append((name, count))
+    pairs.sort(key=lambda p: (-p[1], p[0]))
+    return [name for name, _ in pairs[:_TAGS_MAX_RETURN]]
+
+
+@app.get("/api/socrata/tags", response_model=SocrataTagsResponse)
+async def socrata_tags(category: str = "") -> SocrataTagsResponse:
+    """Return the live list of data.wa.gov tags, optionally scoped to a category.
+
+    Cached for 24 hours per category.
+    """
+    key = category.strip()
+    now = time.time()
+    entry = _tags_cache.get(key)
+    if entry and (now - entry["fetched_at"]) < _TAGS_TTL_SECONDS:
+        return SocrataTagsResponse(tags=entry["value"])
+
+    try:
+        tags = await _fetch_socrata_tags(key)
+    except Exception as e:
+        logger.warning("Failed to fetch Socrata tags (category=%r): %s", key, e)
+        if entry is not None:
+            return SocrataTagsResponse(tags=entry["value"])
+        raise HTTPException(
+            status_code=503,
+            detail="Could not reach Socrata catalog API to load tags.",
+        )
+
+    _tags_cache[key] = {"value": tags, "fetched_at": now}
+    return SocrataTagsResponse(tags=tags)
 
 
 # OpenAI streaming chat endpoint

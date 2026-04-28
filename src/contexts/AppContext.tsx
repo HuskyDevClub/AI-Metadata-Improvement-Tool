@@ -7,6 +7,7 @@ import {
     fetchSocrataLicenses,
     fetchSocrataOAuthLoginUrl,
     fetchSocrataSession,
+    fetchSocrataTags,
     logoutSocrata,
     parseFile,
     pushSocrataMetadata,
@@ -723,9 +724,14 @@ export function AppProvider({ children }: {children: ReactNode}) {
         data: CsvRow[],
         name: string,
         stats: Record<string, ColumnInfo>,
+        tagList: string[],
         rowCountOverride?: number,
     ): string => {
-        return buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.tags, '', undefined, rowCountOverride);
+        const base = buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.tags, '', undefined, rowCountOverride);
+        const rendered = tagList.length > 0
+            ? tagList.join(', ')
+            : '(no existing tags available — generate tags from the dataset alone)';
+        return base.replace('{tagList}', rendered);
     }, [promptTemplates.tags, buildDatasetPromptFromTemplate]);
 
     const generateCategory = useCallback(
@@ -762,7 +768,14 @@ export function AppProvider({ children }: {children: ReactNode}) {
             stats: Record<string, ColumnInfo>,
             rowCountOverride?: number,
         ): Promise<{tags: string[]}> => {
-            const prompt = buildTagsPrompt(data, name, stats, rowCountOverride);
+            const currentCategory = datasetStateRef.current.generatedResults.category || '';
+            let tagList: string[] = [];
+            try {
+                tagList = await fetchSocrataTags(currentCategory);
+            } catch (err) {
+                console.warn('Failed to load Socrata tag list — falling back to free-form generation:', err);
+            }
+            const prompt = buildTagsPrompt(data, name, stats, tagList, rowCountOverride);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;

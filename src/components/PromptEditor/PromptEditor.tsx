@@ -40,8 +40,8 @@ const PROMPT_INFO: Record<string, {description: string; placeholders?: string}> 
         placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}, {categoryList}',
     },
     tags: {
-        description: 'Template for generating keyword tags. No vocabulary constraint — the AI produces free-form tags based on the dataset content.',
-        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+        description: 'Template for generating keyword tags. The AI receives a list of tags already in use on data.wa.gov (scoped to the chosen category when available) and is asked to prefer those, only inventing new tags when no listed tag fits.',
+        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}, {tagList}',
     },
     periodOfTime: {
         description: 'Template for inferring the real-world time span the data covers (not the update cadence).',

@@ -117,6 +117,14 @@ Columns (name — type):
 Sample Data (first {sampleCount} rows):
 {sampleRows}
 
+Existing tags already used on data.wa.gov (sorted by usage, most popular first):
+{tagList}
+
+Selection rules:
+- STRONGLY PREFER tags from the list above so this dataset is discoverable alongside related datasets that already use those tags.
+- Only invent a NEW tag (one not in the list) if no listed tag accurately captures a key subject of this dataset. When you do, follow the same formatting rules as listed tags.
+- Do not pick a listed tag just because it sounds related — it must actually describe this dataset.
+
 Quality rules:
 - Return 4–8 tags total.
 - Tags must describe the subject matter, scope, and distinguishing features of the data. Prefer specific terms (e.g., "ferry ridership") over generic ones (e.g., "transportation").

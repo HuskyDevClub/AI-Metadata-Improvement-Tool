@@ -128,6 +128,14 @@ export async function fetchSocrataCategories(): Promise<string[]> {
     return Array.isArray(result.categories) ? result.categories : [];
 }
 
+export async function fetchSocrataTags(category?: string): Promise<string[]> {
+    const qs = category ? `?category=${encodeURIComponent(category)}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/socrata/tags${qs}`);
+    await assertResponseOk(response, 'Failed to load tags');
+    const result = await response.json();
+    return Array.isArray(result.tags) ? result.tags : [];
+}
+
 export async function fetchSocrataLicenses(): Promise<SocrataLicense[]> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/licenses`);
     await assertResponseOk(response, 'Failed to load licenses');

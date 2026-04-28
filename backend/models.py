@@ -132,6 +132,12 @@ class SocrataCategoriesResponse(BaseModel):
     categories: list[str]
 
 
+class SocrataTagsResponse(BaseModel):
+    """Response with the live list of tags from data.wa.gov, sorted by usage."""
+
+    tags: list[str]
+
+
 class SocrataLicenseInfo(BaseModel):
     """A single license option advertised by data.wa.gov."""
 
