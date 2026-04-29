@@ -27,48 +27,97 @@ metadata automatically.
 
 ## Features
 
-- **Socrata Import**: Import datasets directly from data.wa.gov by dataset ID, with automatic metadata and statistics
-  retrieval via the Socrata Open Data API
-- **CSV Upload**: Upload local CSV files or drag-and-drop for quick analysis
-- **Automatic Column Analysis**: Detects numeric, categorical, and text columns with statistical summaries
-- **AI-Powered Descriptions**: Generates dataset descriptions, column descriptions, row labels, and notes using any
-  OpenAI-compatible API
-- **Multi-Provider Support**: Works with Databricks AI Gateway, Azure OpenAI, OpenAI, Ollama, LM Studio, and
-  HuggingFace — configure any OpenAI-compatible endpoint
-- **Streaming Responses**: Real-time streaming of AI-generated content with token usage tracking and cost estimation
-- **Human-in-the-Loop Workflow**: Accept, reject, or regenerate suggestions with custom instructions (e.g., "make this
-  more concise")
-- **Customizable Prompts**: Edit system, dataset, column, row label, and notes prompt templates to align with metadata
-  guidelines
-- **Regeneration Options**: Regenerate with different styles (concise, detailed, or custom instructions)
-- **Socrata Export**: Push updated metadata (descriptions, row labels, notes, column descriptions) back to data.wa.gov
-  with OAuth or API Key authentication
-- **Sign in with data.wa.gov**: OAuth integration for seamless authentication with the Socrata platform
-- **Secure Backend**: API keys handled server-side for enhanced security
+- **Flexible Data Import**: Connect directly to Socrata (data.wa.gov) via dataset ID or upload local CSV files.
+- **Smart Column Analysis**: Automatic detection of data types (numeric, categorical, text) with statistical summaries.
+- **AI-Powered Metadata**: Real-time generation of titles, descriptions, row labels, and temporal metadata.
+- **Universal LLM Support**: Compatible with any OpenAI-compatible API (Azure, Databricks, Ollama, HuggingFace, etc.).
+- **Human-in-the-Loop Workflow**: Review, edit, and iterate on AI suggestions with custom instructions and streaming responses.
+- **Direct Socrata Export**: Push metadata updates back to the portal via OAuth or API Key authentication.
+- **Full Customization**: Modify AI prompts, system personas, and regeneration styles to match specific guidelines.
+- **Cost Efficiency**: Built-in token usage tracking and cost estimation for sustainable public-sector use.
 
-## Getting Started
+## Local Development
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for full installation, environment setup, OAuth configuration, and deployment instructions.
+### Prerequisites
 
-**Quick start:**
+- **Node.js 24+** (for frontend build)
+- **Python 3.12+** (for backend)
+- **An LLM provider** — any OpenAI-compatible API (e.g., [Ollama](https://ollama.com/), [LM Studio](https://lmstudio.ai/), [HuggingFace](https://huggingface.co/), or OpenAI)
+- **A Socrata App Token** — required for fetching metadata from [data.wa.gov](https://data.wa.gov). See [Developer Settings](https://data.wa.gov/profile/edit/developer_settings).
+
+### Installation
+
+1. **Install frontend dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Install backend dependencies:**
+   ```bash
+   cd backend
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   cd ..
+   ```
+
+### Environment Setup
+
+1. **Copy the example environment files:**
+   ```bash
+   cp .env.example .env
+   cp backend/.env.example backend/.env
+   ```
+
+2. **Configure the backend `.env`** (in the `backend/` directory):
+   - Set `SOCRATA_APP_TOKEN` (get one from [data.wa.gov](https://data.wa.gov/profile/edit/developer_settings))
+   - (Optional) Set `LLM_ENDPOINT`, `LLM_API_KEY`, and `LLM_MODEL` to pre-configure the AI
+
+### Running the App
+
+You can start both the frontend and backend with a single command:
 
 ```bash
-# Install dependencies
-npm install
-cd backend && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && cd ..
-
-# Copy environment files
-cp .env.example .env
-cp backend/.env.example backend/.env
-
-# Start the app (activate the venv first)
-source backend/venv/bin/activate
-python -m backend.main   # Terminal 1: backend
-npm run dev              # Terminal 2: frontend
+npm run dev:all
 ```
 
-- Frontend: [http://localhost:5173](http://localhost:5173)
-- Backend: [http://localhost:8000](http://localhost:8000)
+Alternatively, you can start them in separate terminals:
+
+**Terminal 1: Backend**
+
+```bash
+# Activate the virtual environment if you haven't already
+source backend/venv/bin/activate
+python -m backend.main
+```
+
+**Terminal 2: Frontend**
+
+```bash
+npm run dev
+```
+
+- **Frontend:** [http://localhost:5173](http://localhost:5173)
+- **Backend:** [http://localhost:8000](http://localhost:8000)
+
+### Socrata OAuth Setup (Sign in with data.wa.gov)
+
+OAuth login allows users to authenticate with their own portal credentials. Socrata requires **HTTPS** for OAuth callbacks, so you must use a tunnel for local development.
+
+1. **Expose your local backend:** Use [ngrok](https://ngrok.com/) or similar to create an HTTPS tunnel to port 8000:
+   ```bash
+   ngrok http 8000
+   ```
+2. **Register an App Token:** On [data.wa.gov](https://data.wa.gov/profile/edit/developer_settings), create a new app token and set the **Callback Prefix** to your ngrok URL:
+   `https://your-tunnel-id.ngrok-free.app/api/auth/socrata/`
+3. **Update `backend/.env`:**
+   ```env
+   SOCRATA_SECRET_TOKEN=your-secret-token
+   SOCRATA_OAUTH_REDIRECT_URI=https://your-tunnel-id.ngrok-free.app/api/auth/socrata/callback
+   FRONTEND_URL=http://localhost:5173
+   ```
+
+> **Note:** The ngrok URL may change each time you restart the tunnel (free tier). You will need to update the Callback Prefix and `SOCRATA_OAUTH_REDIRECT_URI` accordingly.
 
 ## Usage
 
@@ -77,68 +126,12 @@ npm run dev              # Terminal 2: frontend
 2. **Import Data**:
    - Enter a Socrata dataset ID (e.g., `6fex-3r7d`) to import from data.wa.gov, or
    - Upload a local CSV file
-3. **Review Results**: View the generated dataset description, row label, notes, and individual column descriptions with
+3. **Review Results**: View the generated dataset title, description, row label, category, tags, and individual column descriptions with
    real-time streaming
 4. **Iterate**:
    - Edit descriptions inline
    - Regenerate with "More Concise", "More Detailed", or custom instructions
 5. **Export**: Push updated metadata back to data.wa.gov (requires OAuth or API Key authentication)
-
-## Project Structure
-
-```
-├── src/                              # Frontend (React + Vite)
-│   ├── components/
-│   │   ├── ColumnCard/              # Column cards with stats and descriptions
-│   │   ├── DatasetDescription/      # Dataset overview with edit/regenerate
-│   │   ├── EditableDescription/     # Inline-editable text fields
-│   │   ├── FloatingActions/         # Floating action buttons
-│   │   ├── Layout/                  # App shell layout (header, nav, footer)
-│   │   ├── OpenAIConfig/            # API configuration (endpoint, key, model)
-│   │   ├── PromptEditor/            # Customizable prompt templates
-│   │   └── StatusMessage/           # Status and error alerts
-│   ├── contexts/
-│   │   └── AppContext.tsx           # Global application context
-│   ├── hooks/
-│   │   └── useOpenAI.ts             # OpenAI API integration with streaming
-│   ├── pages/
-│   │   ├── ImportPage.tsx           # Socrata dataset ID import / CSV upload
-│   │   ├── DataOverviewPage.tsx     # Dataset-level overview and description
-│   │   ├── FieldOverviewPage.tsx    # Column-level details and editing
-│   │   └── SettingsPage.tsx         # Prompt and API settings
-│   ├── utils/
-│   │   ├── api.ts                   # Backend API client
-│   │   ├── columnAnalyzer.ts        # Column type detection & statistics
-│   │   ├── config.ts               # App configuration constants
-│   │   ├── csvParser.ts             # CSV parsing (PapaParse wrapper)
-│   │   ├── pricing.ts              # Token cost estimation
-│   │   ├── prompts.ts              # Prompt template defaults
-│   │   └── stateHelpers.ts         # State management helpers
-│   ├── types/
-│   │   └── index.ts                 # TypeScript type definitions
-│   ├── App.tsx                      # Main application component
-│   └── main.tsx                     # Entry point
-│
-├── backend/                          # Backend (Python/FastAPI)
-│   ├── __init__.py                  # Package init (required for python -m backend.main)
-│   ├── main.py                      # FastAPI application & endpoints
-│   ├── models.py                    # Pydantic data models
-│   ├── requirements.txt             # Python dependencies
-│   └── static/                      # Built frontend (generated by build:databricks)
-│
-└── app.yaml                          # Databricks Apps configuration
-```
-
-## Technology Stack
-
-| Category      | Technology                                                        |
-|---------------|-------------------------------------------------------------------|
-| Frontend      | React 19, TypeScript 5.9, Vite 7                                  |
-| Backend       | Python, FastAPI, Uvicorn                                          |
-| Styling       | CSS                                                               |
-| CSV Parsing   | PapaParse                                                         |
-| AI/LLM        | OpenAI SDK — Ollama, LM Studio, HuggingFace, Azure OpenAI, OpenAI |
-| Data Platform | Tyler Technologies Data & Insights (Socrata Open Data API)        |
 
 ## Deployment
 
@@ -152,45 +145,26 @@ a compatible `/v1/chat/completions` endpoint will work out of the box.
 
 ### Supported Providers
 
-| Provider | Type | Setup |
-|----------|------|-------|
-| [Databricks](https://docs.databricks.com/aws/en/ai-gateway/) | Cloud | Set base URL to your AI Gateway endpoint (e.g., `https://<workspace>.cloud.databricks.com/mlflow/v1`) |
-| [OpenAI](https://platform.openai.com/) | Cloud | Set base URL to `https://api.openai.com/v1` |
-| [Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service) | Cloud | Set base URL to your Azure endpoint |
-| [Ollama](https://ollama.com/) | Local | Set base URL to `http://localhost:11434/v1` |
-| [LM Studio](https://lmstudio.ai/) | Local | Set base URL to `http://localhost:1234/v1` |
-| [HuggingFace](https://huggingface.co/) | Cloud | Set base URL to `https://router.huggingface.co/v1` |
-| Any OpenAI-compatible server | Either | Set base URL to the server's `/v1` endpoint |
+| Provider | Type |
+|----------|------|
+| [Databricks](https://docs.databricks.com/aws/en/ai-gateway/) | Cloud |
+| [OpenAI](https://platform.openai.com/) | Cloud |
+| [Microsoft Azure Foundry](https://ai.azure.com/) | Cloud |
+| [Ollama](https://ollama.com/) | Local / Cloud |
+| [LM Studio](https://lmstudio.ai/) | Local |
+| [HuggingFace](https://huggingface.co/) | Cloud |
+| Any OpenAI-compatible server | Either |
 
 ### Recommended Starter Models
 
-| Model | Provider | Notes |
-|-------|----------|-------|
-| `gpt-5-mini` | OpenAI / Azure | Fast and cost-effective (model names may change — check your provider's docs) |
-| `gpt-5-nano` | OpenAI / Azure | Lightest OpenAI option (model names may change — check your provider's docs) |
-| `Qwen3-4B-Instruct-2507` | Ollama / HuggingFace | Small, runs well locally |
-| `Qwen/Qwen3-8B` | Ollama / HuggingFace | Strong open-weight model |
-| `mistralai/Ministral-3-8B-Instruct-2512` | Ollama / HuggingFace | Compact Mistral model |
-| `mistralai/Ministral-3-14B-Instruct-2512` | Ollama / HuggingFace | Higher capacity Mistral model |
-
-## Integration with Tyler Technologies Data & Insights
-
-This tool is designed to work with government data portals powered by **Tyler Technologies Data & Insights** platform
-(using the Socrata Open Data API), including:
-
-- Washington State ([data.wa.gov](https://data.wa.gov))
-- And dozens of other U.S. cities, counties, and states
-
-To import data from these portals:
-
-1. Configure `SOCRATA_APP_TOKEN` in the backend `.env` file
-2. Enter a dataset ID on the Import page (e.g., `6fex-3r7d` from a data.wa.gov URL)
-3. Optionally authenticate with OAuth or API Key to access private datasets and push metadata updates
-
-## Project Sponsor
-
-**Washington Technology Solutions**
-State of Washington Open Data Program
+| Model | Notes |
+|-------|-------|
+| `gpt-5-mini` | Fast and cost-effective |
+| `gpt-5-nano` | Lightest OpenAI option |
+| `Qwen3-4B-Instruct-2507` | Small, runs well locally |
+| `Qwen/Qwen3-8B` | Strong open-weight model |
+| `mistralai/Ministral-3-8B-Instruct-2512` | Compact Mistral model |
+| `mistralai/Ministral-3-14B-Instruct-2512` | Higher capacity Mistral model |
 
 ## Team
 
@@ -201,13 +175,13 @@ State of Washington Open Data Program
 | Felix Zhao | DS & Backend Development |
 | Julia Zhu  | BI & Data Visualization  |
 
-## License
-
-This project is licensed under the [Apache License 2.0](LICENSE). It is open-access and free to use, designed for
-replication by other government data portals using Tyler Technologies Data & Insights.
-
 ## Acknowledgments
 
 - Washington State Open Data Program
 - Cathi Greenwood, Open Data Program Manager
 - Kathleen Sullivan, Open Data Literacy Consultant
+
+## License
+
+This project is licensed under the [Apache License 2.0](LICENSE). It is open-access and free to use, designed for
+replication by other government data portals using Tyler Technologies Data & Insights.
