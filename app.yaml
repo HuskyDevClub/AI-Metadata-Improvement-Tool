@@ -14,8 +14,6 @@ env:
     valueFrom: socrata-app-token
   - name: SOCRATA_SECRET_TOKEN
     valueFrom: socrata-secret-token
-  - name: SOCRATA_OAUTH_REDIRECT_URI
-    valueFrom: socrata-oauth-redirect-uri
   - name: LLM_ENDPOINT
     valueFrom: llm-endpoint
   - name: LLM_API_KEY
@@ -24,5 +22,3 @@ env:
     valueFrom: llm-model
   - name: FRONTEND_URL
     valueFrom: frontend-url
-  - name: VITE_API_BASE_URL
-    valueFrom: vite-api-base-url
