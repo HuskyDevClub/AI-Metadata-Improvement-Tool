@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# Deploy to Databricks Apps with pre-built frontend.
-# Only syncs backend/, app.yaml, and .env.databricks — no frontend source.
+# Deploy to Databricks Apps using a Git branch for build content.
 #
-# Reads DATABRICKS_APP_NAME and DATABRICKS_WORKSPACE_PATH from .env.databricks.
-# Both can be overridden via command-line arguments:
+# Workflow:
+# 1. Build the frontend locally (in CI).
+# 2. Push backend/, app.yaml, and backend/static/ to a 'release-databricks' branch.
+# 3. Trigger Databricks to deploy from that branch.
 #
-#   ./deploy.sh                              # uses values from .env.databricks
-#   ./deploy.sh my-app /Workspace/Users/...  # override both
+# Environment variables are passed via the Databricks CLI --json flag.
 
 set -euo pipefail
 
-# Read defaults from .env.databricks (if present), allow CLI overrides
+DEPLOY_BRANCH="release-databricks"
+
+# Read defaults from .env.databricks (if present)
 if [ -f .env.databricks ]; then
   APP_NAME_FROM_ENV=$(grep -E '^DATABRICKS_APP_NAME=' .env.databricks | cut -d= -f2- | tr -d '"' || true)
   WORKSPACE_PATH_FROM_ENV=$(grep -E '^DATABRICKS_WORKSPACE_PATH=' .env.databricks | cut -d= -f2- | tr -d '"' || true)
@@ -22,58 +24,76 @@ if [ -z "$APP_NAME" ] || [ -z "$WORKSPACE_PATH" ]; then
   echo "ERROR: Missing required configuration."
   echo "Set DATABRICKS_APP_NAME and DATABRICKS_WORKSPACE_PATH in .env.databricks,"
   echo "or pass as arguments:"
-  echo "  ./deploy.sh <app-name> <workspace-path>"
+  echo "  ./deploy-git.sh <app-name> <workspace-path>"
   exit 1
 fi
 
-# Stage only the files Databricks needs (no package.json / src / tsconfig)
-STAGING=$(mktemp -d)
-trap 'rm -rf "$STAGING"' EXIT
-
-cp app.yaml "$STAGING/"
-
+# Substitute __FRONTEND_URL__ placeholders before building
 if [ -f .env.databricks ]; then
-  # Read FRONTEND_URL as the single source of truth for the base URL
   FRONTEND_URL=$(grep -E '^FRONTEND_URL=' .env.databricks | cut -d= -f2- | tr -d '"' || true)
   if [ -n "$FRONTEND_URL" ]; then
-    # Substitute __FRONTEND_URL__ placeholders with the actual FRONTEND_URL value.
-    # Write to a temp file, then atomically replace the local file so subsequent
-    # runs (which read the same file) still see the placeholder pattern.
+    echo "==> Substituting placeholders with FRONTEND_URL=$FRONTEND_URL"
     TMP_ENV=$(mktemp)
     sed -e "s|^VITE_API_BASE_URL=.*|VITE_API_BASE_URL=${FRONTEND_URL}|" \
         -e "s|^SOCRATA_OAUTH_REDIRECT_URI=.*|SOCRATA_OAUTH_REDIRECT_URI=${FRONTEND_URL}/api/auth/socrata/callback|" \
         .env.databricks > "$TMP_ENV"
-    # Keep the substituted copy for the build and staging; restore placeholders in
-    # the local file afterwards so subsequent runs still see the placeholder pattern.
-    cp "$TMP_ENV" .env.databricks
-    # The placeholder-restored version goes back to the local file at the end.
-    RESTORE_ENV=$(mktemp)
-    sed -e 's|^VITE_API_BASE_URL=.*|VITE_API_BASE_URL=__FRONTEND_URL__|' \
-        -e 's|^SOCRATA_OAUTH_REDIRECT_URI=.*|SOCRATA_OAUTH_REDIRECT_URI=__FRONTEND_URL__/api/auth/socrata/callback|' \
-        "$TMP_ENV" > "$RESTORE_ENV"
-    trap 'rm -rf "$STAGING"; [ -f "$RESTORE_ENV" ] && mv "$RESTORE_ENV" .env.databricks' EXIT
-    rm -f "$TMP_ENV"
+    mv "$TMP_ENV" .env.databricks
   fi
-else
-  echo "WARNING: .env.databricks not found — deploy will use defaults"
 fi
 
 echo "==> Building frontend..."
 npm run build:databricks
 
-# Copy backend AFTER the build so the freshly built backend/static/ is included.
+# Setup staging for the deployment branch
+STAGING=$(mktemp -d)
+trap 'rm -rf "$STAGING"' EXIT
+
+echo "==> Preparing deployment artifacts in $STAGING..."
+cp app.yaml "$STAGING/"
 cp -r backend "$STAGING/"
 
-# Stage the (possibly substituted) env file alongside backend/.
-if [ -f .env.databricks ]; then
-  cp .env.databricks "$STAGING/.env.databricks"
+# Build the authenticated remote URL from GitHub Actions env vars.
+# GITHUB_TOKEN and GITHUB_REPOSITORY ("owner/repo") are auto-provided by Actions.
+if [ -z "${GITHUB_TOKEN:-}" ] || [ -z "${GITHUB_REPOSITORY:-}" ]; then
+  echo "ERROR: GITHUB_TOKEN and GITHUB_REPOSITORY must be set (provided by GitHub Actions)."
+  exit 1
+fi
+REMOTE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+# Initialize staging as a git repo and link to remote
+cd "$STAGING"
+git init -b "$DEPLOY_BRANCH"
+git config user.name "github-actions[bot]"
+git config user.email "github-actions[bot]@users.noreply.github.com"
+git remote add origin "$REMOTE_URL"
+
+# Fetch existing history so we can build on top of it
+echo "==> Fetching existing history from '$DEPLOY_BRANCH'..."
+if git fetch origin "$DEPLOY_BRANCH" --depth 1 2>/dev/null; then
+  git reset --soft origin/"$DEPLOY_BRANCH"
+  echo "    Found existing history, building on top of it."
+else
+  echo "    No existing history found, starting a new one."
 fi
 
-echo "==> Syncing to $WORKSPACE_PATH ..."
-databricks sync "$STAGING" "$WORKSPACE_PATH" --full
+# Add artifacts (git add -A ensures deletions of old files are tracked)
+git add -A
+if git diff --cached --quiet; then
+  echo "==> No changes in build artifacts; skipping commit and push."
+else
+  git commit -m "Deploy to Databricks: $(date -u)"
+  echo "==> Pushing to branch '$DEPLOY_BRANCH'..."
+  git push -u origin "$DEPLOY_BRANCH"
+fi
 
-# `databricks apps deploy` requires the app's compute to be ACTIVE; start it if not.
-echo "==> Checking app '$APP_NAME' compute status..."
+cd - > /dev/null
+
+# Update the Databricks Git Folder (Repo)
+echo "==> Updating Databricks Git Folder at $WORKSPACE_PATH..."
+databricks repos update "$WORKSPACE_PATH" --branch "$DEPLOY_BRANCH"
+
+# Ensure the app is RUNNING before deploy (deploy fails on stopped apps).
+# `apps start` is idempotent — no-op if already running.
 APP_STATE=$(databricks apps get "$APP_NAME" --output json | jq -r '.compute_status.state // "UNKNOWN"')
 echo "    Current state: $APP_STATE"
 if [ "$APP_STATE" != "ACTIVE" ]; then
@@ -81,7 +101,9 @@ if [ "$APP_STATE" != "ACTIVE" ]; then
   databricks apps start "$APP_NAME"
 fi
 
-echo "==> Deploying app '$APP_NAME'..."
+# Trigger Databricks Deploy. Env vars are loaded by the backend at runtime
+# from the .env.databricks file included in the source tree.
+echo "==> Triggering Databricks deploy for app '$APP_NAME' from $WORKSPACE_PATH..."
 databricks apps deploy "$APP_NAME" \
   --source-code-path "$WORKSPACE_PATH"
 

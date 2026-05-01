@@ -10,7 +10,7 @@ On every push to `main`, the workflow:
 2. Runs `npm install`.
 3. Writes `.env.databricks` from the `DATABRICKS_ENV_FILE` secret.
 4. Builds the frontend (`npm run build:databricks`).
-5. Pushes the artifacts (`backend/`, `app.yaml`, and the built `backend/static/`) to a **`release-databricks`** branch in your GitHub repo.
+5. Pushes the artifacts (`backend/`, `app.yaml`, and the built `backend/static/`) to a **`release-databricks`** branch in your GitHub repo via **`deploy.sh`**.
 6. Updates the **Git Folder** in your Databricks workspace to the latest commit on that branch.
 7. Deploys the Databricks App using the source code from that workspace path, passing environment variables via the Databricks CLI.
 
