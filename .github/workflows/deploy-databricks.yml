@@ -8,6 +8,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     concurrency:
       group: databricks-deploy
       cancel-in-progress: false
@@ -31,8 +33,42 @@ jobs:
       - name: Setup Databricks CLI
         uses: databricks/setup-cli@main
 
+      - name: Sync secrets to Databricks
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_ENV_FILE: ${{ secrets.DATABRICKS_ENV_FILE }}
+        run: |
+          # Create the scope on first run; ignore "already exists" on subsequent runs.
+          databricks secrets create-scope open-data-tool 2>/dev/null || true
+          while IFS='=' read -r KEY VAL; do
+            [[ "$KEY" =~ ^#.*$ || -z "$KEY" ]] && continue
+            VAL="${VAL%\"}"; VAL="${VAL#\"}"
+            echo "  syncing $KEY"
+            databricks secrets put-secret open-data-tool "$KEY" --string-value "$VAL"
+          done <<< "$DATABRICKS_ENV_FILE"
+
+      - name: Register secret resources on the app
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          APP_NAME=$(grep -E '^DATABRICKS_APP_NAME=' .env.databricks | cut -d= -f2- | tr -d '"')
+          RESOURCES=$(jq -nc '[
+            {name:"socrata-app-token",          secret:{scope:"open-data-tool", key:"SOCRATA_APP_TOKEN",          permission:"READ"}},
+            {name:"socrata-secret-token",        secret:{scope:"open-data-tool", key:"SOCRATA_SECRET_TOKEN",        permission:"READ"}},
+            {name:"socrata-oauth-redirect-uri",  secret:{scope:"open-data-tool", key:"SOCRATA_OAUTH_REDIRECT_URI",  permission:"READ"}},
+            {name:"llm-endpoint",                secret:{scope:"open-data-tool", key:"LLM_ENDPOINT",                permission:"READ"}},
+            {name:"llm-api-key",                 secret:{scope:"open-data-tool", key:"LLM_API_KEY",                 permission:"READ"}},
+            {name:"llm-model",                   secret:{scope:"open-data-tool", key:"LLM_MODEL",                   permission:"READ"}},
+            {name:"frontend-url",                secret:{scope:"open-data-tool", key:"FRONTEND_URL",                permission:"READ"}},
+            {name:"vite-api-base-url",           secret:{scope:"open-data-tool", key:"VITE_API_BASE_URL",           permission:"READ"}}
+          ]')
+          databricks apps update "$APP_NAME" --json "{\"resources\": $RESOURCES}"
+
       - name: Build and deploy
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: ./deploy.sh
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./deploy-git.sh

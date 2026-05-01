@@ -1,5 +1,6 @@
 # Databricks Apps Configuration
-# See: https://docs.databricks.com/en/dev-tools/databricks-apps/index.html
+# Secret-backed env vars are wired via app-level resources (set in CI by
+# `databricks apps update --json`), referenced here by `valueFrom: <resource-name>`.
 
 command:
   - "sh"
@@ -8,5 +9,20 @@ command:
     pip install -r backend/requirements.txt && \
     uvicorn backend.main:app --host 0.0.0.0 --port 8000
 
-# Environment variables are loaded from .env.databricks by the backend at runtime.
-# No env section needed here — .env.databricks is synced with the source code.
+env:
+  - name: SOCRATA_APP_TOKEN
+    valueFrom: socrata-app-token
+  - name: SOCRATA_SECRET_TOKEN
+    valueFrom: socrata-secret-token
+  - name: SOCRATA_OAUTH_REDIRECT_URI
+    valueFrom: socrata-oauth-redirect-uri
+  - name: LLM_ENDPOINT
+    valueFrom: llm-endpoint
+  - name: LLM_API_KEY
+    valueFrom: llm-api-key
+  - name: LLM_MODEL
+    valueFrom: llm-model
+  - name: FRONTEND_URL
+    valueFrom: frontend-url
+  - name: VITE_API_BASE_URL
+    valueFrom: vite-api-base-url

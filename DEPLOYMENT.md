@@ -1,96 +1,69 @@
-# Deployment Guide — Databricks Apps via GitHub Actions
+# Deployment Guide — Databricks Apps via Git-Linked Workspace
 
-This guide walks you through setting up **automatic deployment to your own Databricks workspace** whenever you push to `main`. The included GitHub Actions workflow (`.github/workflows/deploy-databricks.yml`) handles the build and deploy — you just need to fork the repo, configure the required secrets, and push.
+This guide walks you through setting up **automatic deployment to your own Databricks workspace** whenever you push to `main`. This workflow uses a dedicated `release-databricks` branch to store build artifacts, which is then pulled into a **Databricks Git Folder (Repo)** and deployed to your App.
 
 ## How It Works
 
 On every push to `main`, the workflow:
 
-1. Checks out the code and installs Node.js 24
-2. Runs `npm install`
-3. Writes `.env.databricks` from the `DATABRICKS_ENV_FILE` secret
-4. Installs the Databricks CLI
-5. Runs `./deploy.sh`, which builds the frontend, stages the required files (backend code, `app.yaml`, and `.env.databricks`), syncs them to your Databricks workspace, starts the app's compute if it's stopped, and deploys the app
-
-A `concurrency` group prevents two deploys from racing.
+1. Checks out the code and installs Node.js 24.
+2. Runs `npm install`.
+3. Writes `.env.databricks` from the `DATABRICKS_ENV_FILE` secret.
+4. Builds the frontend (`npm run build:databricks`).
+5. Pushes the artifacts (`backend/`, `app.yaml`, and the built `backend/static/`) to a **`release-databricks`** branch in your GitHub repo.
+6. Updates the **Git Folder** in your Databricks workspace to the latest commit on that branch.
+7. Deploys the Databricks App using the source code from that workspace path, passing environment variables via the Databricks CLI.
 
 ## Setup
 
 ### 1. Fork the repo
 
-Fork this repository into your own GitHub account or organization. All steps below happen in your fork.
+Fork this repository into your own GitHub account or organization.
 
-### 2. Create the Databricks app (first time only)
+### 2. Create the Databricks Git Folder (Repo)
 
-You can do this either through the Databricks web UI or the CLI.
+1. Log into your Databricks workspace.
+2. In the left sidebar, go to **Workspace**.
+3. Right-click your user folder (e.g., `/Workspace/Users/you@example.com`) and select **Create → Git folder**.
+4. Enter the URL of your forked repository.
+5. Set the **Branch** to `release-databricks`. (Note: If the branch doesn't exist yet, you may need to run the GitHub Action once to create it, or create it manually).
+6. Copy the path to this folder (e.g., `/Workspace/Users/you@example.com/ai-metadata-improvement-tool`). This is your `DATABRICKS_WORKSPACE_PATH`.
 
-**Option A — Web UI (easiest):**
+### 3. Create the Databricks App
 
-1. Log into your Databricks workspace
-2. In the left sidebar, go to **Compute → Apps** (or **Apps** directly, depending on your workspace)
-3. Click **Create app**, choose **Custom app**, and give it a name (e.g. `open-data-tool`)
-4. Finish the wizard — you don't need to upload any code yet; the GitHub Actions workflow will deploy it
-5. On the app's detail page, copy its public URL (the `*.databricksapps.com` URL) — you'll need it in the next step
+**Option A — Web UI:**
+1. Go to **Compute → Apps**.
+2. Click **Create app**, choose **Custom app**, and give it a name (e.g., `open-data-tool`).
+3. Finish the wizard. On the app's detail page, copy its public URL.
 
 **Option B — CLI:**
-
-Install the [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/install.html) locally and authenticate against your workspace:
-
-```bash
-databricks auth login --host https://your-workspace.cloud.databricks.com
-```
-
-Then create the app and grab its URL:
-
 ```bash
 databricks apps create open-data-tool
-databricks apps get open-data-tool
 ```
 
-Look for the `url` field in the JSON output — that's the public `*.databricksapps.com` URL you'll paste into `FRONTEND_URL` in the next step.
+### 4. Prepare your `.env.databricks` content
 
-### 3. Prepare your `.env.databricks` content
-
-This file contains every variable your deployment needs. You won't commit it (it's already listed in `.gitignore`) — you'll paste its contents into a GitHub secret.
-
-Clone your fork locally, then start from the template:
+Clone your fork locally, start from the template:
 
 ```bash
 cp .env.databricks.example .env.databricks
 ```
 
-Open `.env.databricks` in your editor and fill in:
+Open `.env.databricks` and fill in:
+- `DATABRICKS_APP_NAME` — your app name.
+- `DATABRICKS_WORKSPACE_PATH` — the path from Step 2.
+- `FRONTEND_URL` — the public app URL.
+- (Other variables like `SOCRATA_APP_TOKEN`, etc.)
 
-- `DATABRICKS_APP_NAME` — the name you chose in step 2 (e.g. `open-data-tool`).
-- `DATABRICKS_WORKSPACE_PATH` — where `deploy.sh` will sync staged files (e.g. `/Workspace/Users/you@example.com/open-data-tool`).
-- `FRONTEND_URL` — the public app URL you copied in step 2 (e.g. `https://open-data-tool-xxxx.databricksapps.com`). No trailing slash.
-- `SOCRATA_APP_TOKEN` — the "App Token" from your data.wa.gov app (Profile → Developer Settings).
-- **LLM (optional but recommended):** set `LLM_ENDPOINT`, `LLM_API_KEY`, and `LLM_MODEL` to pre-configure the LLM for everyone using the deployed app. If unset, each user enters their own credentials in the app UI on first use.
-- **Socrata OAuth (optional — for "Sign in with data.wa.gov"):** set `SOCRATA_SECRET_TOKEN` to the "Secret Token" from the same data.wa.gov app as `SOCRATA_APP_TOKEN`.
+### 5. Add GitHub Repository Secrets
 
-> **Single source of truth:** `FRONTEND_URL` is the only URL you need to set. `deploy.sh` derives `VITE_API_BASE_URL` and `SOCRATA_OAUTH_REDIRECT_URI` from it.
-
-> **Leave the `__FRONTEND_URL__` placeholders alone.** During deploy, `deploy.sh` substitutes them with `FRONTEND_URL` in your local file (so the Vite build picks them up), then restores the placeholders via an exit trap. If you hand-edit `VITE_API_BASE_URL` or `SOCRATA_OAUTH_REDIRECT_URI` to real URLs, your edits will be reverted on the next run — set `FRONTEND_URL` instead.
-
-### 4. Generate a Databricks personal access token
-
-1. Log into your Databricks workspace
-2. Click your avatar (top-right) → **User Settings**
-3. Go to **Developer → Access tokens → Manage**
-4. Click **Generate new token**, set a comment (e.g. `github-actions-ci`) and a lifetime (e.g. 90 days)
-5. **Copy the token immediately** — Databricks only shows it once
-
-> **Set a rotation reminder.** PATs expire silently — when they do, CI deploys start failing with auth errors. Put a calendar reminder ~1 week before the lifetime you picked so you can generate a replacement token and update the `DATABRICKS_TOKEN` secret before the old one dies.
-
-### 5. Add the three GitHub repository secrets
-
-In your forked repo on GitHub, go to **Settings → Secrets and variables → Actions → New repository secret**, and add:
+Add the following secrets to your GitHub repo (**Settings → Secrets and variables → Actions**):
 
 | Secret | Value |
 |---|---|
-| `DATABRICKS_HOST` | Your **workspace** URL — the URL you use to log into Databricks. Format varies by cloud (AWS: `https://dbc-xxxx.cloud.databricks.com`; Azure: `https://adb-xxxx.azuredatabricks.net`). **Not** the app's `*.databricksapps.com` URL — using the app URL produces `Failed to resolve host metadata` errors. |
-| `DATABRICKS_TOKEN` | The personal access token from step 4 (`dapi...`). Must be from the same workspace as `DATABRICKS_HOST`. |
-| `DATABRICKS_ENV_FILE` | The **entire contents** of your `.env.databricks` from step 3, pasted as-is. GitHub preserves newlines in secret values. |
+| `DATABRICKS_HOST` | Your workspace URL (e.g., `https://dbc-xxxx.cloud.databricks.com`). |
+| `DATABRICKS_TOKEN` | A Databricks Personal Access Token. |
+| `DATABRICKS_ENV_FILE` | The entire contents of your `.env.databricks`. |
 
 ### 6. Update the Socrata OAuth callback (if using OAuth)
 
