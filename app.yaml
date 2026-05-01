@@ -1,0 +1,12 @@
+# Databricks Apps Configuration
+# See: https://docs.databricks.com/en/dev-tools/databricks-apps/index.html
+
+command:
+  - "sh"
+  - "-c"
+  - |
+    pip install -r backend/requirements.txt && \
+    uvicorn backend.main:app --host 0.0.0.0 --port 8000
+
+# Environment variables are loaded from .env.databricks by the backend at runtime.
+# No env section needed here — .env.databricks is synced with the source code.
