@@ -1,8 +1,6 @@
 # Databricks Apps Configuration
-# Secrets are pulled from the 'open-data-tool' Databricks secret scope.
-# To add a new env var:
-#   1. Add it to the GH Actions secret DATABRICKS_ENV_FILE
-#   2. Add an entry under `env:` and a matching entry under `resources:` below
+# Secret-backed env vars are wired via app-level resources (set in CI by
+# `databricks apps update --json`), referenced here by `valueFrom: <resource-name>`.
 
 command:
   - "sh"
@@ -14,27 +12,17 @@ command:
 env:
   - name: SOCRATA_APP_TOKEN
     valueFrom: socrata-app-token
-  - name: SOCRATA_APP_SECRET
-    valueFrom: socrata-app-secret
+  - name: SOCRATA_SECRET_TOKEN
+    valueFrom: socrata-secret-token
   - name: SOCRATA_OAUTH_REDIRECT_URI
     valueFrom: socrata-oauth-redirect-uri
-  - name: SESSION_ENCRYPTION_KEY
-    valueFrom: session-encryption-key
+  - name: LLM_ENDPOINT
+    valueFrom: llm-endpoint
+  - name: LLM_API_KEY
+    valueFrom: llm-api-key
+  - name: LLM_MODEL
+    valueFrom: llm-model
   - name: FRONTEND_URL
     valueFrom: frontend-url
   - name: VITE_API_BASE_URL
     valueFrom: vite-api-base-url
-
-resources:
-  - name: socrata-app-token
-    secret: { scope: open-data-tool, key: SOCRATA_APP_TOKEN, permission: READ }
-  - name: socrata-app-secret
-    secret: { scope: open-data-tool, key: SOCRATA_APP_SECRET, permission: READ }
-  - name: socrata-oauth-redirect-uri
-    secret: { scope: open-data-tool, key: SOCRATA_OAUTH_REDIRECT_URI, permission: READ }
-  - name: session-encryption-key
-    secret: { scope: open-data-tool, key: SESSION_ENCRYPTION_KEY, permission: READ }
-  - name: frontend-url
-    secret: { scope: open-data-tool, key: FRONTEND_URL, permission: READ }
-  - name: vite-api-base-url
-    secret: { scope: open-data-tool, key: VITE_API_BASE_URL, permission: READ }
