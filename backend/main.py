@@ -56,11 +56,14 @@ load_dotenv(override=True)
 # Configuration
 SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
 SOCRATA_SECRET_TOKEN = os.getenv("SOCRATA_SECRET_TOKEN", "")
-SOCRATA_OAUTH_REDIRECT_URI = os.getenv(
-    "SOCRATA_OAUTH_REDIRECT_URI",
-    "http://localhost:8000/api/auth/socrata/callback",
-)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+# Derive OAuth redirect URI. If it's missing or contains a placeholder,
+# we derive it from FRONTEND_URL automatically.
+SOCRATA_OAUTH_REDIRECT_URI = os.getenv(
+    "SOCRATA_OAUTH_REDIRECT_URI", f"{FRONTEND_URL}/api/auth/socrata/callback"
+).strip()
+
 LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")

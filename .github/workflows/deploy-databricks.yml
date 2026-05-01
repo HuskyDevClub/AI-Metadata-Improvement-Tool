@@ -55,14 +55,12 @@ jobs:
         run: |
           APP_NAME=$(grep -E '^DATABRICKS_APP_NAME=' .env.databricks | cut -d= -f2- | tr -d '"')
           RESOURCES=$(jq -nc '[
-            {name:"socrata-app-token",          secret:{scope:"open-data-tool", key:"SOCRATA_APP_TOKEN",          permission:"READ"}},
-            {name:"socrata-secret-token",        secret:{scope:"open-data-tool", key:"SOCRATA_SECRET_TOKEN",        permission:"READ"}},
-            {name:"socrata-oauth-redirect-uri",  secret:{scope:"open-data-tool", key:"SOCRATA_OAUTH_REDIRECT_URI",  permission:"READ"}},
-            {name:"llm-endpoint",                secret:{scope:"open-data-tool", key:"LLM_ENDPOINT",                permission:"READ"}},
-            {name:"llm-api-key",                 secret:{scope:"open-data-tool", key:"LLM_API_KEY",                 permission:"READ"}},
-            {name:"llm-model",                   secret:{scope:"open-data-tool", key:"LLM_MODEL",                   permission:"READ"}},
-            {name:"frontend-url",                secret:{scope:"open-data-tool", key:"FRONTEND_URL",                permission:"READ"}},
-            {name:"vite-api-base-url",           secret:{scope:"open-data-tool", key:"VITE_API_BASE_URL",           permission:"READ"}}
+            {name:"socrata-app-token",     secret:{scope:"open-data-tool", key:"SOCRATA_APP_TOKEN",    permission:"READ"}},
+            {name:"socrata-secret-token",  secret:{scope:"open-data-tool", key:"SOCRATA_SECRET_TOKEN", permission:"READ"}},
+            {name:"llm-endpoint",          secret:{scope:"open-data-tool", key:"LLM_ENDPOINT",         permission:"READ"}},
+            {name:"llm-api-key",           secret:{scope:"open-data-tool", key:"LLM_API_KEY",          permission:"READ"}},
+            {name:"llm-model",             secret:{scope:"open-data-tool", key:"LLM_MODEL",            permission:"READ"}},
+            {name:"frontend-url",          secret:{scope:"open-data-tool", key:"FRONTEND_URL",         permission:"READ"}}
           ]')
           databricks apps update "$APP_NAME" --json "{\"resources\": $RESOURCES}"
 

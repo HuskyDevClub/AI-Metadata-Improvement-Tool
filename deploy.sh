@@ -28,21 +28,10 @@ if [ -z "$APP_NAME" ] || [ -z "$WORKSPACE_PATH" ]; then
   exit 1
 fi
 
-# Substitute __FRONTEND_URL__ placeholders before building
-if [ -f .env.databricks ]; then
-  FRONTEND_URL=$(grep -E '^FRONTEND_URL=' .env.databricks | cut -d= -f2- | tr -d '"' || true)
-  if [ -n "$FRONTEND_URL" ]; then
-    echo "==> Substituting placeholders with FRONTEND_URL=$FRONTEND_URL"
-    TMP_ENV=$(mktemp)
-    sed -e "s|^VITE_API_BASE_URL=.*|VITE_API_BASE_URL=${FRONTEND_URL}|" \
-        -e "s|^SOCRATA_OAUTH_REDIRECT_URI=.*|SOCRATA_OAUTH_REDIRECT_URI=${FRONTEND_URL}/api/auth/socrata/callback|" \
-        .env.databricks > "$TMP_ENV"
-    mv "$TMP_ENV" .env.databricks
-  fi
-fi
-
-echo "==> Building frontend..."
-npm run build:databricks
+echo "==> Building frontend (portable/relative)..."
+# Force VITE_API_BASE_URL to empty for the build to ensure the artifacts 
+# use relative paths, making the release branch portable.
+VITE_API_BASE_URL= npm run build:databricks
 
 # Setup staging for the deployment branch
 STAGING=$(mktemp -d)
@@ -101,8 +90,9 @@ if [ "$APP_STATE" != "ACTIVE" ]; then
   databricks apps start "$APP_NAME"
 fi
 
-# Trigger Databricks Deploy. Env vars are loaded by the backend at runtime
-# from the .env.databricks file included in the source tree.
+# Trigger Databricks Deploy. Env vars come from app-level resources
+# (configured in CI via `databricks apps update --json`) and are wired into
+# the runtime via `valueFrom` entries in app.yaml.
 echo "==> Triggering Databricks deploy for app '$APP_NAME' from $WORKSPACE_PATH..."
 databricks apps deploy "$APP_NAME" \
   --source-code-path "$WORKSPACE_PATH"

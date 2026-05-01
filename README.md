@@ -113,11 +113,15 @@ OAuth login allows users to authenticate with their own portal credentials. Socr
 3. **Update `backend/.env`:**
    ```env
    SOCRATA_SECRET_TOKEN=your-secret-token
+   # Override the redirect URI explicitly because the backend (port 8000) and
+   # the frontend dev server (port 5173) live on different origins in local dev.
    SOCRATA_OAUTH_REDIRECT_URI=https://your-tunnel-id.ngrok-free.app/api/auth/socrata/callback
    FRONTEND_URL=http://localhost:5173
    ```
 
 > **Note:** The ngrok URL may change each time you restart the tunnel (free tier). You will need to update the Callback Prefix and `SOCRATA_OAUTH_REDIRECT_URI` accordingly.
+>
+> In production (Databricks Apps), the frontend and backend share an origin, so `SOCRATA_OAUTH_REDIRECT_URI` is derived automatically from `FRONTEND_URL` and does not need to be set.
 
 ## Usage
 
@@ -135,7 +139,28 @@ OAuth login allows users to authenticate with their own portal credentials. Socr
 
 ## Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for Databricks Apps deployment, OAuth setup, and production configuration.
+### Quick Start for Testers (Manual Setup)
+
+If you want to quickly test the tool in your own Databricks workspace without setting up GitHub Actions, follow these steps:
+
+1.  **Fork the repo** and log into your Databricks workspace.
+2.  **Create a Git Folder:** Go to **Workspace**, right-click your user folder, and select **Create → Git folder**.
+3.  **Point to the `release-databricks` branch:**
+    *   URL: Your fork URL.
+    *   Branch: **`release-databricks`**.
+    *   *Note: This branch contains the pre-built frontend. If you use `main`, you must build the frontend yourself.*
+4.  **Configure Secrets:**
+    *   Inside the Git Folder, create a file named **`.env.databricks`** in the root directory.
+    *   Copy the content from **`.env.databricks.example`** into it and fill in your keys (OpenAI, Socrata, etc.).
+    *   **Crucial:** Set `FRONTEND_URL` to your Databricks App URL (e.g., `https://your-app-id.databricksapps.com`). The Socrata OAuth redirect URI is derived from this automatically.
+5.  **Use Simple Configuration:**
+    *   Rename **`app.manual.yaml`** to **`app.yaml`** (overwriting the existing one). This version loads secrets directly from your `.env.databricks` file instead of requiring Databricks Secret Resources.
+6.  **Create and Deploy the App:**
+    *   Go to **Compute → Apps → Create app**.
+    *   Choose **Custom app**, name it, and set the **Source code path** to your Git Folder.
+    *   Click **Create**. Databricks will build and start your app.
+
+For automated production deployments, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
 ## OpenAI-Compatible API Support
 

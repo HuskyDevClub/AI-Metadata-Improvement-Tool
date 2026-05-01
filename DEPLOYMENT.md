@@ -9,12 +9,15 @@ On every push to `main`, the workflow:
 1. Checks out the code and installs Node.js 24.
 2. Runs `npm install`.
 3. Writes `.env.databricks` from the `DATABRICKS_ENV_FILE` secret.
-4. Builds the frontend (`npm run build:databricks`).
-5. Pushes the artifacts (`backend/`, `app.yaml`, and the built `backend/static/`) to a **`release-databricks`** branch in your GitHub repo via **`deploy.sh`**.
-6. Updates the **Git Folder** in your Databricks workspace to the latest commit on that branch.
-7. Deploys the Databricks App using the source code from that workspace path, passing environment variables via the Databricks CLI.
+4. Syncs each line of `.env.databricks` into a Databricks secret scope (`open-data-tool`) and registers app-level resources that reference those secrets.
+5. Builds the frontend (`npm run build:databricks`) with `VITE_API_BASE_URL` empty so the bundle uses relative paths.
+6. Pushes the artifacts (`backend/`, `app.yaml`, and the built `backend/static/`) to a **`release-databricks`** branch in your GitHub repo via **`deploy.sh`**.
+7. Updates the **Git Folder** in your Databricks workspace to the latest commit on that branch.
+8. Deploys the Databricks App from that workspace path. At runtime, `app.yaml`'s `valueFrom` entries pull each env var from the registered secret resources.
 
-## Setup
+## Setup (GitHub Actions CI/CD)
+
+This section describes the "Production" workflow which uses GitHub Actions to automate builds and securely map secrets via Databricks Secret Resources.
 
 ### 1. Fork the repo
 
@@ -89,7 +92,7 @@ Any push to `main` triggers a deploy. You can also run it on demand via **Action
 
 **`Redirection URI outside the registered scope` after clicking "Sign in with data.wa.gov".** The Callback Prefix on your data.wa.gov app token doesn't match `FRONTEND_URL`. Fix it per step 6.
 
-**CORS errors in the browser after a successful deploy.** `FRONTEND_URL` in `.env.databricks` doesn't match the URL you're visiting, so the built frontend baked a different `VITE_API_BASE_URL`. Update `FRONTEND_URL` and redeploy.
+**CORS errors in the browser after a successful deploy.** `FRONTEND_URL` in `.env.databricks` doesn't match the URL you're visiting, so the backend rejects the origin. Update `FRONTEND_URL` to the exact Databricks App URL and redeploy.
 
 **Deploy "succeeds" but the app shows a blank page or 404s on static assets.** The frontend build didn't land in the synced `backend/static/`. Check that `npm run build:databricks` ran cleanly (look for its output in the workflow log) and that `backend/static/index.html` shows up in the workspace path under step 2.
 
