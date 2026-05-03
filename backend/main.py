@@ -536,7 +536,7 @@ _LICENSES_TTL_SECONDS = 24 * 60 * 60
 # Tag list cache, keyed by category (empty string = no category filter).
 _tags_cache: dict[str, dict[str, Any]] = {}
 _TAGS_TTL_SECONDS = 24 * 60 * 60
-_TAGS_MAX_RETURN = 200
+_TAGS_MAX_RETURN = 5000
 
 
 def build_socrata_auth(session: dict[str, Any]) -> dict[str, str]:
@@ -1266,7 +1266,9 @@ async def _fetch_socrata_tags(category: str = "") -> list[str]:
     Returns tags sorted by descending usage count, capped at _TAGS_MAX_RETURN.
     """
     url = "https://api.us.socrata.com/api/catalog/v1/domain_tags"
-    params: dict[str, str] = {"domains": "data.wa.gov"}
+    # Socrata's catalog API defaults to a 100-row page; request the full set so the
+    # autocomplete list matches what data.wa.gov surfaces.
+    params: dict[str, str] = {"domains": "data.wa.gov", "limit": "10000"}
     if category:
         params["categories"] = category
     async with httpx.AsyncClient(timeout=10.0) as client:

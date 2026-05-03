@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { type SuggestionItem } from '../../utils/prompts';
 import type { SocrataLicense } from '../../types';
 import { EditableDescription } from '../EditableDescription/EditableDescription';
@@ -30,6 +30,7 @@ interface DatasetDescriptionProps {
     onGenerateCategory?: () => void;
     isGeneratingCategory?: boolean;
     tags?: string[];
+    allowedTags?: string[];
     onAddTag?: (tag: string) => void;
     onRemoveTag?: (tag: string) => void;
     onGenerateTags?: () => void;
@@ -75,6 +76,7 @@ export function DatasetDescription({
                                        onGenerateCategory,
                                        isGeneratingCategory = false,
                                        tags = [],
+                                       allowedTags = [],
                                        onAddTag,
                                        onRemoveTag,
                                        onGenerateTags,
@@ -96,6 +98,40 @@ export function DatasetDescription({
     const [isEditingRowLabel, setIsEditingRowLabel] = useState(false);
     const [rowLabelEditValue, setRowLabelEditValue] = useState(rowLabel);
     const [newTagInput, setNewTagInput] = useState('');
+    const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+    const [activeTagSuggestion, setActiveTagSuggestion] = useState(0);
+    const tagInputWrapperRef = useRef<HTMLDivElement | null>(null);
+
+    const filteredTagSuggestions = useMemo(() => {
+        const query = newTagInput.trim().toLowerCase();
+        const selected = new Set(tags.map((t) => t.toLowerCase()));
+        const pool = allowedTags.filter((t) => !selected.has(t.toLowerCase()));
+        if (!query) return pool.slice(0, 50);
+        const starts: string[] = [];
+        const contains: string[] = [];
+        for (const t of pool) {
+            const lower = t.toLowerCase();
+            if (lower.startsWith(query)) starts.push(t);
+            else if (lower.includes(query)) contains.push(t);
+        }
+        return [...starts, ...contains].slice(0, 50);
+    }, [newTagInput, allowedTags, tags]);
+
+    useEffect(() => {
+        setActiveTagSuggestion(0);
+    }, [newTagInput, showTagSuggestions]);
+
+    useEffect(() => {
+        if (!showTagSuggestions) return;
+        const handleClick = (e: MouseEvent) => {
+            if (!tagInputWrapperRef.current) return;
+            if (!tagInputWrapperRef.current.contains(e.target as Node)) {
+                setShowTagSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [showTagSuggestions]);
 
     const categoriesUnavailable = allowedCategories.length === 0;
     const categoryOptions = allowedCategories.includes(category) || !category
@@ -108,11 +144,12 @@ export function DatasetDescription({
         ? [...allowedLicenses, { id: licenseId, name: licenseId }]
         : allowedLicenses;
 
-    const commitNewTag = () => {
-        const value = newTagInput.trim();
+    const commitNewTag = (override?: string) => {
+        const value = (override ?? newTagInput).trim();
         if (!value) return;
         onAddTag?.(value);
         setNewTagInput('');
+        setShowTagSuggestions(false);
     };
 
     const handleRowLabelSave = () => {
@@ -288,24 +325,77 @@ export function DatasetDescription({
                             )}
                         </div>
                         <div className="dataset-tags-add">
-                            <input
-                                type="text"
-                                className="dataset-row-label-input"
-                                placeholder="Add a tag and press Enter"
-                                value={newTagInput}
-                                onChange={(e) => setNewTagInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        commitNewTag();
-                                    }
-                                }}
-                                disabled={isGeneratingTags}
-                            />
+                            <div className="dataset-tags-input-wrap" ref={tagInputWrapperRef}>
+                                <input
+                                    type="text"
+                                    className="dataset-row-label-input"
+                                    placeholder="Add a tag and press Enter"
+                                    value={newTagInput}
+                                    onChange={(e) => {
+                                        setNewTagInput(e.target.value);
+                                        setShowTagSuggestions(true);
+                                    }}
+                                    onFocus={() => setShowTagSuggestions(true)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'ArrowDown') {
+                                            if (filteredTagSuggestions.length > 0) {
+                                                e.preventDefault();
+                                                setShowTagSuggestions(true);
+                                                setActiveTagSuggestion((i) =>
+                                                    Math.min(i + 1, filteredTagSuggestions.length - 1)
+                                                );
+                                            }
+                                        } else if (e.key === 'ArrowUp') {
+                                            if (filteredTagSuggestions.length > 0) {
+                                                e.preventDefault();
+                                                setActiveTagSuggestion((i) => Math.max(i - 1, 0));
+                                            }
+                                        } else if (e.key === 'Escape') {
+                                            setShowTagSuggestions(false);
+                                        } else if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (
+                                                showTagSuggestions &&
+                                                filteredTagSuggestions.length > 0 &&
+                                                activeTagSuggestion < filteredTagSuggestions.length
+                                            ) {
+                                                commitNewTag(filteredTagSuggestions[activeTagSuggestion]);
+                                            } else {
+                                                commitNewTag();
+                                            }
+                                        }
+                                    }}
+                                    disabled={isGeneratingTags}
+                                    autoComplete="off"
+                                />
+                                {showTagSuggestions && filteredTagSuggestions.length > 0 && (
+                                    <ul className="dataset-tags-suggestions" role="listbox">
+                                        {filteredTagSuggestions.map((suggestion, idx) => (
+                                            <li
+                                                key={suggestion}
+                                                role="option"
+                                                aria-selected={idx === activeTagSuggestion}
+                                                className={
+                                                    idx === activeTagSuggestion
+                                                        ? 'dataset-tags-suggestion active'
+                                                        : 'dataset-tags-suggestion'
+                                                }
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    commitNewTag(suggestion);
+                                                }}
+                                                onMouseEnter={() => setActiveTagSuggestion(idx)}
+                                            >
+                                                {suggestion}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
                             <button
                                 type="button"
                                 className="dataset-row-label-btn save"
-                                onClick={commitNewTag}
+                                onClick={() => commitNewTag()}
                                 disabled={!newTagInput.trim() || isGeneratingTags}
                             >
                                 Add

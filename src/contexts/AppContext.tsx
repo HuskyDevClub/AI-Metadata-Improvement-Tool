@@ -119,6 +119,7 @@ interface AppContextType {
 
     // Live data from data.wa.gov
     allowedCategories: string[];
+    allowedTags: string[];
     allowedLicenses: SocrataLicense[];
 
     // CSV Data
@@ -271,6 +272,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     }, []);
 
     const [allowedCategories, setAllowedCategories] = useState<string[]>([]);
+    const [allowedTags, setAllowedTags] = useState<string[]>([]);
     const [allowedLicenses, setAllowedLicenses] = useState<SocrataLicense[]>([]);
 
     useEffect(() => {
@@ -328,6 +330,21 @@ export function AppProvider({ children }: {children: ReactNode}) {
         columnDisplayNames: {},
         columnFieldNames: {},
     });
+
+    useEffect(() => {
+        let cancelled = false;
+        fetchSocrataTags('')
+            .then((list) => {
+                if (!cancelled) setAllowedTags(list);
+            })
+            .catch((err) => {
+                console.warn('Failed to load Socrata tags:', err);
+                if (!cancelled) setAllowedTags([]);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const [status, setStatus] = useState<Status | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -752,8 +769,12 @@ export function AppProvider({ children }: {children: ReactNode}) {
         rowCountOverride?: number,
     ): string => {
         const base = buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.tags, '', undefined, rowCountOverride);
-        const rendered = tagList.length > 0
-            ? tagList.join(', ')
+        // Send a small, high-signal vocabulary to the LLM. Caller is expected to
+        // pre-rank tagList so category-scoped entries come first.
+        const PROMPT_TAG_CAP = 20;
+        const promptTags = tagList.slice(0, PROMPT_TAG_CAP);
+        const rendered = promptTags.length > 0
+            ? promptTags.join(', ')
             : '(no existing tags available — generate tags from the dataset alone)';
         return base.replace('{tagList}', rendered);
     }, [promptTemplates.tags, buildDatasetPromptFromTemplate]);
@@ -793,11 +814,27 @@ export function AppProvider({ children }: {children: ReactNode}) {
             rowCountOverride?: number,
         ): Promise<{tags: string[]}> => {
             const currentCategory = datasetStateRef.current.generatedResults.category || '';
-            let tagList: string[] = [];
-            try {
-                tagList = await fetchSocrataTags(currentCategory);
-            } catch (err) {
-                console.warn('Failed to load Socrata tag list — falling back to free-form generation:', err);
+            // Prefer category-scoped tags, then top-of-domain tags as fallback fill.
+            // The merged list is what the LLM sees as the "preferred vocabulary".
+            const [scoped, global] = await Promise.all([
+                currentCategory
+                    ? fetchSocrataTags(currentCategory).catch((err) => {
+                        console.warn('Failed to load category-scoped tags:', err);
+                        return [] as string[];
+                    })
+                    : Promise.resolve([] as string[]),
+                fetchSocrataTags('').catch((err) => {
+                    console.warn('Failed to load Socrata tag list — falling back to free-form generation:', err);
+                    return [] as string[];
+                }),
+            ]);
+            const seen = new Set<string>();
+            const tagList: string[] = [];
+            for (const t of [...scoped, ...global]) {
+                const key = t.toLowerCase();
+                if (seen.has(key)) continue;
+                seen.add(key);
+                tagList.push(t);
             }
             const prompt = buildTagsPrompt(data, name, stats, tagList, rowCountOverride);
             let fullContent = '';
@@ -1734,6 +1771,7 @@ FORMAT RULES:
         handleOpenAIConfigSave,
         handleOpenAIConfigClear,
         allowedCategories,
+        allowedTags,
         allowedLicenses,
         csvData,
         fileName,

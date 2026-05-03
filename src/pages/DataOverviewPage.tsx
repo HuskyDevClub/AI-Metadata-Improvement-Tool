@@ -34,6 +34,7 @@ export function DataOverviewPage() {
         handleGenerateCategory,
         generatingCategory,
         allowedCategories,
+        allowedTags,
         handleAddTag,
         handleRemoveTag,
         handleGenerateTags,
@@ -113,6 +114,7 @@ export function DataOverviewPage() {
                     onGenerateCategory={handleGenerateCategory}
                     isGeneratingCategory={generatingCategory}
                     tags={generatedResults.tags}
+                    allowedTags={allowedTags}
                     onAddTag={handleAddTag}
                     onRemoveTag={handleRemoveTag}
                     onGenerateTags={handleGenerateTags}
