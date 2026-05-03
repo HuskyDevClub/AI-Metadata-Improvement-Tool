@@ -11,12 +11,15 @@ export function FieldOverviewPage() {
         columnStats,
         generatedResults,
         csvData,
+        socrataDatasetId,
         generatingColumns,
         regeneratingColumns,
         suggestingColumns,
         columnSuggestions,
         navigate,
         handleEditColumnDescription,
+        handleEditColumnDisplayName,
+        handleEditColumnFieldName,
         handleRegenerateColumn,
         handleSuggestColumnImprovement,
         handleDismissColumnSuggestions,
@@ -41,6 +44,9 @@ export function FieldOverviewPage() {
 
     const info = columnStats[fieldName];
     const description = generatedResults.columnDescriptions[fieldName] || '';
+    const displayName = generatedResults.columnDisplayNames[fieldName] ?? fieldName;
+    const apiFieldName = generatedResults.columnFieldNames[fieldName] ?? '';
+    const isSocrataSourced = Boolean(socrataDatasetId);
     const prevField = currentIndex > 0 ? columnNames[currentIndex - 1] : null;
     const nextField = currentIndex < columnNames.length - 1 ? columnNames[currentIndex + 1] : null;
     const statsText = formatColumnStats(info);
@@ -129,6 +135,40 @@ export function FieldOverviewPage() {
                     </div>
                 </div>
             )}
+
+            <div className="field-overview-identifiers">
+                <div className="field-overview-identifiers-title">Field Identifiers</div>
+                <div className="field-overview-identifiers-grid">
+                    <label className="field-overview-identifier">
+                        <span className="field-overview-identifier-label">Display Name</span>
+                        <input
+                            type="text"
+                            className="field-overview-identifier-input"
+                            value={displayName}
+                            onChange={(e) => handleEditColumnDisplayName(fieldName, e.target.value)}
+                            placeholder="Human-readable column name"
+                        />
+                        <span className="field-overview-identifier-hint">
+                            Shown to viewers on data.wa.gov.
+                        </span>
+                    </label>
+                    {isSocrataSourced && (
+                        <label className="field-overview-identifier">
+                            <span className="field-overview-identifier-label">API Field Name</span>
+                            <input
+                                type="text"
+                                className="field-overview-identifier-input field-overview-identifier-mono"
+                                value={apiFieldName}
+                                onChange={(e) => handleEditColumnFieldName(fieldName, e.target.value)}
+                                placeholder="lowercase_with_underscores"
+                            />
+                            <span className="field-overview-identifier-hint">
+                                Used in SODA queries. Lowercase letters, digits, and underscores only.
+                            </span>
+                        </label>
+                    )}
+                </div>
+            </div>
 
             <div className="field-overview-description">
                 <ColumnCard

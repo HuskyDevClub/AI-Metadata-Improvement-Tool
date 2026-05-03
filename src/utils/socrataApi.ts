@@ -69,7 +69,12 @@ export interface PushSocrataMetadataOptions {
     contactEmail?: string;
     periodOfTime?: string;
     postingFrequency?: string;
-    columns: {fieldName: string; description: string}[];
+    columns: {
+        fieldName: string;
+        description?: string;
+        name?: string;
+        newFieldName?: string;
+    }[];
 }
 
 export async function pushSocrataMetadata(

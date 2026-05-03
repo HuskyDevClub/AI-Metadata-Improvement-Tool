@@ -1043,16 +1043,34 @@ async def socrata_export(
             if metadata_changed:
                 update_payload["metadata"] = existing_metadata
 
-            # Merge column description updates into existing columns
+            # Merge column metadata updates into existing columns
             updated_col_count = 0
+            renamed_field_count = 0
+            renamed_display_count = 0
             if request.columns:
-                field_desc_map = {c.fieldName: c.description for c in request.columns}
+                update_map = {c.fieldName: c for c in request.columns}
                 updated_columns = []
                 for col in current_metadata.get("columns", []):
                     field_name = col.get("fieldName", "")
-                    if field_name in field_desc_map:
-                        col["description"] = field_desc_map[field_name]
-                        updated_col_count += 1
+                    if field_name in update_map:
+                        update = update_map[field_name]
+                        col_changed = False
+                        if update.description is not None:
+                            col["description"] = update.description
+                            col_changed = True
+                        if update.name is not None and update.name != col.get("name"):
+                            col["name"] = update.name
+                            renamed_display_count += 1
+                            col_changed = True
+                        if (
+                            update.newFieldName is not None
+                            and update.newFieldName != field_name
+                        ):
+                            col["fieldName"] = update.newFieldName
+                            renamed_field_count += 1
+                            col_changed = True
+                        if col_changed:
+                            updated_col_count += 1
                     updated_columns.append(col)
                 update_payload["columns"] = updated_columns
 
@@ -1104,7 +1122,15 @@ async def socrata_export(
                 parts.append("posting frequency")
             if updated_col_count > 0:
                 parts.append(
-                    f"{updated_col_count} column description{'s' if updated_col_count != 1 else ''}"
+                    f"{updated_col_count} column{'s' if updated_col_count != 1 else ''}"
+                )
+            if renamed_display_count > 0:
+                parts.append(
+                    f"{renamed_display_count} display name{'s' if renamed_display_count != 1 else ''} renamed"
+                )
+            if renamed_field_count > 0:
+                parts.append(
+                    f"{renamed_field_count} API field name{'s' if renamed_field_count != 1 else ''} renamed"
                 )
             message = f"Successfully updated {' and '.join(parts)} on data.wa.gov."
 

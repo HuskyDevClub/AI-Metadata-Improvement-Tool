@@ -52,6 +52,8 @@ export interface GeneratedResults {
     periodOfTime: string;
     postingFrequency: string;
     columnDescriptions: Record<string, string>;
+    columnDisplayNames: Record<string, string>;
+    columnFieldNames: Record<string, string>;
 }
 
 export interface SocrataLicense {

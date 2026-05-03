@@ -11,6 +11,7 @@ import {
     logoutSocrata,
     parseFile,
     pushSocrataMetadata,
+    type PushSocrataMetadataOptions,
     saveSocrataApiKey,
 } from '../utils/socrataApi';
 import { fetchOpenAISession, logoutOpenAI, saveOpenAIConfig, } from '../utils/openaiApi';
@@ -179,6 +180,8 @@ interface AppContextType {
     handleApplyColumnSuggestions: (columnName: string) => Promise<void>;
     handleEditDatasetDescription: (newDescription: string) => void;
     handleEditColumnDescription: (columnName: string, newDescription: string) => void;
+    handleEditColumnDisplayName: (columnName: string, newDisplayName: string) => void;
+    handleEditColumnFieldName: (columnName: string, newFieldName: string) => void;
     handleEditRowLabel: (newLabel: string) => void;
     handleGenerateRowLabel: () => Promise<void>;
     handleEditDatasetTitle: (newTitle: string) => void;
@@ -322,6 +325,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         periodOfTime: '',
         postingFrequency: '',
         columnDescriptions: {},
+        columnDisplayNames: {},
+        columnFieldNames: {},
     });
 
     const [status, setStatus] = useState<Status | null>(null);
@@ -838,6 +843,21 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setFileName(result.fileName);
                 setShowResults(true);
                 setImportedRowCount(0);
+                setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
+                setSocrataDatasetId('');
+                setSocrataFieldNameMap({});
+
+                setStatus({ message: 'Analyzing columns...', type: 'info' });
+                const columns = Object.keys(result.data[0]);
+                const stats: Record<string, ColumnInfo> = {};
+                const displayNameMap: Record<string, string> = {};
+                columns.forEach((col) => {
+                    const values = result.data.map((row) => row[col]);
+                    stats[col] = analyzeColumn(col, values);
+                    displayNameMap[col] = col;
+                });
+                setColumnStats(stats);
+
                 setGeneratedResults({
                     datasetTitle: '',
                     datasetDescription: '',
@@ -849,20 +869,10 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     contactEmail: '',
                     periodOfTime: '',
                     postingFrequency: '',
-                    columnDescriptions: {}
+                    columnDescriptions: {},
+                    columnDisplayNames: displayNameMap,
+                    columnFieldNames: {},
                 });
-                setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
-                setSocrataDatasetId('');
-                setSocrataFieldNameMap({});
-
-                setStatus({ message: 'Analyzing columns...', type: 'info' });
-                const columns = Object.keys(result.data[0]);
-                const stats: Record<string, ColumnInfo> = {};
-                columns.forEach((col) => {
-                    const values = result.data.map((row) => row[col]);
-                    stats[col] = analyzeColumn(col, values);
-                });
-                setColumnStats(stats);
 
                 // Add tab
                 setDatasetTabs(prev => [...prev, { id: newId, fileName: result.fileName }]);
@@ -925,7 +935,9 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 contactEmail: '',
                 periodOfTime: '',
                 postingFrequency: '',
-                columnDescriptions: {}
+                columnDescriptions: {},
+                columnDisplayNames: {},
+                columnFieldNames: {},
             });
             setShowResults(false);
             setImportedRowCount(0);
@@ -1265,6 +1277,20 @@ FORMAT RULES:
         }));
     }, []);
 
+    const handleEditColumnDisplayName = useCallback((columnName: string, newDisplayName: string) => {
+        setGeneratedResults((prev) => ({
+            ...prev,
+            columnDisplayNames: { ...prev.columnDisplayNames, [columnName]: newDisplayName },
+        }));
+    }, []);
+
+    const handleEditColumnFieldName = useCallback((columnName: string, newFieldName: string) => {
+        setGeneratedResults((prev) => ({
+            ...prev,
+            columnFieldNames: { ...prev.columnFieldNames, [columnName]: newFieldName },
+        }));
+    }, []);
+
     const handleEditRowLabel = useCallback((newLabel: string) => {
         setGeneratedResults((prev) => ({ ...prev, rowLabel: newLabel }));
     }, []);
@@ -1505,6 +1531,8 @@ FORMAT RULES:
                 );
 
                 const fieldMap: Record<string, string> = {};
+                const displayNameMap: Record<string, string> = {};
+                const fieldNameMap: Record<string, string> = {};
                 columns.forEach((col) => {
                     columnDescriptions[col] = fieldNameDescMap.get(col) || displayNameDescMap.get(col) || '';
                     if (fieldNameSet.has(col)) {
@@ -1512,6 +1540,8 @@ FORMAT RULES:
                     } else if (nameToFieldName.has(col)) {
                         fieldMap[col] = nameToFieldName.get(col)!;
                     }
+                    displayNameMap[col] = col;
+                    fieldNameMap[col] = fieldMap[col] || col;
                 });
                 setSocrataFieldNameMap(fieldMap);
 
@@ -1527,6 +1557,8 @@ FORMAT RULES:
                     periodOfTime: result.periodOfTime || '',
                     postingFrequency: result.postingFrequency || '',
                     columnDescriptions,
+                    columnDisplayNames: displayNameMap,
+                    columnFieldNames: fieldNameMap,
                 });
 
                 setShowResults(true);
@@ -1606,12 +1638,37 @@ FORMAT RULES:
         setStatus({ message: 'Pushing metadata to data.wa.gov...', type: 'info' });
 
         try {
-            const columnUpdates = Object.entries(generatedResults.columnDescriptions)
-                .filter(([, desc]) => desc)
-                .map(([colName, desc]) => ({
-                    fieldName: socrataFieldNameMap[colName] || colName,
-                    description: desc,
-                }));
+            const columnKeys = new Set<string>([
+                ...Object.keys(generatedResults.columnDescriptions),
+                ...Object.keys(generatedResults.columnDisplayNames),
+                ...Object.keys(generatedResults.columnFieldNames),
+            ]);
+
+            const columnUpdates: PushSocrataMetadataOptions['columns'] = [];
+            for (const colName of columnKeys) {
+                const originalFieldName = socrataFieldNameMap[colName] || colName;
+                const desc = generatedResults.columnDescriptions[colName];
+                const displayName = generatedResults.columnDisplayNames[colName];
+                const fieldName = generatedResults.columnFieldNames[colName];
+
+                const update: PushSocrataMetadataOptions['columns'][number] = {
+                    fieldName: originalFieldName,
+                };
+                let hasChange = false;
+                if (desc) {
+                    update.description = desc;
+                    hasChange = true;
+                }
+                if (displayName && displayName !== colName) {
+                    update.name = displayName;
+                    hasChange = true;
+                }
+                if (fieldName && fieldName !== originalFieldName) {
+                    update.newFieldName = fieldName;
+                    hasChange = true;
+                }
+                if (hasChange) columnUpdates.push(update);
+            }
 
             const result = await pushSocrataMetadata({
                 datasetId: socrataDatasetId,
@@ -1728,6 +1785,8 @@ FORMAT RULES:
         handleApplyColumnSuggestions,
         handleEditDatasetDescription,
         handleEditColumnDescription,
+        handleEditColumnDisplayName,
+        handleEditColumnFieldName,
         handleEditRowLabel,
         handleGenerateRowLabel,
         handleEditDatasetTitle,
