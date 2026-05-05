@@ -87,10 +87,16 @@ class SocrataImportResponse(BaseModel):
 
 
 class SocrataColumnUpdate(BaseModel):
-    """Updated description for a single column to push back to Socrata."""
+    """Updated metadata for a single column to push back to Socrata.
+
+    Identified by the current `fieldName`. Any of `description`, `name`, or
+    `newFieldName` may be supplied to update the matching column.
+    """
 
     fieldName: str
-    description: str
+    description: str | None = None
+    name: str | None = None
+    newFieldName: str | None = None
 
 
 class SocrataExportRequest(BaseModel):
