@@ -7,10 +7,8 @@ import './DataOverviewPage.css';
 export function DataOverviewPage() {
     const {
         csvData,
-        fileName,
         columnStats,
         generatedResults,
-        importedRowCount,
         isProcessing,
         generatingColumns,
         regeneratingDataset,
@@ -62,8 +60,6 @@ export function DataOverviewPage() {
         [columnNames, generatedResults.columnDescriptions]
     );
 
-    const rowCount = importedRowCount || csvData?.length || 0;
-
     const toggleColumn = (col: string) => {
         setSelectedColumns(prev => {
             const next = new Set(prev);
@@ -79,7 +75,7 @@ export function DataOverviewPage() {
     const selectNonEmpty = () => setSelectedColumns(new Set(nonEmptyColumns));
 
     const handleGenerateSelected = () => {
-        handleGenerateSelectedDescriptions(Array.from(selectedColumns));
+        handleGenerateSelectedDescriptions(Array.from(selectedColumns)).then();
     };
 
     const truncate = (text: string, max: number) =>
@@ -90,9 +86,6 @@ export function DataOverviewPage() {
             {csvData && (
                 <DatasetDescription
                     description={generatedResults.datasetDescription}
-                    fileName={fileName}
-                    rowCount={rowCount}
-                    columnCount={columnNames.length}
                     onEdit={handleEditDatasetDescription}
                     onRegenerate={handleRegenerateDataset}
                     onSuggestImprovement={handleSuggestDatasetImprovement}

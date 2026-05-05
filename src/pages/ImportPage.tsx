@@ -52,6 +52,12 @@ export function ImportPage() {
     const handleSocrataSubmit = async () => {
         if (!datasetId.trim()) return;
 
+        let parsedId = datasetId.trim();
+        const idMatch = parsedId.match(/(?:^|\/)([a-z0-9]{4}-[a-z0-9]{4})(?:$|\/|\?)/i);
+        if (idMatch) {
+            parsedId = idMatch[1].toLowerCase();
+        }
+
         const trimmedKeyId = apiKeyIdInput.trim();
         const trimmedKeySecret = apiKeySecretInput.trim();
         const hasNewCredentials = !!(trimmedKeyId && trimmedKeySecret);
@@ -66,7 +72,7 @@ export function ImportPage() {
         }
 
         try {
-            await handleSocrataImport(datasetId.trim());
+            await handleSocrataImport(parsedId);
         } finally {
             if (hasNewCredentials && !rememberKey) {
                 await handleSocrataApiKeyClear();
@@ -137,7 +143,7 @@ export function ImportPage() {
                 </button>
             </div>
             <span className="import-form-hint">
-                The identifier from the dataset URL
+                The identifier or full URL of the dataset
             </span>
 
             <label className="import-form-toggle">

@@ -22,9 +22,6 @@ const POSTING_FREQUENCY_OTHER = '__other__';
 
 interface DatasetDescriptionProps {
     description: string;
-    fileName: string;
-    rowCount: number;
-    columnCount: number;
     onEdit: (newDescription: string) => void;
     onRegenerate: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => void;
     onSuggestImprovement: () => void;
@@ -68,9 +65,6 @@ interface DatasetDescriptionProps {
 
 export function DatasetDescription({
                                        description,
-                                       fileName,
-                                       rowCount,
-                                       columnCount,
                                        onEdit,
                                        onRegenerate,
                                        onSuggestImprovement,
@@ -122,11 +116,13 @@ export function DatasetDescription({
     const [postingFrequencyCustom, setPostingFrequencyCustom] = useState(
         !!postingFrequency && !isPresetFrequency,
     );
-    useEffect(() => {
+    const [prevPostingFrequency, setPrevPostingFrequency] = useState(postingFrequency);
+    if (postingFrequency !== prevPostingFrequency) {
+        setPrevPostingFrequency(postingFrequency);
         if (postingFrequency && !(POSTING_FREQUENCY_OPTIONS as readonly string[]).includes(postingFrequency)) {
             setPostingFrequencyCustom(true);
         }
-    }, [postingFrequency]);
+    }
 
     const filteredTagSuggestions = useMemo(() => {
         const query = newTagInput.trim().toLowerCase();
@@ -142,10 +138,6 @@ export function DatasetDescription({
         }
         return [...starts, ...contains].slice(0, 50);
     }, [newTagInput, allowedTags, tags]);
-
-    useEffect(() => {
-        setActiveTagSuggestion(0);
-    }, [newTagInput, showTagSuggestions]);
 
     useEffect(() => {
         if (!showTagSuggestions) return;
@@ -363,8 +355,12 @@ export function DatasetDescription({
                                     onChange={(e) => {
                                         setNewTagInput(e.target.value);
                                         setShowTagSuggestions(true);
+                                        setActiveTagSuggestion(0);
                                     }}
-                                    onFocus={() => setShowTagSuggestions(true)}
+                                    onFocus={() => {
+                                        setShowTagSuggestions(true);
+                                        setActiveTagSuggestion(0);
+                                    }}
                                     onKeyDown={(e) => {
                                         if (e.key === 'ArrowDown') {
                                             if (filteredTagSuggestions.length > 0) {
@@ -555,11 +551,6 @@ export function DatasetDescription({
                         </div>
                     </div>
                 )}
-
-                <p className="dataset-desc-meta">
-                    <strong>File:</strong> {fileName} | <strong>Rows:</strong> {rowCount} |{' '}
-                    <strong>Columns:</strong> {columnCount}
-                </p>
 
                 <p className="dataset-desc-tip">Tip: Use &#9998; to edit or regenerate buttons to modify the
                     description</p>
