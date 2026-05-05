@@ -536,7 +536,7 @@ _LICENSES_TTL_SECONDS = 24 * 60 * 60
 # Tag list cache, keyed by category (empty string = no category filter).
 _tags_cache: dict[str, dict[str, Any]] = {}
 _TAGS_TTL_SECONDS = 24 * 60 * 60
-_TAGS_MAX_RETURN = 5000
+_TAGS_MAX_RETURN = 2000
 
 
 def build_socrata_auth(session: dict[str, Any]) -> dict[str, str]:
