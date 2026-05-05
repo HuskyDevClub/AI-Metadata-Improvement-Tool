@@ -4,6 +4,22 @@ import type { SocrataLicense } from '../../types';
 import { EditableDescription } from '../EditableDescription/EditableDescription';
 import './DatasetDescription.css';
 
+const POSTING_FREQUENCY_OPTIONS = [
+    'Annually',
+    'Biannually',
+    'Quarterly',
+    'Monthly',
+    'Weekly',
+    'Daily',
+    'Nightly',
+    'Continuous / Real-time',
+    'Biennially',
+    'As needed',
+    'One time',
+    'No longer updated',
+] as const;
+const POSTING_FREQUENCY_OTHER = '__other__';
+
 interface DatasetDescriptionProps {
     description: string;
     fileName: string;
@@ -102,6 +118,16 @@ export function DatasetDescription({
     const [activeTagSuggestion, setActiveTagSuggestion] = useState(0);
     const tagInputWrapperRef = useRef<HTMLDivElement | null>(null);
 
+    const isPresetFrequency = (POSTING_FREQUENCY_OPTIONS as readonly string[]).includes(postingFrequency);
+    const [postingFrequencyCustom, setPostingFrequencyCustom] = useState(
+        !!postingFrequency && !isPresetFrequency,
+    );
+    useEffect(() => {
+        if (postingFrequency && !(POSTING_FREQUENCY_OPTIONS as readonly string[]).includes(postingFrequency)) {
+            setPostingFrequencyCustom(true);
+        }
+    }, [postingFrequency]);
+
     const filteredTagSuggestions = useMemo(() => {
         const query = newTagInput.trim().toLowerCase();
         const selected = new Set(tags.map((t) => t.toLowerCase()));
@@ -188,6 +214,9 @@ export function DatasetDescription({
                 {onEditRowLabel && (
                     <div className="dataset-row-label">
                         <span className="dataset-row-label-title">Row Label</span>
+                        <span className="dataset-row-label-hint">
+                            Describe what each row in the asset represents (if applicable).
+                        </span>
                         {isEditingRowLabel ? (
                             <div className="dataset-row-label-edit">
                                 <input
@@ -468,16 +497,46 @@ export function DatasetDescription({
                             </div>
                         )}
                         {onEditPostingFrequency && (
-                            <div className="dataset-license-row">
-                                <label className="dataset-license-label">Posting Frequency</label>
-                                <input
-                                    type="text"
-                                    className="dataset-row-label-input dataset-license-input"
-                                    placeholder="e.g. Monthly, Quarterly, As needed"
-                                    value={postingFrequency}
-                                    onChange={(e) => onEditPostingFrequency(e.target.value)}
-                                />
-                            </div>
+                            <>
+                                <div className="dataset-license-row">
+                                    <label className="dataset-license-label">Posting Frequency</label>
+                                    <select
+                                        className="dataset-category-select"
+                                        value={postingFrequencyCustom ? POSTING_FREQUENCY_OTHER : postingFrequency}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            if (v === POSTING_FREQUENCY_OTHER) {
+                                                setPostingFrequencyCustom(true);
+                                                onEditPostingFrequency('');
+                                            } else {
+                                                setPostingFrequencyCustom(false);
+                                                onEditPostingFrequency(v);
+                                            }
+                                        }}
+                                    >
+                                        <option value="">Not set</option>
+                                        {POSTING_FREQUENCY_OPTIONS.map((option) => (
+                                            <option key={option} value={option}>
+                                                {option}
+                                            </option>
+                                        ))}
+                                        <option value={POSTING_FREQUENCY_OTHER}>Other...</option>
+                                    </select>
+                                </div>
+                                {postingFrequencyCustom && (
+                                    <div className="dataset-license-row">
+                                        <label className="dataset-license-label"/>
+                                        <input
+                                            type="text"
+                                            className="dataset-row-label-input dataset-license-input"
+                                            placeholder="Describe the posting frequency"
+                                            value={postingFrequency}
+                                            onChange={(e) => onEditPostingFrequency(e.target.value)}
+                                            autoFocus
+                                        />
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 )}
