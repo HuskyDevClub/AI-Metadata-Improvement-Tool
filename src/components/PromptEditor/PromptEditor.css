@@ -418,6 +418,30 @@
     margin-top: 8px;
 }
 
+.prompt-placeholders {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.prompt-placeholders-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+.prompt-placeholder-chip {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    background: var(--surface-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+}
+
 /* Info icon tooltip */
 .prompt-info-icon {
     display: inline-flex;

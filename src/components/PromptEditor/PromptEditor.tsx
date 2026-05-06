@@ -143,13 +143,22 @@ function AutoResizeTextarea({ value, onChange }: {
 function InfoIcon({ promptKey }: {promptKey: string}) {
     const info = PROMPT_INFO[promptKey];
     if (!info) return null;
-    const tooltip = info.placeholders
-        ? `${info.description}\n\nPlaceholders: ${info.placeholders}`
-        : info.description;
     return (
-        <span className="prompt-info-icon" data-tooltip={tooltip}>
+        <span className="prompt-info-icon" data-tooltip={info.description}>
             i
         </span>
+    );
+}
+
+function PlaceholderList({ placeholders }: {placeholders?: string}) {
+    if (!placeholders) return null;
+    return (
+        <div className="prompt-placeholders">
+            <span className="prompt-placeholders-label">Available placeholders:</span>
+            {placeholders.split(', ').map(p => (
+                <code key={p} className="prompt-placeholder-chip">{p}</code>
+            ))}
+        </div>
     );
 }
 
@@ -286,6 +295,7 @@ export function PromptEditor({ templates, onChange, openaiConfig }: PromptEditor
             <div className="prompt-editor-content">
                 {PROMPT_FIELDS.map(({ key, label }) => {
                     const isModified = templates[key] !== DEFAULTS[key];
+                    const info = PROMPT_INFO[key];
                     return (
                         <div className="prompt-editor-box" key={key}>
                             <div className="prompt-editor-box-header">
@@ -313,6 +323,7 @@ export function PromptEditor({ templates, onChange, openaiConfig }: PromptEditor
                                 value={templates[key]}
                                 onChange={(e) => onChange({ ...templates, [key]: e.target.value })}
                             />
+                            <PlaceholderList placeholders={info?.placeholders}/>
                         </div>
                     );
                 })}
