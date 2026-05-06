@@ -1,7 +1,7 @@
 import { API_BASE_URL } from './config';
 import { assertResponseOk } from './api';
 
-export interface OpenAISession {
+interface OpenAISession {
     isConfigured: boolean;
     baseURL?: string;
     model?: string;

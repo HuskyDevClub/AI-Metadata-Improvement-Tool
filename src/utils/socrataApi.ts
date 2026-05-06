@@ -155,7 +155,7 @@ export async function fetchSocrataOAuthLoginUrl(): Promise<string> {
     return result.authUrl;
 }
 
-export type SocrataSession =
+type SocrataSession =
     | {kind: 'oauth'; user: {id: string; displayName: string; email?: string}}
     | {kind: 'api_key'; apiKeyId: string}
     | {kind: null};

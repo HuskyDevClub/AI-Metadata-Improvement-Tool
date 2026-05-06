@@ -30,7 +30,7 @@ export interface TextStats {
     samples: string[];
 }
 
-export type ColumnType = 'numeric' | 'categorical' | 'text' | 'empty';
+type ColumnType = 'numeric' | 'categorical' | 'text' | 'empty';
 
 export interface ColumnInfo {
     type: ColumnType;
@@ -62,7 +62,7 @@ export interface SocrataLicense {
     termsLink?: string;
 }
 
-export type StatusType = 'info' | 'success' | 'error' | 'warning';
+type StatusType = 'info' | 'success' | 'error' | 'warning';
 
 export interface Status {
     message: string;

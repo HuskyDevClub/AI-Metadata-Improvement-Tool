@@ -79,7 +79,7 @@ function parseSuggestions(text: string): SuggestionItem[] {
 
 export type PageId = 'import' | 'data' | 'field' | 'settings';
 
-export interface DatasetTabInfo {
+interface DatasetTabInfo {
     id: string;
     fileName: string;
 }

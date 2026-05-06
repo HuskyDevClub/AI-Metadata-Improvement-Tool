@@ -16,7 +16,6 @@ import re
 import sys
 import urllib.request
 
-
 # Socrata Discovery API. `domains` filters by host; `search_context` makes
 # domain-specific custom metadata fields visible in the response.
 CATALOG_URL = "https://{domain}/api/catalog/v1"
