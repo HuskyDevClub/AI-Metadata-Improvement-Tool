@@ -13,8 +13,6 @@ from pathlib import Path
 from typing import Any, Literal, cast
 from urllib.parse import urlencode
 
-logger = logging.getLogger(__name__)
-
 import httpx
 from cryptography.fernet import Fernet, InvalidToken
 from dotenv import load_dotenv
@@ -46,6 +44,9 @@ from .models import (
     SocrataSessionResponse,
     SocrataTagsResponse,
 )
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Env load order: .env.databricks fills baseline values for the deployed app,
 # then local .env files override for local dev (backend/.env, then cwd .env).
@@ -1204,7 +1205,7 @@ async def _fetch_socrata_licenses() -> list[SocrataLicenseInfo]:
                 termsLink=str(terms) if terms else None,
             )
         )
-    licenses.sort(key=lambda l: l.name.casefold())
+    licenses.sort(key=lambda lic: lic.name.casefold())
     return licenses
 
 
