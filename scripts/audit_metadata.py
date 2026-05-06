@@ -1,7 +1,7 @@
 """Audit metadata completeness for datasets on data.wa.gov.
 
 Queries the Socrata Discovery API and counts how many datasets are missing
-key metadata fields (description, tags, category, attribution, contact email).
+key metadata fields (description, tags, category, attribution).
 
 Usage:
     python audit_metadata.py                # print summary
@@ -60,8 +60,10 @@ def audit(rows: list[dict]) -> tuple[dict, list[dict]]:
         "missing_tags": 0,
         "missing_category": 0,
         "missing_attribution": 0,
-        "missing_contact_email": 0,
+        "missing_license": 0,
+        "missing_posting_frequency": 0,
         "missing_all_core": 0,  # description AND tags AND category all empty
+        "missing_all_five": 0,  # desc, tags, category, license, and posting frequency all empty
     }
     detail: list[dict] = []
     for r in rows:
@@ -69,6 +71,7 @@ def audit(rows: list[dict]) -> tuple[dict, list[dict]]:
         # metadata) and `classification` (tags / category / custom fields).
         res = r.get("resource", {}) or {}
         cls = r.get("classification", {}) or {}
+        meta = r.get("metadata", {}) or {}
 
         desc = strip_html(res.get("description"))
         # `domain_tags` is the per-domain tag list users actually edit;
@@ -76,21 +79,35 @@ def audit(rows: list[dict]) -> tuple[dict, list[dict]]:
         tags = cls.get("domain_tags") or cls.get("tags") or []
         category = cls.get("domain_category")
         attribution = (res.get("attribution") or "").strip()
-        email = (res.get("contact_email") or "").strip()
+        
+        license_name = (meta.get("license") or "").strip()
+        
+        posting_freq = ""
+        domain_metadata = cls.get("domain_metadata") or []
+        for dm in domain_metadata:
+            if dm.get("key") == "Temporal_Posting-Frequency":
+                posting_freq = (dm.get("value") or "").strip()
+                break
 
         miss_desc = not desc
         miss_tags = not tags
         miss_cat = not category
         miss_attr = not attribution
-        miss_email = not email
+        miss_license = not license_name
+        miss_posting_freq = not posting_freq
 
         counts["missing_description"] += miss_desc
         counts["missing_tags"] += miss_tags
         counts["missing_category"] += miss_cat
         counts["missing_attribution"] += miss_attr
-        counts["missing_contact_email"] += miss_email
+        counts["missing_license"] += miss_license
+        counts["missing_posting_frequency"] += miss_posting_freq
+        
         if miss_desc and miss_tags and miss_cat:
             counts["missing_all_core"] += 1
+            
+        if miss_desc and miss_tags and miss_cat and miss_license and miss_posting_freq:
+            counts["missing_all_five"] += 1
 
         detail.append(
             {
@@ -101,7 +118,8 @@ def audit(rows: list[dict]) -> tuple[dict, list[dict]]:
                 "missing_tags": miss_tags,
                 "missing_category": miss_cat,
                 "missing_attribution": miss_attr,
-                "missing_contact_email": miss_email,
+                "missing_license": miss_license,
+                "missing_posting_frequency": miss_posting_freq,
             }
         )
     return counts, detail
@@ -128,11 +146,63 @@ def print_summary(counts: dict) -> None:
         f"  Missing attribution:   {counts['missing_attribution']:>5} ({pct(counts['missing_attribution'])})"
     )
     print(
-        f"  Missing contact email: {counts['missing_contact_email']:>5} ({pct(counts['missing_contact_email'])})"
+        f"  Missing license:       {counts['missing_license']:>5} ({pct(counts['missing_license'])})"
+    )
+    print(
+        f"  Missing posting freq:  {counts['missing_posting_frequency']:>5} ({pct(counts['missing_posting_frequency'])})"
     )
     print(
         f"  Missing desc+tags+cat: {counts['missing_all_core']:>5} ({pct(counts['missing_all_core'])})"
     )
+    print(
+        f"  Missing all 5 (above): {counts['missing_all_five']:>5} ({pct(counts['missing_all_five'])})"
+    )
+
+
+def create_graph(counts: dict, path: str) -> None:
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("\nError: matplotlib is required to generate a graph. Install with 'pip install matplotlib'.", file=sys.stderr)
+        return
+
+    total = counts["total"] or 1
+    
+    labels = [
+        "Description",
+        "Tags",
+        "Category",
+        "Attribution",
+        "License",
+        "Posting\nFreq",
+        "All 5 Core"
+    ]
+    
+    values = [
+        (counts["missing_description"] / total) * 100,
+        (counts["missing_tags"] / total) * 100,
+        (counts["missing_category"] / total) * 100,
+        (counts["missing_attribution"] / total) * 100,
+        (counts["missing_license"] / total) * 100,
+        (counts["missing_posting_frequency"] / total) * 100,
+        (counts["missing_all_five"] / total) * 100
+    ]
+
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(labels, values, color='skyblue')
+    plt.ylabel('Percentage Missing (%)')
+    plt.title('Missing Metadata Elements')
+    plt.xticks(rotation=45, ha='right')
+    plt.ylim(0, 105) # a bit of padding above 100%
+    
+    # Add percentage labels on top of the bars
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2, yval + 1.5, f'{yval:.1f}%', ha='center', va='bottom', fontsize=9)
+
+    plt.tight_layout()
+    plt.savefig(path)
+    print(f"\nSaved graph to {path}")
 
 
 def write_csv(path: str, detail: list[dict]) -> None:
@@ -156,6 +226,7 @@ def main() -> int:
         action="store_true",
         help="when writing CSV, only include datasets missing at least one field",
     )
+    p.add_argument("--graph", help="write a bar chart of missing percentages to this image path (e.g. out.png)")
     args = p.parse_args()
 
     rows = fetch_catalog(args.domain)
@@ -171,6 +242,10 @@ def main() -> int:
             ]
         write_csv(args.csv, out)
         print(f"\nWrote {len(out)} rows to {args.csv}")
+
+    if args.graph:
+        create_graph(counts, args.graph)
+
     return 0
 
 
