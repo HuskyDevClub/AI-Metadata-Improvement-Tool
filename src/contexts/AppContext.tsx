@@ -30,6 +30,8 @@ import {
     buildDatasetImprovementPrompt,
     buildNumberedCategoryList,
     buildRegenerateWithSuggestionsPrompt,
+    sanitizeInline,
+    sanitizeUntrusted,
     DEFAULT_CATEGORY_PROMPT,
     DEFAULT_COLUMN_PROMPT,
     DEFAULT_COLUMN_SUGGESTION_PROMPT,
@@ -598,10 +600,10 @@ export function AppProvider({ children }: {children: ReactNode}) {
         const sampleCount = String(getSampleCount(data));
         const effectiveRowCount = rowCountOverride ?? data.length;
         const prompt = template
-            .replace('{fileName}', name)
+            .replace('{fileName}', sanitizeInline(name))
             .replace('{rowCount}', String(effectiveRowCount))
-            .replace('{columnInfo}', columnInfo)
-            .replace('{sampleRows}', sampleRows)
+            .replace('{columnInfo}', sanitizeUntrusted(columnInfo))
+            .replace('{sampleRows}', sanitizeUntrusted(sampleRows))
             .replace('{sampleCount}', sampleCount);
         return appendPromptModifiers(prompt, modifier, customInstruction);
     }, [buildColumnInfo]);
@@ -651,14 +653,14 @@ export function AppProvider({ children }: {children: ReactNode}) {
             ? ((nonNullCount / info.totalCount) * 100).toFixed(1)
             : '0.0';
         const prompt = template
-            .replace(/\{columnName}/g, columnName)
-            .replace('{datasetDescription}', datasetDesc)
-            .replace('{columnStats}', statsText)
+            .replace(/\{columnName}/g, sanitizeInline(columnName))
+            .replace('{datasetDescription}', sanitizeUntrusted(datasetDesc))
+            .replace('{columnStats}', sanitizeUntrusted(statsText))
             .replace('{dataType}', info.type)
             .replace('{nonNullCount}', String(nonNullCount))
             .replace('{rowCount}', String(info.totalCount))
             .replace('{completenessPercent}', completenessPercent)
-            .replace('{sampleValues}', sampleValues)
+            .replace('{sampleValues}', sanitizeUntrusted(sampleValues))
             .replace('{nullCount}', String(info.nullCount));
         return appendPromptModifiers(prompt, modifier, customInstruction);
     }, []);
@@ -1171,33 +1173,18 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setRegeneratingDataset(true);
         setDatasetSuggestions([]);
         try {
-            const rowCount = importedRowCount || csvData.length;
-            const columnInfo = Object.entries(columnStats)
-                .map(([name, stats]) => `  ${name} — ${stats.type}`)
-                .join('\n');
-            const sampleCount = Math.min(5, csvData.length);
-            const sampleRows = csvData.slice(0, sampleCount);
-            const originalPrompt = `Generate a Brief Description for this government dataset following Washington State metadata guidance. The description should be approximately 100 words.
-
-Dataset Name: ${fileName}
-Number of Rows: ${rowCount}
-Columns (name — type):
-${columnInfo}
-
-Sample Data (first ${sampleCount} rows):
-${JSON.stringify(sampleRows, null, 2)}
-
-Your description MUST cover these elements in order:
-1. CONTENT & SIGNIFICANCE (first 2 sentences): What data this dataset contains, what each row represents, and why this data matters to the public.
-2. KEY FIELDS: Highlight the most important columns and what kind of information they provide. Reference specific values from the sample data when helpful.
-3. SCOPE: The geographic and/or temporal coverage, if inferable from the data.
-4. POTENTIAL USERS: Briefly note who would use this data (residents, researchers, journalists, businesses, agencies, etc.) and for what purpose.
-
-FORMAT RULES:
-- Write as a single cohesive paragraph (no bullet points, no headers)
-- Do not start with "This dataset contains..." — vary your opening
-- Do not include row counts or technical statistics in the description
-- Expand all acronyms found in column names or data values`;
+            // Route through the sanitized builder so dataset name/columns/cell
+            // values pass through fence-aware escaping before being fed back
+            // into the regenerate prompt.
+            const originalPrompt = buildDatasetPromptFromTemplate(
+                csvData,
+                fileName,
+                columnStats,
+                DEFAULT_DATASET_PROMPT,
+                '',
+                undefined,
+                importedRowCount || undefined,
+            );
 
             const prompt = buildRegenerateWithSuggestionsPrompt(originalPrompt, datasetSuggestions);
             let fullContent = '';
@@ -1215,7 +1202,7 @@ FORMAT RULES:
         } finally {
             setRegeneratingDataset(false);
         }
-    }, [csvData, fileName, columnStats, generatedResults.datasetDescription, datasetSuggestions, importedRowCount, openaiConfig, promptTemplates.systemPrompt, callOpenAIStream, addTokenUsage]);
+    }, [csvData, fileName, columnStats, generatedResults.datasetDescription, datasetSuggestions, importedRowCount, openaiConfig, promptTemplates.systemPrompt, callOpenAIStream, addTokenUsage, buildDatasetPromptFromTemplate]);
 
     const handleSuggestColumnImprovement = useCallback(async (columnName: string) => {
         const currentDesc = generatedResults.columnDescriptions[columnName];

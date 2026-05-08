@@ -91,8 +91,12 @@ export function buildSampleRows(data: CsvRow[], columns?: string[]): string {
     const displayCols = cols.slice(0, 15);
     const sampleData = data.slice(0, 5);
 
-    const truncate = (val: string, maxLen: number = 60): string =>
-        val.length > maxLen ? val.slice(0, maxLen - 3) + '...' : val;
+    const truncate = (val: string, maxLen: number = 60): string => {
+        // Collapse internal whitespace so an injected newline in one cell
+        // can't visually break the row apart and impersonate a new instruction.
+        const oneLine = val.replace(/\s+/g, ' ');
+        return oneLine.length > maxLen ? oneLine.slice(0, maxLen - 3) + '...' : oneLine;
+    };
 
     const header = displayCols.map(c => truncate(c)).join(' | ');
     const separator = displayCols.map(c => '-'.repeat(Math.min(c.length, 60))).join(' | ');
