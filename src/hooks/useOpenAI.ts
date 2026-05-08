@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { OpenAIConfig, TokenUsage } from '../types';
+import type { GenerationMode, OpenAIConfig, TokenUsage } from '../types';
 import { API_BASE_URL } from '../utils/config';
 import { assertResponseOk } from '../utils/api';
 
@@ -10,8 +10,11 @@ export function useOpenAI() {
             config: OpenAIConfig,
             systemPrompt: string,
             onChunk: (chunk: string) => void,
-            abortSignal?: AbortSignal
+            abortSignal?: AbortSignal,
+            mode: GenerationMode = 'default'
         ): Promise<{usage: TokenUsage; aborted: boolean}> => {
+            // The server resolves the model from the encrypted session config and
+            // .env fallbacks based on `mode`, so we don't send `model` here.
             const response = await fetch(`${API_BASE_URL}/api/openai/chat/stream`, {
                 method: 'POST',
                 headers: {
@@ -22,7 +25,7 @@ export function useOpenAI() {
                     systemPrompt,
                     baseURL: config.baseURL,
                     apiKey: config.apiKey,
-                    model: config.model,
+                    mode,
                 }),
                 signal: abortSignal,
             });

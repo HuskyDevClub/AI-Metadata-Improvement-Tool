@@ -114,7 +114,14 @@ interface AppContextType {
     isOpenAIConfigured: boolean;
     promptTemplates: PromptTemplates;
     setPromptTemplates: (templates: PromptTemplates) => void;
-    handleOpenAIConfigSave: (baseURL: string, apiKey: string, model: string) => Promise<void>;
+    handleOpenAIConfigSave: (
+        baseURL: string,
+        apiKey: string,
+        model: string,
+        modelConcise: string,
+        modelDetailed: string,
+        modelSuggest: string,
+    ) => Promise<void>;
     handleOpenAIConfigClear: () => Promise<void>;
 
     // Live data from data.wa.gov
@@ -238,12 +245,18 @@ export function AppProvider({ children }: {children: ReactNode}) {
         apiKey: '', // Always empty on the frontend after initial save
     });
     const [model, setModel] = useState<string>('');
+    const [modelConcise, setModelConcise] = useState<string>('');
+    const [modelDetailed, setModelDetailed] = useState<string>('');
+    const [modelSuggest, setModelSuggest] = useState<string>('');
 
     // Combined config for hooks that need the full OpenAIConfig
     const openaiConfig: OpenAIConfigType = useMemo(() => ({
         ...apiConfig,
         model,
-    }), [apiConfig, model]);
+        modelConcise,
+        modelDetailed,
+        modelSuggest,
+    }), [apiConfig, model, modelConcise, modelDetailed, modelSuggest]);
 
     const [promptTemplates, setPromptTemplatesState] = useState<PromptTemplates>(() => {
         const defaults: PromptTemplates = {
@@ -300,6 +313,9 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     if (session.isConfigured) {
                         setApiConfig({ baseURL: session.baseURL || '', apiKey: '' });
                         setModel(session.model || '');
+                        setModelConcise(session.modelConcise || '');
+                        setModelDetailed(session.modelDetailed || '');
+                        setModelSuggest(session.modelSuggest || '');
                     }
                 }
             })
@@ -669,13 +685,14 @@ export function AppProvider({ children }: {children: ReactNode}) {
         ): Promise<{content: string; aborted: boolean}> => {
             const prompt = buildDatasetPrompt(data, name, stats, modifier, customInstruction, importedRowCount || undefined);
             let fullContent = '';
+            const mode = modifier === '' ? 'default' : modifier;
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 setGeneratedResults((prev) => ({
                     ...prev,
                     datasetDescription: fullContent,
                 }));
-            }, abortSignal);
+            }, abortSignal, mode);
             addTokenUsage(result.usage);
             return { content: fullContent, aborted: result.aborted };
         },
@@ -694,13 +711,14 @@ export function AppProvider({ children }: {children: ReactNode}) {
         ): Promise<{content: string; aborted: boolean}> => {
             const prompt = buildColumnPrompt(columnName, info, datasetDesc, columnValues, modifier, customInstruction);
             let fullContent = '';
+            const mode = modifier === '' ? 'default' : modifier;
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 setGeneratedResults((prev) => ({
                     ...prev,
                     columnDescriptions: { ...prev.columnDescriptions, [columnName]: fullContent },
                 }));
-            }, abortSignal);
+            }, abortSignal, mode);
             addTokenUsage(result.usage);
             return { content: fullContent, aborted: result.aborted };
         },
@@ -1111,7 +1129,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 setDatasetSuggestions(parseSuggestions(fullContent));
-            });
+            }, undefined, 'suggest');
             addTokenUsage(result.usage);
             setStatus({ message: 'Suggestions ready for dataset description.', type: 'success' });
         } catch (error) {
@@ -1210,7 +1228,7 @@ FORMAT RULES:
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 setColumnSuggestions((prev) => ({ ...prev, [columnName]: parseSuggestions(fullContent) }));
-            });
+            }, undefined, 'suggest');
             addTokenUsage(result.usage);
             setStatus({ message: `Suggestions ready for column "${columnName}".`, type: 'success' });
         } catch (error) {
@@ -1641,12 +1659,22 @@ FORMAT RULES:
     }, [handleSocrataImport]);
 
     const handleOpenAIConfigSave = useCallback(
-        async (baseURL: string, apiKey: string, model: string) => {
+        async (
+            baseURL: string,
+            apiKey: string,
+            model: string,
+            modelConcise: string,
+            modelDetailed: string,
+            modelSuggest: string,
+        ) => {
             try {
-                await saveOpenAIConfig(baseURL, apiKey, model);
+                await saveOpenAIConfig(baseURL, apiKey, model, modelConcise, modelDetailed, modelSuggest);
                 setIsOpenAIConfigured(true);
                 setApiConfig({ baseURL, apiKey: '' }); // Don't keep key in memory
                 setModel(model);
+                setModelConcise(modelConcise);
+                setModelDetailed(modelDetailed);
+                setModelSuggest(modelSuggest);
                 setStatus({ message: 'OpenAI configuration saved', type: 'success' });
             } catch (error) {
                 const detail = error instanceof Error ? error.message : 'Unknown error';
@@ -1662,6 +1690,9 @@ FORMAT RULES:
             setIsOpenAIConfigured(false);
             setApiConfig({ baseURL: '', apiKey: '' });
             setModel('');
+            setModelConcise('');
+            setModelDetailed('');
+            setModelSuggest('');
             setStatus({ message: 'OpenAI configuration cleared', type: 'success' });
         } catch (error) {
             const detail = error instanceof Error ? error.message : 'Unknown error';

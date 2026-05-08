@@ -15,6 +15,7 @@ class ChatRequest(BaseModel):
     model: str | None = None  # Falls back to LLM_MODEL env var
     baseURL: str | None = None  # Falls back to LLM_ENDPOINT env var
     apiKey: str | None = None  # Falls back to LLM_API_KEY env var
+    mode: Literal["default", "concise", "detailed", "suggest"] | None = None
 
 
 # ============================================================================
@@ -212,6 +213,9 @@ class OpenAIConfigRequest(BaseModel):
     baseURL: str = Field(..., max_length=1024)
     apiKey: str = Field(..., max_length=1024)
     model: str = Field(..., max_length=256)
+    modelConcise: str | None = Field(default=None, max_length=256)
+    modelDetailed: str | None = Field(default=None, max_length=256)
+    modelSuggest: str | None = Field(default=None, max_length=256)
 
 
 class OpenAISessionResponse(BaseModel):
@@ -223,3 +227,6 @@ class OpenAISessionResponse(BaseModel):
     isConfigured: bool
     baseURL: str | None = None
     model: str | None = None
+    modelConcise: str | None = None
+    modelDetailed: str | None = None
+    modelSuggest: str | None = None

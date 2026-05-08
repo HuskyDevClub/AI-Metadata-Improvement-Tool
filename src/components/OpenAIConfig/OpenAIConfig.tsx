@@ -5,7 +5,14 @@ import './OpenAIConfig.css';
 interface OpenAIConfigProps {
     config: OpenAIConfigType;
     isConfigured: boolean;
-    onSave: (baseURL: string, apiKey: string, model: string) => Promise<void>;
+    onSave: (
+        baseURL: string,
+        apiKey: string,
+        model: string,
+        modelConcise: string,
+        modelDetailed: string,
+        modelSuggest: string,
+    ) => Promise<void>;
     onClear?: () => void;
     showModel?: boolean;
 }
@@ -20,6 +27,9 @@ export function OpenAIConfig({
     const [baseURLInput, setBaseURLInput] = useState(config.baseURL);
     const [apiKeyInput, setApiKeyInput] = useState('');
     const [modelInput, setModelInput] = useState(config.model);
+    const [modelConciseInput, setModelConciseInput] = useState(config.modelConcise ?? '');
+    const [modelDetailedInput, setModelDetailedInput] = useState(config.modelDetailed ?? '');
+    const [modelSuggestInput, setModelSuggestInput] = useState(config.modelSuggest ?? '');
     const [showApiKey, setShowApiKey] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [justSaved, setJustSaved] = useState(false);
@@ -27,7 +37,10 @@ export function OpenAIConfig({
     const dirty =
         baseURLInput !== config.baseURL ||
         apiKeyInput !== '' ||
-        modelInput !== config.model;
+        modelInput !== config.model ||
+        modelConciseInput !== (config.modelConcise ?? '') ||
+        modelDetailedInput !== (config.modelDetailed ?? '') ||
+        modelSuggestInput !== (config.modelSuggest ?? '');
 
     const canSave =
         !isSaving &&
@@ -43,6 +56,9 @@ export function OpenAIConfig({
                 baseURLInput.trim(),
                 apiKeyInput.trim(),
                 modelInput.trim(),
+                modelConciseInput.trim(),
+                modelDetailedInput.trim(),
+                modelSuggestInput.trim(),
             );
             setApiKeyInput('');
             setJustSaved(true);
@@ -124,7 +140,47 @@ export function OpenAIConfig({
                             value={modelInput}
                             onChange={(e) => setModelInput(e.target.value)}
                         />
-                        <span className="openai-config-help-text">Model name (e.g., gpt-5, gpt-4o, gpt-4-turbo)</span>
+                        <span className="openai-config-help-text">Default model used for initial generation, titles, tags, etc.</span>
+                    </div>
+                )}
+                {showModel && (
+                    <div className="openai-config-input-group">
+                        <label htmlFor="openaiModelConcise">Model — Concise regenerate</label>
+                        <input
+                            id="openaiModelConcise"
+                            type="text"
+                            placeholder={modelInput || 'falls back to default model'}
+                            value={modelConciseInput}
+                            onChange={(e) => setModelConciseInput(e.target.value)}
+                        />
+                        <span className="openai-config-help-text">Optional override when regenerating with the "Concise" modifier.</span>
+                    </div>
+                )}
+                {showModel && (
+                    <div className="openai-config-input-group">
+                        <label htmlFor="openaiModelDetailed">Model — Detailed regenerate</label>
+                        <input
+                            id="openaiModelDetailed"
+                            type="text"
+                            placeholder={modelInput || 'falls back to default model'}
+                            value={modelDetailedInput}
+                            onChange={(e) => setModelDetailedInput(e.target.value)}
+                        />
+                        <span className="openai-config-help-text">Optional override when regenerating with the "Detailed" modifier.</span>
+                    </div>
+                )}
+                {showModel && (
+                    <div className="openai-config-input-group">
+                        <label htmlFor="openaiModelSuggest">Model — Suggest improvements</label>
+                        <input
+                            id="openaiModelSuggest"
+                            type="text"
+                            placeholder={modelInput || 'falls back to default model'}
+                            value={modelSuggestInput}
+                            onChange={(e) => setModelSuggestInput(e.target.value)}
+                        />
+                        <span
+                            className="openai-config-help-text">Optional override for "Suggest Improvement" calls.</span>
                     </div>
                 )}
             </div>

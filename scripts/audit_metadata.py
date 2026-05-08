@@ -78,9 +78,9 @@ def audit(rows: list[dict]) -> tuple[dict, list[dict]]:
         tags = cls.get("domain_tags") or cls.get("tags") or []
         category = cls.get("domain_category")
         attribution = (res.get("attribution") or "").strip()
-        
+
         license_name = (meta.get("license") or "").strip()
-        
+
         posting_freq = ""
         domain_metadata = cls.get("domain_metadata") or []
         for dm in domain_metadata:
@@ -101,10 +101,10 @@ def audit(rows: list[dict]) -> tuple[dict, list[dict]]:
         counts["missing_attribution"] += miss_attr
         counts["missing_license"] += miss_license
         counts["missing_posting_frequency"] += miss_posting_freq
-        
+
         if miss_desc and miss_tags and miss_cat:
             counts["missing_all_core"] += 1
-            
+
         if miss_desc and miss_tags and miss_cat and miss_license and miss_posting_freq:
             counts["missing_all_five"] += 1
 
@@ -162,11 +162,14 @@ def create_graph(counts: dict, path: str) -> None:
     try:
         import matplotlib.pyplot as plt
     except ImportError:
-        print("\nError: matplotlib is required to generate a graph. Install with 'pip install matplotlib'.", file=sys.stderr)
+        print(
+            "\nError: matplotlib is required to generate a graph. Install with 'pip install matplotlib'.",
+            file=sys.stderr,
+        )
         return
 
     total = counts["total"] or 1
-    
+
     labels = [
         "Description",
         "Tags",
@@ -174,9 +177,9 @@ def create_graph(counts: dict, path: str) -> None:
         "Attribution",
         "License",
         "Posting\nFreq",
-        "All 5 Core"
+        "All 5 Core",
     ]
-    
+
     values = [
         (counts["missing_description"] / total) * 100,
         (counts["missing_tags"] / total) * 100,
@@ -184,20 +187,27 @@ def create_graph(counts: dict, path: str) -> None:
         (counts["missing_attribution"] / total) * 100,
         (counts["missing_license"] / total) * 100,
         (counts["missing_posting_frequency"] / total) * 100,
-        (counts["missing_all_five"] / total) * 100
+        (counts["missing_all_five"] / total) * 100,
     ]
 
     plt.figure(figsize=(10, 6))
-    bars = plt.bar(labels, values, color='skyblue')
-    plt.ylabel('Percentage Missing (%)')
-    plt.title('Missing Metadata Elements')
-    plt.xticks(rotation=45, ha='right')
-    plt.ylim(0, 105) # a bit of padding above 100%
-    
+    bars = plt.bar(labels, values, color="skyblue")
+    plt.ylabel("Percentage Missing (%)")
+    plt.title("Missing Metadata Elements")
+    plt.xticks(rotation=45, ha="right")
+    plt.ylim(0, 105)  # a bit of padding above 100%
+
     # Add percentage labels on top of the bars
     for bar in bars:
         yval = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2, yval + 1.5, f'{yval:.1f}%', ha='center', va='bottom', fontsize=9)
+        plt.text(
+            bar.get_x() + bar.get_width() / 2,
+            yval + 1.5,
+            f"{yval:.1f}%",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
 
     plt.tight_layout()
     plt.savefig(path)
@@ -225,7 +235,10 @@ def main() -> int:
         action="store_true",
         help="when writing CSV, only include datasets missing at least one field",
     )
-    p.add_argument("--graph", help="write a bar chart of missing percentages to this image path (e.g. out.png)")
+    p.add_argument(
+        "--graph",
+        help="write a bar chart of missing percentages to this image path (e.g. out.png)",
+    )
     args = p.parse_args()
 
     rows = fetch_catalog(args.domain)

@@ -3,8 +3,13 @@ export interface APIConfig {
     apiKey: string;
 }
 
+export type GenerationMode = 'default' | 'concise' | 'detailed' | 'suggest';
+
 export interface OpenAIConfig extends APIConfig {
     model: string;
+    modelConcise?: string;
+    modelDetailed?: string;
+    modelSuggest?: string;
 }
 
 export interface NumericStats {

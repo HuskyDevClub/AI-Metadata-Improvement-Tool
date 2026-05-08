@@ -21,7 +21,7 @@ export function SettingsPage() {
         <div className="settings-page">
             <div className="settings-page-section">
                 <OpenAIConfig
-                    key={`${openaiConfig.baseURL}-${isOpenAIConfigured}-${openaiConfig.model}`}
+                    key={`${openaiConfig.baseURL}-${isOpenAIConfigured}-${openaiConfig.model}-${openaiConfig.modelConcise ?? ''}-${openaiConfig.modelDetailed ?? ''}-${openaiConfig.modelSuggest ?? ''}`}
                     config={openaiConfig}
                     isConfigured={isOpenAIConfigured}
                     onSave={handleOpenAIConfigSave}

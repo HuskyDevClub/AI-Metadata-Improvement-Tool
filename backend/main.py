@@ -68,6 +68,9 @@ SOCRATA_OAUTH_REDIRECT_URI = os.getenv(
 LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
+LLM_MODEL_CONCISE = os.getenv("LLM_MODEL_CONCISE", "")
+LLM_MODEL_DETAILED = os.getenv("LLM_MODEL_DETAILED", "")
+LLM_MODEL_SUGGEST = os.getenv("LLM_MODEL_SUGGEST", "")
 # Secret for signing OAuth state tokens (used to prevent CSRF).
 # Generated fresh on every server start — if the server restarts, users simply
 # re-initiate the OAuth flow.  This is stronger than deriving from SOCRATA_SECRET_TOKEN.
@@ -473,6 +476,9 @@ async def openai_session(request: Request) -> OpenAISessionResponse:
         isConfigured=True,
         baseURL=config.get("baseURL"),
         model=config.get("model"),
+        modelConcise=config.get("modelConcise") or None,
+        modelDetailed=config.get("modelDetailed") or None,
+        modelSuggest=config.get("modelSuggest") or None,
     )
 
 
@@ -493,6 +499,9 @@ async def openai_config_save(
                 "baseURL": body.baseURL.strip(),
                 "apiKey": body.apiKey.strip(),
                 "model": body.model.strip(),
+                "modelConcise": (body.modelConcise or "").strip(),
+                "modelDetailed": (body.modelDetailed or "").strip(),
+                "modelSuggest": (body.modelSuggest or "").strip(),
             }
         },
     )
@@ -1338,7 +1347,16 @@ async def openai_chat_stream(
 
     base_url = request.baseURL or config.get("baseURL") or LLM_ENDPOINT
     api_key = request.apiKey or config.get("apiKey") or LLM_API_KEY
-    model = request.model or config.get("model") or LLM_MODEL
+
+    # Per-mode override priority: session config → .env. Mode falls back to the
+    # default model when no override is set for that mode.
+    mode_overrides = {
+        "concise": (config.get("modelConcise") or "").strip() or LLM_MODEL_CONCISE,
+        "detailed": (config.get("modelDetailed") or "").strip() or LLM_MODEL_DETAILED,
+        "suggest": (config.get("modelSuggest") or "").strip() or LLM_MODEL_SUGGEST,
+    }
+    mode_model = mode_overrides.get(request.mode or "", "")
+    model = request.model or mode_model or config.get("model") or LLM_MODEL
 
     # Validate configuration
     missing_config = []
