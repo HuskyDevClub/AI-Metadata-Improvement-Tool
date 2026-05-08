@@ -33,6 +33,9 @@ interface DatasetDescriptionProps {
     onEditSuggestion: (id: string, text: string) => void;
     onAddSuggestion: (text: string) => void;
     onApplySuggestions: () => void;
+    pendingDescription?: string | null;
+    onAcceptPending?: () => void;
+    onDiscardPending?: () => void;
     rowLabel?: string;
     onEditRowLabel?: (newLabel: string) => void;
     onGenerateRowLabel?: () => void;
@@ -76,6 +79,9 @@ export function DatasetDescription({
                                        onEditSuggestion,
                                        onAddSuggestion,
                                        onApplySuggestions,
+                                       pendingDescription = null,
+                                       onAcceptPending,
+                                       onDiscardPending,
                                        rowLabel = '',
                                        onEditRowLabel,
                                        onGenerateRowLabel,
@@ -201,6 +207,9 @@ export function DatasetDescription({
                     onEditSuggestion={onEditSuggestion}
                     onAddSuggestion={onAddSuggestion}
                     onApplySuggestions={onApplySuggestions}
+                    pendingDescription={pendingDescription}
+                    onAcceptPending={onAcceptPending}
+                    onDiscardPending={onDiscardPending}
                 />
 
                 {onEditRowLabel && (

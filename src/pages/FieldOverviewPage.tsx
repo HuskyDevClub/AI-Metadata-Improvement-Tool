@@ -27,6 +27,9 @@ export function FieldOverviewPage() {
         handleEditColumnSuggestion,
         handleAddColumnSuggestion,
         handleApplyColumnSuggestions,
+        pendingColumnDescriptions,
+        handleAcceptPendingColumn,
+        handleDiscardPendingColumn,
         renderTokenUsage,
     } = useAppContext();
 
@@ -189,6 +192,13 @@ export function FieldOverviewPage() {
                     onEditSuggestion={(id, text) => handleEditColumnSuggestion(fieldName, id, text)}
                     onAddSuggestion={(text) => handleAddColumnSuggestion(fieldName, text)}
                     onApplySuggestions={() => handleApplyColumnSuggestions(fieldName)}
+                    pendingDescription={
+                        Object.prototype.hasOwnProperty.call(pendingColumnDescriptions, fieldName)
+                            ? pendingColumnDescriptions[fieldName]
+                            : null
+                    }
+                    onAcceptPending={() => handleAcceptPendingColumn(fieldName)}
+                    onDiscardPending={() => handleDiscardPendingColumn(fieldName)}
                 />
             </div>
 

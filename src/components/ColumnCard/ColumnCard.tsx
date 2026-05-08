@@ -20,6 +20,9 @@ interface ColumnCardProps {
     onEditSuggestion: (id: string, text: string) => void;
     onAddSuggestion: (text: string) => void;
     onApplySuggestions: () => void;
+    pendingDescription?: string | null;
+    onAcceptPending?: () => void;
+    onDiscardPending?: () => void;
 }
 
 export function ColumnCard({
@@ -38,6 +41,9 @@ export function ColumnCard({
                                onEditSuggestion,
                                onAddSuggestion,
                                onApplySuggestions,
+                               pendingDescription = null,
+                               onAcceptPending,
+                               onDiscardPending,
                            }: ColumnCardProps) {
 
     return (
@@ -62,6 +68,9 @@ export function ColumnCard({
                 onEditSuggestion={onEditSuggestion}
                 onAddSuggestion={onAddSuggestion}
                 onApplySuggestions={onApplySuggestions}
+                pendingDescription={pendingDescription}
+                onAcceptPending={onAcceptPending}
+                onDiscardPending={onDiscardPending}
             />
         </div>
     );

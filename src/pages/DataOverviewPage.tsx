@@ -24,6 +24,9 @@ export function DataOverviewPage() {
         handleEditDatasetSuggestion,
         handleAddDatasetSuggestion,
         handleApplyDatasetSuggestions,
+        pendingDatasetDescription,
+        handleAcceptPendingDataset,
+        handleDiscardPendingDataset,
         handleGenerateSelectedDescriptions,
         handleEditRowLabel,
         handleGenerateRowLabel,
@@ -97,6 +100,9 @@ export function DataOverviewPage() {
                     onEditSuggestion={handleEditDatasetSuggestion}
                     onAddSuggestion={handleAddDatasetSuggestion}
                     onApplySuggestions={handleApplyDatasetSuggestions}
+                    pendingDescription={pendingDatasetDescription}
+                    onAcceptPending={handleAcceptPendingDataset}
+                    onDiscardPending={handleDiscardPendingDataset}
                     rowLabel={generatedResults.rowLabel}
                     onEditRowLabel={handleEditRowLabel}
                     onGenerateRowLabel={handleGenerateRowLabel}

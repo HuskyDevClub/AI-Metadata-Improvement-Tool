@@ -494,3 +494,90 @@
     gap: 6px;
     font-size: 12px;
 }
+
+/* ── Pending replacement preview ── */
+
+.ed-pending {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    background: var(--surface-secondary);
+}
+
+.ed-pending-block {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.ed-pending-current {
+    background: var(--surface-tertiary);
+}
+
+.ed-pending-new {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
+}
+
+.ed-pending-current .ed-pending-text {
+    color: #334155;
+}
+
+.ed-pending-new .ed-pending-text {
+    color: var(--text);
+}
+
+.ed-pending-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+}
+
+.ed-pending-new .ed-pending-label {
+    color: var(--accent);
+}
+
+.ed-pending-text {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-size: 14px;
+    white-space: pre-wrap;
+}
+
+.ed-pending-empty {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+.ed-pending-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.ed-compact .ed-pending {
+    padding: 8px;
+    gap: 6px;
+}
+
+.ed-compact .ed-pending-block {
+    padding: 6px 8px;
+}
+
+.ed-compact .ed-pending-text {
+    font-size: 12px;
+}
+
+.ed-compact .ed-pending-actions .ed-btn-primary,
+.ed-compact .ed-pending-actions .ed-btn-secondary {
+    padding: 4px 10px;
+    font-size: 12px;
+}

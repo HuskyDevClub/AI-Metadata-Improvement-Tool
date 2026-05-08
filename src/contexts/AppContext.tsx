@@ -30,8 +30,6 @@ import {
     buildDatasetImprovementPrompt,
     buildNumberedCategoryList,
     buildRegenerateWithSuggestionsPrompt,
-    sanitizeInline,
-    sanitizeUntrusted,
     DEFAULT_CATEGORY_PROMPT,
     DEFAULT_COLUMN_PROMPT,
     DEFAULT_COLUMN_SUGGESTION_PROMPT,
@@ -44,6 +42,8 @@ import {
     DEFAULT_TAGS_PROMPT,
     parseCategoryIndex,
     parseTagsFromResponse,
+    sanitizeInline,
+    sanitizeUntrusted,
     type SuggestionItem,
 } from '../utils/prompts';
 import type {
@@ -175,6 +175,12 @@ interface AppContextType {
     handleStop: () => void;
     handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
     handleRegenerateColumn: (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
+    pendingDatasetDescription: string | null;
+    pendingColumnDescriptions: Record<string, string>;
+    handleAcceptPendingDataset: () => void;
+    handleDiscardPendingDataset: () => void;
+    handleAcceptPendingColumn: (columnName: string) => void;
+    handleDiscardPendingColumn: (columnName: string) => void;
     handleGenerateSelectedDescriptions: (selectedColumns: string[]) => Promise<void>;
     handleSuggestDatasetImprovement: () => Promise<void>;
     handleDismissDatasetSuggestions: () => void;
@@ -375,6 +381,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const [datasetSuggestions, setDatasetSuggestions] = useState<SuggestionItem[]>([]);
     const [suggestingColumns, setSuggestingColumns] = useState<Set<string>>(new Set());
     const [columnSuggestions, setColumnSuggestions] = useState<Record<string, SuggestionItem[]>>({});
+    const [pendingDatasetDescription, setPendingDatasetDescription] = useState<string | null>(null);
+    const [pendingColumnDescriptions, setPendingColumnDescriptions] = useState<Record<string, string>>({});
     const [tokenUsage, setTokenUsage] = useState<TokenUsage>({
         promptTokens: 0,
         completionTokens: 0,
@@ -448,6 +456,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setDatasetSuggestions([]);
         setSuggestingColumns(new Set());
         setColumnSuggestions({});
+        setPendingDatasetDescription(null);
+        setPendingColumnDescriptions({});
         setIsGeneratingEmpty(false);
         setGeneratingRowLabel(false);
         setGeneratingDatasetTitle(false);
@@ -1035,11 +1045,28 @@ export function AppProvider({ children }: {children: ReactNode}) {
         async (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
             if (!csvData) return;
             setRegeneratingDataset(true);
+            setPendingDatasetDescription('');
             try {
-                const result = await generateDatasetDescription(csvData, fileName, columnStats, modifier, customInstruction);
-                setGeneratedResults((prev) => ({ ...prev, datasetDescription: result.content }));
-                setStatus({ message: 'Successfully regenerated dataset description!', type: 'success' });
+                const prompt = buildDatasetPrompt(
+                    csvData, fileName, columnStats, modifier, customInstruction, importedRowCount || undefined,
+                );
+                const mode = modifier === '' ? 'default' : modifier;
+                let fullContent = '';
+                const result = await callOpenAIStream(
+                    prompt, openaiConfig, promptTemplates.systemPrompt,
+                    (chunk) => {
+                        fullContent += chunk;
+                        setPendingDatasetDescription(fullContent);
+                    },
+                    undefined, mode,
+                );
+                addTokenUsage(result.usage);
+                setStatus({
+                    message: 'New description ready — review and keep or discard.',
+                    type: 'success',
+                });
             } catch (error) {
+                setPendingDatasetDescription(null);
                 setStatus({
                     message: `Error regenerating: ${error instanceof Error ? error.message : 'Unknown error'}`,
                     type: 'error'
@@ -1048,24 +1075,40 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setRegeneratingDataset(false);
             }
         },
-        [csvData, fileName, columnStats, generateDatasetDescription]
+        [csvData, fileName, columnStats, importedRowCount, openaiConfig, promptTemplates.systemPrompt, buildDatasetPrompt, callOpenAIStream, addTokenUsage]
     );
 
     const handleRegenerateColumn = useCallback(
         async (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
             setRegeneratingColumns((prev) => new Set(prev).add(columnName));
+            setPendingColumnDescriptions((prev) => ({ ...prev, [columnName]: '' }));
             try {
                 const info = columnStats[columnName];
                 const colValues = csvData?.map(row => row[columnName]);
-                const result = await generateColumnDescription(
-                    columnName, info, generatedResults.datasetDescription, colValues, modifier, customInstruction
+                const prompt = buildColumnPrompt(
+                    columnName, info, generatedResults.datasetDescription, colValues, modifier, customInstruction,
                 );
-                setGeneratedResults((prev) => ({
-                    ...prev,
-                    columnDescriptions: { ...prev.columnDescriptions, [columnName]: result.content },
-                }));
-                setStatus({ message: `Successfully regenerated column "${columnName}" description!`, type: 'success' });
+                const mode = modifier === '' ? 'default' : modifier;
+                let fullContent = '';
+                const result = await callOpenAIStream(
+                    prompt, openaiConfig, promptTemplates.systemPrompt,
+                    (chunk) => {
+                        fullContent += chunk;
+                        setPendingColumnDescriptions((prev) => ({ ...prev, [columnName]: fullContent }));
+                    },
+                    undefined, mode,
+                );
+                addTokenUsage(result.usage);
+                setStatus({
+                    message: `New "${columnName}" description ready — review and keep or discard.`,
+                    type: 'success',
+                });
             } catch (error) {
+                setPendingColumnDescriptions((prev) => {
+                    const next = { ...prev };
+                    delete next[columnName];
+                    return next;
+                });
                 handleRegenerationError(error, setStatus);
             } finally {
                 setRegeneratingColumns((prev) => {
@@ -1075,7 +1118,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 });
             }
         },
-        [csvData, columnStats, generatedResults.datasetDescription, generateColumnDescription]
+        [csvData, columnStats, generatedResults.datasetDescription, openaiConfig, promptTemplates.systemPrompt, buildColumnPrompt, callOpenAIStream, addTokenUsage]
     );
 
     const handleGenerateSelectedDescriptions = useCallback(async (selectedColumns: string[]) => {
@@ -1172,6 +1215,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         if (!currentDesc || !csvData) return;
         setRegeneratingDataset(true);
         setDatasetSuggestions([]);
+        setPendingDatasetDescription('');
         try {
             // Route through the sanitized builder so dataset name/columns/cell
             // values pass through fence-aware escaping before being fed back
@@ -1190,11 +1234,15 @@ export function AppProvider({ children }: {children: ReactNode}) {
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                setGeneratedResults((prev) => ({ ...prev, datasetDescription: fullContent }));
+                setPendingDatasetDescription(fullContent);
             });
             addTokenUsage(result.usage);
-            setStatus({ message: 'Description updated with suggestions!', type: 'success' });
+            setStatus({
+                message: 'New description ready — review and keep or discard.',
+                type: 'success',
+            });
         } catch (error) {
+            setPendingDatasetDescription(null);
             setStatus({
                 message: `Error applying suggestions: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 type: 'error'
@@ -1282,6 +1330,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             delete next[columnName];
             return next;
         });
+        setPendingColumnDescriptions((prev) => ({ ...prev, [columnName]: '' }));
         try {
             const originalPrompt = buildColumnPrompt(
                 columnName, info, generatedResults.datasetDescription || '', colValues, '', undefined
@@ -1290,14 +1339,19 @@ export function AppProvider({ children }: {children: ReactNode}) {
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                setGeneratedResults((prev) => ({
-                    ...prev,
-                    columnDescriptions: { ...prev.columnDescriptions, [columnName]: fullContent },
-                }));
+                setPendingColumnDescriptions((prev) => ({ ...prev, [columnName]: fullContent }));
             });
             addTokenUsage(result.usage);
-            setStatus({ message: `Column "${columnName}" updated with suggestions!`, type: 'success' });
+            setStatus({
+                message: `New "${columnName}" description ready — review and keep or discard.`,
+                type: 'success',
+            });
         } catch (error) {
+            setPendingColumnDescriptions((prev) => {
+                const next = { ...prev };
+                delete next[columnName];
+                return next;
+            });
             handleRegenerationError(error, setStatus);
         } finally {
             setRegeneratingColumns((prev) => {
@@ -1310,6 +1364,42 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const handleEditDatasetDescription = useCallback((newDescription: string) => {
         setGeneratedResults((prev) => ({ ...prev, datasetDescription: newDescription }));
+    }, []);
+
+    const handleAcceptPendingDataset = useCallback(() => {
+        setPendingDatasetDescription((pending) => {
+            if (pending !== null) {
+                setGeneratedResults((prev) => ({ ...prev, datasetDescription: pending }));
+            }
+            return null;
+        });
+    }, []);
+
+    const handleDiscardPendingDataset = useCallback(() => {
+        setPendingDatasetDescription(null);
+    }, []);
+
+    const handleAcceptPendingColumn = useCallback((columnName: string) => {
+        setPendingColumnDescriptions((prev) => {
+            const pending = prev[columnName];
+            if (pending !== undefined) {
+                setGeneratedResults((res) => ({
+                    ...res,
+                    columnDescriptions: { ...res.columnDescriptions, [columnName]: pending },
+                }));
+            }
+            const next = { ...prev };
+            delete next[columnName];
+            return next;
+        });
+    }, []);
+
+    const handleDiscardPendingColumn = useCallback((columnName: string) => {
+        setPendingColumnDescriptions((prev) => {
+            const next = { ...prev };
+            delete next[columnName];
+            return next;
+        });
     }, []);
 
     const handleEditColumnDescription = useCallback((columnName: string, newDescription: string) => {
@@ -1826,6 +1916,12 @@ export function AppProvider({ children }: {children: ReactNode}) {
         handleStop,
         handleRegenerateDataset,
         handleRegenerateColumn,
+        pendingDatasetDescription,
+        pendingColumnDescriptions,
+        handleAcceptPendingDataset,
+        handleDiscardPendingDataset,
+        handleAcceptPendingColumn,
+        handleDiscardPendingColumn,
         handleGenerateSelectedDescriptions,
         handleSuggestDatasetImprovement,
         handleDismissDatasetSuggestions,

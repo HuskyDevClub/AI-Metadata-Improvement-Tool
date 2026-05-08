@@ -19,6 +19,9 @@ interface EditableDescriptionProps {
     onEditSuggestion?: (id: string, text: string) => void;
     onAddSuggestion?: (text: string) => void;
     onApplySuggestions?: () => void;
+    pendingDescription?: string | null;
+    onAcceptPending?: () => void;
+    onDiscardPending?: () => void;
 }
 
 export function EditableDescription({
@@ -38,6 +41,9 @@ export function EditableDescription({
                                         onEditSuggestion,
                                         onAddSuggestion,
                                         onApplySuggestions,
+                                        pendingDescription = null,
+                                        onAcceptPending,
+                                        onDiscardPending,
                                     }: EditableDescriptionProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(description);
@@ -91,6 +97,8 @@ export function EditableDescription({
     const isBusy = isRegenerating || isSuggesting;
     const cls = compact ? 'ed ed-compact' : 'ed';
 
+    const hasPending = pendingDescription !== null;
+
     return (
         <div className={cls}>
             {isEditing ? (
@@ -106,6 +114,40 @@ export function EditableDescription({
                         </button>
                         <button className="ed-btn-secondary" onClick={handleCancel}>
                             Cancel
+                        </button>
+                    </div>
+                </div>
+            ) : hasPending ? (
+                <div className="ed-pending">
+                    <div className="ed-pending-block ed-pending-current">
+                        <div className="ed-pending-label">Current</div>
+                        <p className="ed-pending-text">
+                            {description || <em className="ed-pending-empty">No description</em>}
+                        </p>
+                    </div>
+                    <div className="ed-pending-block ed-pending-new">
+                        <div className="ed-pending-label">New</div>
+                        <p className="ed-pending-text">
+                            {pendingDescription || (isRegenerating ? '' : <em className="ed-pending-empty">Empty</em>)}
+                            {isRegenerating && <span className="ed-cursor">|</span>}
+                        </p>
+                    </div>
+                    <div className="ed-pending-actions">
+                        <button
+                            className="ed-btn-primary"
+                            onClick={onAcceptPending}
+                            disabled={isRegenerating || !onAcceptPending}
+                            title="Replace the current description with the new one"
+                        >
+                            Keep new
+                        </button>
+                        <button
+                            className="ed-btn-secondary"
+                            onClick={onDiscardPending}
+                            disabled={isRegenerating || !onDiscardPending}
+                            title="Discard the new description and keep the current one"
+                        >
+                            Discard
                         </button>
                     </div>
                 </div>
