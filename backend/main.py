@@ -491,13 +491,28 @@ async def openai_config_save(
     body: OpenAIConfigRequest, request: Request, response: Response
 ) -> Response:
     """Store OpenAI configuration in the encrypted session cookie."""
+    # An empty apiKey on update means "preserve the existing one" — the front-end
+    # never echoes the saved key back, so re-saving after editing the model alone
+    # would otherwise blank it out and leave a custom model paired with the
+    # server's fallback LLM_API_KEY.
+    session = _read_session(request)
+    existing = session.get("openai_config") or {}
+    new_api_key = body.apiKey.strip()
+    if not new_api_key:
+        new_api_key = (existing.get("apiKey") or "").strip()
+        if not new_api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="API Key is required to save configuration.",
+            )
+
     _update_session(
         request,
         response,
         {
             "openai_config": {
                 "baseURL": body.baseURL.strip(),
-                "apiKey": body.apiKey.strip(),
+                "apiKey": new_api_key,
                 "model": body.model.strip(),
                 "modelConcise": (body.modelConcise or "").strip(),
                 "modelDetailed": (body.modelDetailed or "").strip(),
@@ -1338,25 +1353,60 @@ async def socrata_tags(category: str = "") -> SocrataTagsResponse:
 async def openai_chat_stream(
     request: ChatRequest, http_request: Request
 ) -> StreamingResponse:
-    # Resolve configuration. Priority:
-    # 1. Explicit request payload (from UI)
-    # 2. Encrypted session cookie
-    # 3. Server environment variables
+    # Resolve configuration in tiers, binding credentials and model to the SAME
+    # source so the server's LLM_API_KEY can never be paired with an arbitrary
+    # user-chosen model or upstream endpoint:
+    #   Tier 1 — request body (user supplied apiKey inline this call)
+    #   Tier 2 — encrypted session cookie (user previously saved their config)
+    #   Tier 3 — server environment defaults (LLM_* vars)
     session = _read_session(http_request)
     config = session.get("openai_config") or {}
 
-    base_url = request.baseURL or config.get("baseURL") or LLM_ENDPOINT
-    api_key = request.apiKey or config.get("apiKey") or LLM_API_KEY
+    req_base_url = (request.baseURL or "").strip()
+    req_api_key = (request.apiKey or "").strip()
+    req_model = (request.model or "").strip()
 
-    # Per-mode override priority: session config → .env. Mode falls back to the
-    # default model when no override is set for that mode.
-    mode_overrides = {
-        "concise": (config.get("modelConcise") or "").strip() or LLM_MODEL_CONCISE,
-        "detailed": (config.get("modelDetailed") or "").strip() or LLM_MODEL_DETAILED,
-        "suggest": (config.get("modelSuggest") or "").strip() or LLM_MODEL_SUGGEST,
-    }
-    mode_model = mode_overrides.get(request.mode or "", "")
-    model = request.model or mode_model or config.get("model") or LLM_MODEL
+    cfg_base_url = (config.get("baseURL") or "").strip()
+    cfg_api_key = (config.get("apiKey") or "").strip()
+    cfg_model = (config.get("model") or "").strip()
+    cfg_mode_model = {
+        "concise": (config.get("modelConcise") or "").strip(),
+        "detailed": (config.get("modelDetailed") or "").strip(),
+        "suggest": (config.get("modelSuggest") or "").strip(),
+    }.get(request.mode or "", "")
+
+    env_mode_model = {
+        "concise": LLM_MODEL_CONCISE,
+        "detailed": LLM_MODEL_DETAILED,
+        "suggest": LLM_MODEL_SUGGEST,
+    }.get(request.mode or "", "")
+
+    if req_api_key:
+        if not req_base_url:
+            raise HTTPException(
+                status_code=400,
+                detail="To use a custom API Key, you must also provide a Base URL.",
+            )
+        base_url = req_base_url
+        api_key = req_api_key
+        model = req_model or cfg_mode_model or cfg_model
+    elif cfg_api_key:
+        base_url = req_base_url or cfg_base_url
+        api_key = cfg_api_key
+        model = req_model or cfg_mode_model or cfg_model
+    else:
+        # Server defaults only — reject any attempt to override model or baseURL,
+        # so the server's API key is always paired with the server's configured
+        # endpoint and model.
+        if req_model or req_base_url or cfg_model or cfg_base_url:
+            raise HTTPException(
+                status_code=400,
+                detail="To use a custom model or Base URL, you must also configure "
+                "your own API Key in Settings.",
+            )
+        base_url = LLM_ENDPOINT
+        api_key = LLM_API_KEY
+        model = env_mode_model or LLM_MODEL
 
     # Validate configuration
     missing_config = []
