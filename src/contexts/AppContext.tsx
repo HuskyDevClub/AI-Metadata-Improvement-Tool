@@ -1,5 +1,15 @@
-import type { ReactNode } from 'react';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import * as React from 'react';
+import {
+    createContext,
+    type ReactNode,
+    useCallback,
+    useContext,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState
+} from 'react';
 import { useOpenAI } from '../hooks/useOpenAI';
 import {
     fetchSocrataCategories,
@@ -22,7 +32,6 @@ import {
     getSampleCount,
     getSampleValues
 } from '../utils/columnAnalyzer';
-import { getEstimatedCost } from '../utils/pricing';
 import { handleRegenerationError } from '../utils/stateHelpers';
 import {
     appendPromptModifiers,
@@ -414,15 +423,17 @@ export function AppProvider({ children }: {children: ReactNode}) {
     // Abort controller for stopping generation (moved here so switchToDataset can reference it)
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    // Ref that always holds current per-dataset state (updated synchronously during render)
+    // Ref that always holds current per-dataset state (updated synchronously after render)
     const datasetStateRef = useRef({
         csvData, fileName, columnStats, generatedResults, showResults,
         importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
     });
-    datasetStateRef.current = {
-        csvData, fileName, columnStats, generatedResults, showResults,
-        importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
-    };
+    useLayoutEffect(() => {
+        datasetStateRef.current = {
+            csvData, fileName, columnStats, generatedResults, showResults,
+            importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
+        };
+    });
 
     const saveCurrentDataset = useCallback(() => {
         const id = activeDatasetIdRef.current;
@@ -499,6 +510,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         if (hash.startsWith('#oauth_error=')) {
             const error = decodeURIComponent(hash.slice('#oauth_error='.length));
             window.history.replaceState(null, '', window.location.pathname);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setStatus({ message: `OAuth sign-in failed: ${error}`, type: 'error' });
         } else if (hash.startsWith('#oauth_token=')) {
             // Legacy callback format — strip it from URL. Fresh deploys use cookie-only.
@@ -1219,7 +1231,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         try {
             // Route through the sanitized builder so dataset name/columns/cell
             // values pass through fence-aware escaping before being fed back
-            // into the regenerate prompt.
+            // into the regenerated prompt.
             const originalPrompt = buildDatasetPromptFromTemplate(
                 csvData,
                 fileName,
@@ -1732,6 +1744,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             + window.location.hash;
         window.history.replaceState(null, '', newUrl);
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         handleSocrataImport(datasetIdFromUrl).then();
     }, [handleSocrataImport]);
 
@@ -1849,21 +1862,12 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     <span className="tokenValue">{tokenUsage.completionTokens.toLocaleString()} completion</span>
                     <span className="tokenSeparator">|</span>
                     <span className="tokenValue tokenTotal">{tokenUsage.totalTokens.toLocaleString()} total</span>
-                    {(() => {
-                        const cost = getEstimatedCost(openaiConfig.model, tokenUsage.promptTokens, tokenUsage.completionTokens);
-                        return cost !== null ? (
-                            <>
-                                <span className="tokenSeparator">|</span>
-                                <span className="tokenCost">~${cost.toFixed(4)}</span>
-                            </>
-                        ) : null;
-                    })()}
                 </div>
             );
         }
 
         return null;
-    }, [tokenUsage, openaiConfig.model]);
+    }, [tokenUsage]);
 
     const value: AppContextType = {
         currentPage,

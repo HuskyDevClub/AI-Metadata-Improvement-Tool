@@ -2,7 +2,7 @@ export const UNTRUSTED_OPEN = '<<<UNTRUSTED_DATA>>>';
 export const UNTRUSTED_CLOSE = '<<<END_UNTRUSTED_DATA>>>';
 
 // Strip control characters and defang any attempt to reuse the fence tokens
-// inside data — preserves real newlines and tabs so multi-line content
+// inside data — preserves real newlines and tabs, so multi-line content
 // (sample tables, descriptions) still renders normally to the model.
 export function sanitizeUntrusted(value: string | null | undefined): string {
     if (!value) return '';
