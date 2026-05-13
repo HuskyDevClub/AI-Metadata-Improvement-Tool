@@ -143,22 +143,22 @@ OAuth login allows users to authenticate with their own portal credentials. Socr
 
 If you want to quickly test the tool in your own Databricks workspace without setting up GitHub Actions, follow these steps:
 
-1.  **Fork the repo** and log into your Databricks workspace.
-2.  **Create a Git Folder:** Go to **Workspace**, right-click your user folder, and select **Create → Git folder**.
-3.  **Point to the `release-databricks` branch:**
-    *   URL: Your fork URL.
+1.  **Create a Git Folder:** Go to **Workspace**, and select **Create → Git folder**.
+2.  **Point to the `release-databricks` branch:**
+    *   URL: https://github.com/HuskyDevClub/AI-Metadata-Improvement-Tool.git
     *   Branch: **`release-databricks`**.
-    *   *Note: This branch contains the pre-built frontend. If you use `main`, you must build the frontend yourself.*
-4.  **Configure Secrets:**
+3.  **Configure Secrets:**
     *   Inside the Git Folder, create a file named **`.env.databricks`** in the root directory.
     *   Copy the content from **`.env.databricks.example`** into it and fill in your keys (OpenAI, Socrata, etc.).
-    *   **Crucial:** Set `FRONTEND_URL` to your Databricks App URL (e.g., `https://your-app-id.databricksapps.com`). The Socrata OAuth redirect URI is derived from this automatically.
-5.  **Use Simple Configuration:**
-    *   Rename **`app.manual.yaml`** to **`app.yaml`** (overwriting the existing one). This version loads secrets directly from your `.env.databricks` file instead of requiring Databricks Secret Resources.
-6.  **Create and Deploy the App:**
+    *   (Optional) You can safely remove `DATABRICKS_APP_NAME` and `DATABRICKS_WORKSPACE_PATH` — they're only used by the automated deploy.
+    *   Leave `FRONTEND_URL` as a placeholder for now; you'll set it in step 4 once you know the app's URL.
+4.  **Create the App and Set `FRONTEND_URL`:**
     *   Go to **Compute → Apps → Create app**.
-    *   Choose **Custom app**, name it, and set the **Source code path** to your Git Folder.
-    *   Click **Create**. Databricks will build and start your app.
+    *   Choose **Custom app**, name it, and click **Create**. (The Source code path can't be set at creation time.)
+    *   Once the app exists, copy its URL (e.g., `https://your-app-id.databricksapps.com`) from the app page and set `FRONTEND_URL` in `.env.databricks` to that value. The Socrata OAuth redirect URI is derived from this automatically.
+5.  **Deploy the App:**
+    *   On the app page, click **Deploy** — Databricks will prompt you for the **Source code path**; point it at your Git Folder.
+    *   The app will build and start, picking up the values you set in `.env.databricks`.
 
 For automated production deployments, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
