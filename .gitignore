@@ -46,4 +46,4 @@ env/
 backend/static/
 /backend/.databricks
 /docs
-scripts/DatasetsWithSolidMetadata - Sheet1.csv
+eval/DatasetsWithSolidMetadata.xlsx
