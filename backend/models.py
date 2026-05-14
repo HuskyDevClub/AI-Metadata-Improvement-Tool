@@ -230,3 +230,20 @@ class OpenAISessionResponse(BaseModel):
     modelConcise: str | None = None
     modelDetailed: str | None = None
     modelSuggest: str | None = None
+
+
+# ============================================================================
+# Dev-mode Metadata Eval Models
+# ============================================================================
+
+
+class EvalRunRequest(BaseModel):
+    """Request body for the dev-mode metadata eval run (POST /api/eval/run).
+
+    Mirrors the tunable knobs in evaluate_metadata_quality.ipynb. The endpoint
+    is only available when ENABLE_EVAL=1 is set in the backend environment.
+    """
+
+    datasetLimit: int | None = Field(default=5, ge=1, le=200)
+    evalColumns: bool = True
+    maxColumnsPerDataset: int | None = Field(default=8, ge=1, le=100)

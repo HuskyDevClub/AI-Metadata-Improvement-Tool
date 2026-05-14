@@ -54,6 +54,11 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env.databricks")
 load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
 load_dotenv(override=True)
 
+# Eval router is imported after load_dotenv() because eval.py reads its
+# env vars at module-load time.
+from .eval import ENABLE_EVAL
+from .eval import router as eval_router  # noqa: E402
+
 # Configuration
 SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
 SOCRATA_SECRET_TOKEN = os.getenv("SOCRATA_SECRET_TOKEN", "")
@@ -125,6 +130,17 @@ _cors_origins = (
     if FRONTEND_URL
     else ["http://localhost:5173", "http://localhost:8000"]
 )
+if ENABLE_EVAL:
+    # The eval viewer is a standalone HTML in scripts/, usually opened either
+    # via `python -m http.server 5500` or directly off disk (file://). Allow
+    # those origins only when ENABLE_EVAL is on so prod CORS is untouched.
+    for extra in (
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+        "null",
+    ):
+        if extra not in _cors_origins:
+            _cors_origins.append(extra)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
@@ -1486,6 +1502,11 @@ async def openai_chat_stream(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# Register the dev-mode eval router. It must be included before the SPA
+# catch-all route below so /api/eval/run is not shadowed.
+app.include_router(eval_router)
 
 
 # Serve static files (React frontend) - must be last
