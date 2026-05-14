@@ -1,7 +1,6 @@
 import csv
 import json
 import logging
-import os
 import re
 import time
 from collections.abc import AsyncGenerator
@@ -13,23 +12,23 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from openai import AsyncOpenAI
+from openai.types.shared_params import (
+    ResponseFormatJSONObject,
+    ResponseFormatJSONSchema,
+)
+from openai.types.shared_params.response_format_json_schema import JSONSchema
 
+from .config import (
+    ENABLE_EVAL,
+    JUDGE_LLM_MODEL,
+    LLM_API_KEY,
+    LLM_ENDPOINT,
+    LLM_MODEL,
+    SOCRATA_APP_TOKEN,
+)
 from .models import EvalRunRequest
 
 logger = logging.getLogger(__name__)
-
-# Env vars are loaded by main.py via load_dotenv() before this module is imported.
-LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")
-LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "")
-# Judge model for the dev-mode eval. Falls back to LLM_MODEL so judge runs work
-# out of the box; override in env when you want a different model judging output.
-JUDGE_LLM_MODEL = os.getenv("JUDGE_LLM_MODEL", "") or LLM_MODEL
-# The /api/eval/run endpoint is dev-only. It uses server-side LLM keys to drive
-# a bulk regenerate+judge loop, so it is off by default and must be opted into
-# explicitly via ENABLE_EVAL=1 in backend/.env (or the process env).
-ENABLE_EVAL = os.getenv("ENABLE_EVAL", "").strip() == "1"
-SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
 
 _CSV_PATH = (
     Path(__file__).resolve().parent.parent
@@ -319,7 +318,7 @@ def _build_judge_user_prompt(context: str, gold: str, generated: str) -> str:
 
 def _build_judge_schema(
     categories: list[tuple[str, str, str]],
-) -> dict[str, Any]:
+) -> JSONSchema:
     score_props: dict[str, Any] = {
         key: {"type": "integer", "minimum": 0, "maximum": 10}
         for key, _, _ in categories
@@ -474,6 +473,11 @@ async def _judge(
     system_prompt = _build_judge_system_prompt(categories)
     user_prompt = _build_judge_user_prompt(context, gold, generated)
     schema = _build_judge_schema(categories)
+    json_schema_format: ResponseFormatJSONSchema = {
+        "type": "json_schema",
+        "json_schema": schema,
+    }
+    json_object_format: ResponseFormatJSONObject = {"type": "json_object"}
     try:
         resp = await client.chat.completions.create(
             model=model,
@@ -481,7 +485,7 @@ async def _judge(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            response_format={"type": "json_schema", "json_schema": schema},
+            response_format=json_schema_format,
         )
     except Exception:
         # Some OpenAI-compatible servers don't support json_schema; fall back.
@@ -497,7 +501,7 @@ async def _judge(
                 },
                 {"role": "user", "content": user_prompt},
             ],
-            response_format={"type": "json_object"},
+            response_format=json_object_format,
         )
     raw = (resp.choices[0].message.content or "").strip()
     usage = {
