@@ -168,7 +168,7 @@ async def socrata_import(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("Socrata import error: %s", str(e))
+        logger.exception("Socrata import error")
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch from data.wa.gov: {str(e)}"
         )
@@ -231,14 +231,22 @@ async def socrata_export(
                 if "AI-Metadata-Tool" not in tags:
                     tags.append("AI-Metadata-Tool")
                 update_payload["tags"] = tags
-            elif any(
-                [
-                    request.datasetTitle,
-                    request.datasetDescription,
-                    request.category,
-                    request.rowLabel,
-                    request.columns,
-                ]
+            elif (
+                any(
+                    v is not None
+                    for v in (
+                        request.datasetTitle,
+                        request.datasetDescription,
+                        request.category,
+                        request.rowLabel,
+                        request.licenseId,
+                        request.attribution,
+                        request.contactEmail,
+                        request.periodOfTime,
+                        request.postingFrequency,
+                    )
+                )
+                or request.columns
             ):
                 # If tags weren't provided in the request but other things were,
                 # try to preserve existing tags and add our tool tag.
@@ -347,8 +355,9 @@ async def socrata_export(
             if request.category is not None:
                 parts.append("category")
             if request.tags is not None:
+                final_tag_count = len(update_payload.get("tags", []))
                 parts.append(
-                    f"{len(request.tags)} tag{'s' if len(request.tags) != 1 else ''}"
+                    f"{final_tag_count} tag{'s' if final_tag_count != 1 else ''}"
                 )
             if request.licenseId is not None:
                 parts.append("license")
@@ -383,7 +392,7 @@ async def socrata_export(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("Socrata export error: %s", str(e))
+        logger.exception("Socrata export error")
         raise HTTPException(
             status_code=500, detail=f"Failed to push metadata to data.wa.gov: {str(e)}"
         )

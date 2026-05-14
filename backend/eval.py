@@ -580,7 +580,6 @@ async def eval_run(request: EvalRunRequest, http_request: Request) -> StreamingR
             return json.dumps(payload, ensure_ascii=False, default=str) + "\n"
 
         results: list[dict[str, Any]] = []
-        openai_client = AsyncOpenAI(base_url=LLM_ENDPOINT, api_key=LLM_API_KEY)
 
         yield line(
             {
@@ -593,7 +592,12 @@ async def eval_run(request: EvalRunRequest, http_request: Request) -> StreamingR
         )
 
         try:
-            async with httpx.AsyncClient() as http_client:
+            async with (
+                AsyncOpenAI(
+                    base_url=LLM_ENDPOINT, api_key=LLM_API_KEY
+                ) as openai_client,
+                httpx.AsyncClient() as http_client,
+            ):
                 for idx, dataset_id in enumerate(dataset_ids, start=1):
                     if await http_request.is_disconnected():
                         break
@@ -653,10 +657,10 @@ async def eval_run(request: EvalRunRequest, http_request: Request) -> StreamingR
 
                     yield line({"type": "stage", "stage": "judging"})
                     dataset_context = (
-                        f"Dataset Name: {ds['name']}\n"
+                        f"Dataset Name: {_sanitize_inline(ds['name'])}\n"
                         f"Rows: {ds['total_rows']}\n"
                         f"Columns: {len(ds['columns'])}\n"
-                        f"Column list: {', '.join(c['name'] for c in ds['columns'])}"
+                        f"Column list: {', '.join(_sanitize_inline(c['name']) for c in ds['columns'])}"
                     )
                     dataset_judgment, judge_usage = await _judge(
                         openai_client,
@@ -724,11 +728,11 @@ async def eval_run(request: EvalRunRequest, http_request: Request) -> StreamingR
                             col_gen_completion += col_gen_usage["completion_tokens"]
 
                             col_context = (
-                                f"Dataset: {ds['name']}\n"
-                                f"Column name: {col['name']}\n"
-                                f"Data type: {col['dataType']}\n"
+                                f"Dataset: {_sanitize_inline(ds['name'])}\n"
+                                f"Column name: {_sanitize_inline(col['name'])}\n"
+                                f"Data type: {_sanitize_inline(col['dataType'])}\n"
                                 f"Estimated non-null: {est_non_null}/{ds['total_rows']}\n"
-                                f"Sample values: {', '.join(str(v) for v in sample_values)}"
+                                f"Sample values: {', '.join(_sanitize_inline(v) for v in sample_values)}"
                             )
                             col_judgment, col_judge_usage = await _judge(
                                 openai_client,

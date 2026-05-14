@@ -19,11 +19,12 @@ SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
 SOCRATA_SECRET_TOKEN = os.getenv("SOCRATA_SECRET_TOKEN", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
-# Derive OAuth redirect URI. If it's missing or contains a placeholder,
-# we derive it from FRONTEND_URL automatically.
-SOCRATA_OAUTH_REDIRECT_URI = os.getenv(
-    "SOCRATA_OAUTH_REDIRECT_URI", f"{FRONTEND_URL}/api/auth/socrata/callback"
-).strip()
+# Derive OAuth redirect URI. If it's missing or empty, we derive it from
+# FRONTEND_URL automatically (treats an explicit empty value the same as unset).
+SOCRATA_OAUTH_REDIRECT_URI = (
+    os.getenv("SOCRATA_OAUTH_REDIRECT_URI", "").strip()
+    or f"{FRONTEND_URL}/api/auth/socrata/callback"
+)
 
 # --- LLM -------------------------------------------------------------------
 LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")

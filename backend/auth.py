@@ -226,8 +226,8 @@ async def socrata_oauth_callback(
             _update_session(request, redirect, {"kind": "oauth", "token": access_token})
             return redirect
 
-    except Exception as e:
-        logger.exception("OAuth callback error: %s", str(e))
+    except Exception:
+        logger.exception("OAuth callback error")
         return RedirectResponse(url=f"{base}/#oauth_error=server_error")
 
 
@@ -258,8 +258,8 @@ async def socrata_session(request: Request) -> SocrataSessionResponse:
                         email=user_data.get("email"),
                     ),
                 )
-        except Exception as e:
-            logger.exception("Session OAuth lookup failed: %s", str(e))
+        except Exception:
+            logger.exception("Session OAuth lookup failed")
             return SocrataSessionResponse(kind=None)
 
     if kind == "api_key":
@@ -323,7 +323,10 @@ async def socrata_logout(request: Request, response: Response) -> Response:
     session.pop("token", None)
     session.pop("id", None)
     session.pop("secret", None)
-    _set_session_payload(response, session)
+    if session:
+        _set_session_payload(response, session)
+    else:
+        response.delete_cookie(SESSION_COOKIE_NAME, path="/")
 
     response.status_code = 204
     return response
@@ -398,6 +401,9 @@ async def openai_logout(request: Request, response: Response) -> Response:
     """Clear OpenAI configuration from the session cookie."""
     session = read_session(request)
     session.pop("openai_config", None)
-    _set_session_payload(response, session)
+    if session:
+        _set_session_payload(response, session)
+    else:
+        response.delete_cookie(SESSION_COOKIE_NAME, path="/")
     response.status_code = 204
     return response
