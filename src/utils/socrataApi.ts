@@ -195,3 +195,43 @@ export async function logoutSocrata(): Promise<void> {
         credentials: 'include',
     });
 }
+
+// Plain-language labels for the Socrata `dataTypeName` strings we expose to
+// the LLM. Covers both canonical SoQL types (dev.socrata.com/docs/datatypes)
+// and legacy NBE/OBE render types that still surface on older datasets but
+// don't appear on the canonical page — without these, the model has no
+// anchor for names like "calendar_date", "dataset_link", or "nested_table".
+const SOCRATA_TYPE_LABELS: Record<string, string> = {
+    number: 'number',
+    money: 'number (money / currency)',
+    percent: 'number (percent, 0-100)',
+    double: 'number (double-precision)',
+    text: 'text',
+    url: 'URL (hyperlink with optional description)',
+    email: 'email address (text)',
+    phone: 'phone number (text)',
+    checkbox: 'checkbox (true/false)',
+    flag: 'flag (small fixed set of values)',
+    calendar_date: 'date/time (no time zone)',
+    date: 'date',
+    floating_timestamp: 'timestamp (no time zone)',
+    fixed_timestamp: 'timestamp (UTC)',
+    point: 'geographic point',
+    line: 'geographic line',
+    polygon: 'geographic polygon',
+    multipoint: 'geographic multi-point',
+    multiline: 'geographic multi-line',
+    multipolygon: 'geographic multi-polygon',
+    location: 'geographic location (lat/long + address)',
+    document: 'document attachment (binary)',
+    photo: 'photo attachment (binary)',
+    dataset_link: 'link to another dataset',
+    nested_table: 'nested table (rows within a row)',
+};
+
+export function describeSocrataType(dataTypeName: string | undefined | null): string {
+    if (!dataTypeName) return 'unknown';
+    const key = dataTypeName.toLowerCase();
+    const label = SOCRATA_TYPE_LABELS[key];
+    return label ? `${label} (${key})` : key;
+}
