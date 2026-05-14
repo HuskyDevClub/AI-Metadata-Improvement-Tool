@@ -35,12 +35,27 @@ export interface TextStats {
     samples: string[];
 }
 
-type ColumnType = 'numeric' | 'categorical' | 'text' | 'empty';
+export interface TemporalStats {
+    count: number;
+    min: string;
+    max: string;
+}
+
+export interface GeospatialStats {
+    count: number;
+    geometryType: string;
+}
+
+export interface OpaqueStats {
+    count: number;
+}
+
+type ColumnType = 'numeric' | 'categorical' | 'text' | 'temporal' | 'geospatial' | 'opaque' | 'empty';
 
 export interface ColumnInfo {
     type: ColumnType;
     originalType?: string;
-    stats: NumericStats | CategoricalStats | TextStats | Record<string, never>;
+    stats: NumericStats | CategoricalStats | TextStats | TemporalStats | GeospatialStats | OpaqueStats | Record<string, never>;
     nullCount: number;
     totalCount: number;
 }

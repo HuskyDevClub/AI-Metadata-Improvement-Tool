@@ -1,4 +1,13 @@
-import type { CategoricalStats, ColumnInfo, CsvRow, NumericStats, TextStats } from '../types';
+import type {
+    CategoricalStats,
+    ColumnInfo,
+    CsvRow,
+    GeospatialStats,
+    NumericStats,
+    OpaqueStats,
+    TemporalStats,
+    TextStats
+} from '../types';
 
 export function analyzeColumn(_columnName: string, values: (string | null | undefined)[]): ColumnInfo {
     const nonNullValues = values.filter(
@@ -66,6 +75,15 @@ export function formatColumnStats(info: ColumnInfo): string {
     } else if (info.type === 'text') {
         const stats = info.stats as TextStats;
         return `${stats.uniqueCount} unique values | ${stats.count} non-empty entries`;
+    } else if (info.type === 'temporal') {
+        const stats = info.stats as TemporalStats;
+        return `Range: ${stats.min} to ${stats.max} | ${stats.count} non-empty entries`;
+    } else if (info.type === 'geospatial') {
+        const stats = info.stats as GeospatialStats;
+        return `${stats.count} ${stats.geometryType} geometries`;
+    } else if (info.type === 'opaque') {
+        const stats = info.stats as OpaqueStats;
+        return `${stats.count} non-empty entries (binary/reference type — not sampled)`;
     }
     return '';
 }
@@ -80,6 +98,15 @@ export function getColumnStatsText(info: ColumnInfo): string {
     } else if (info.type === 'text') {
         const stats = info.stats as TextStats;
         return `This is a text column with ${stats.uniqueCount} unique values. Sample values: ${stats.samples.slice(0, 3).join(', ')}.`;
+    } else if (info.type === 'temporal') {
+        const stats = info.stats as TemporalStats;
+        return `This is a date/time column with ${stats.count} non-empty values, ranging from ${stats.min} to ${stats.max}.`;
+    } else if (info.type === 'geospatial') {
+        const stats = info.stats as GeospatialStats;
+        return `This is a geospatial column containing ${stats.count} non-empty ${stats.geometryType} geometries.`;
+    } else if (info.type === 'opaque') {
+        const stats = info.stats as OpaqueStats;
+        return `This column contains ${stats.count} non-empty entries. Values are binary references (document/photo/link) and are not sampled.`;
     }
     return '';
 }
@@ -121,6 +148,15 @@ export function getSampleValues(info: ColumnInfo, values: (string | null | undef
     } else if (info.type === 'text') {
         const stats = info.stats as TextStats;
         return stats.samples.slice(0, 5).join('; ');
+    } else if (info.type === 'temporal') {
+        const stats = info.stats as TemporalStats;
+        return `Earliest: ${stats.min}; Latest: ${stats.max}`;
+    } else if (info.type === 'geospatial') {
+        const stats = info.stats as GeospatialStats;
+        return `(${stats.count} ${stats.geometryType} geometries — individual values not sampled)`;
+    } else if (info.type === 'opaque') {
+        const stats = info.stats as OpaqueStats;
+        return `(${stats.count} non-empty values — binary/reference type, not sampled)`;
     }
     return '';
 }

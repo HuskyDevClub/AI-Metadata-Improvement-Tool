@@ -13,11 +13,42 @@ logger = logging.getLogger(__name__)
 
 NUMERIC_SOCRATA_TYPES = {"number", "money", "percent", "double"}
 CATEGORICAL_SOCRATA_TYPES = {"checkbox", "flag"}
-# Everything else (text, url, email, phone, calendar_date, date, point,
-# location, polygon, …) needs a group-by query to decide categorical vs text.
+TEMPORAL_SOCRATA_TYPES = {
+    "calendar_date",
+    "date",
+    "floating_timestamp",
+    "fixed_timestamp",
+}
+GEOSPATIAL_SOCRATA_TYPES = {
+    "point",
+    "line",
+    "polygon",
+    "multipoint",
+    "multiline",
+    "multipolygon",
+    "location",
+}
+# url/email/phone are near-unique by nature — group-by would burn a query
+# without revealing structure. Sample a few values directly instead.
+SAMPLED_TEXT_SOCRATA_TYPES = {"url", "email", "phone"}
+# Binary or pointer types — cells contain blob refs / nested rows that don't
+# meaningfully sample. Return count only.
+OPAQUE_SOCRATA_TYPES = {"document", "photo", "dataset_link", "nested_table"}
+# Anything not above (plain text, html, …) falls through to a group-by query
+# that decides categorical vs text by unique-ratio.
+
+TEXT_SAMPLE_MAX_LEN = 120
+# Bounded categorical types (checkbox/flag) saturate well below this — used
+# both as the SODA group-by limit and as the threshold for `hasMore`.
+CATEGORICAL_BOUNDED_LIMIT = 10
 
 # Limit concurrent SODA requests to avoid rate-limiting / 429s
 _soda_semaphore = asyncio.Semaphore(10)
+
+
+def _truncate_sample(value: str, max_len: int = TEXT_SAMPLE_MAX_LEN) -> str:
+    """Cap a sample cell so a single huge value doesn't bloat the LLM prompt."""
+    return value if len(value) <= max_len else value[: max_len - 3] + "..."
 
 
 def build_socrata_auth(session: dict[str, Any]) -> dict[str, str]:
@@ -160,6 +191,142 @@ async def _compute_numeric_stats(
     )
 
 
+async def _compute_temporal_stats(
+    client: httpx.AsyncClient,
+    soda_base: str,
+    field: str,
+    total_rows: int,
+    headers: dict[str, str],
+) -> ColumnStats:
+    """Compute min/max/count for a date or timestamp column via a single SODA aggregate."""
+    esc = soda_escape(field)
+    rows = await soda_get(
+        client,
+        soda_base,
+        {
+            "$select": f"min({esc}) as mn, max({esc}) as mx, count({esc}) as cnt",
+        },
+        headers,
+    )
+    if not rows:
+        return ColumnStats(
+            type="empty", stats={}, nullCount=total_rows, totalCount=total_rows
+        )
+    row = rows[0]
+    cnt = int(row.get("cnt") or 0)
+    mn = row.get("mn")
+    mx = row.get("mx")
+    # cnt>0 but null bounds means the aggregate degenerated (rare — fall back to empty).
+    if cnt == 0 or mn is None or mx is None:
+        return ColumnStats(
+            type="empty", stats={}, nullCount=total_rows, totalCount=total_rows
+        )
+    return ColumnStats(
+        type="temporal",
+        stats={"count": cnt, "min": str(mn), "max": str(mx)},
+        nullCount=total_rows - cnt,
+        totalCount=total_rows,
+    )
+
+
+async def _compute_non_null_count(
+    client: httpx.AsyncClient,
+    soda_base: str,
+    field: str,
+    headers: dict[str, str],
+) -> int:
+    esc = soda_escape(field)
+    rows = await soda_get(
+        client, soda_base, {"$select": f"count({esc}) as cnt"}, headers
+    )
+    if not rows:
+        return 0
+    return int(rows[0].get("cnt") or 0)
+
+
+async def _compute_geospatial_stats(
+    client: httpx.AsyncClient,
+    soda_base: str,
+    field: str,
+    total_rows: int,
+    headers: dict[str, str],
+    geometry_type: str,
+) -> ColumnStats:
+    """Count non-null geometries. Skip group-by — geometries are near-unique
+    and their WKT/JSON noise pollutes the prompt."""
+    cnt = await _compute_non_null_count(client, soda_base, field, headers)
+    if cnt == 0:
+        return ColumnStats(
+            type="empty", stats={}, nullCount=total_rows, totalCount=total_rows
+        )
+    return ColumnStats(
+        type="geospatial",
+        stats={"count": cnt, "geometryType": geometry_type},
+        nullCount=total_rows - cnt,
+        totalCount=total_rows,
+    )
+
+
+async def _compute_sampled_text_stats(
+    client: httpx.AsyncClient,
+    soda_base: str,
+    field: str,
+    total_rows: int,
+    headers: dict[str, str],
+) -> ColumnStats:
+    """For url/email/phone: count, distinct-count, and 5 sample values."""
+    esc = soda_escape(field)
+    agg_rows, sample_rows = await asyncio.gather(
+        soda_get(
+            client,
+            soda_base,
+            {"$select": f"count({esc}) as cnt, count(distinct {esc}) as ucnt"},
+            headers,
+        ),
+        soda_get(
+            client,
+            soda_base,
+            {"$select": esc, "$where": f"{esc} IS NOT NULL", "$limit": "5"},
+            headers,
+        ),
+    )
+    agg = agg_rows[0] if agg_rows else {}
+    cnt = int(agg.get("cnt") or 0)
+    if cnt == 0:
+        return ColumnStats(
+            type="empty", stats={}, nullCount=total_rows, totalCount=total_rows
+        )
+    unique_count = int(agg.get("ucnt") or 0) or cnt
+    samples = [_truncate_sample(str(r[field])) for r in sample_rows]
+    return ColumnStats(
+        type="text",
+        stats={"count": cnt, "uniqueCount": unique_count, "samples": samples},
+        nullCount=total_rows - cnt,
+        totalCount=total_rows,
+    )
+
+
+async def _compute_opaque_stats(
+    client: httpx.AsyncClient,
+    soda_base: str,
+    field: str,
+    total_rows: int,
+    headers: dict[str, str],
+) -> ColumnStats:
+    """For document/photo/dataset_link/nested_table: count only, no samples."""
+    cnt = await _compute_non_null_count(client, soda_base, field, headers)
+    if cnt == 0:
+        return ColumnStats(
+            type="empty", stats={}, nullCount=total_rows, totalCount=total_rows
+        )
+    return ColumnStats(
+        type="opaque",
+        stats={"count": cnt},
+        nullCount=total_rows - cnt,
+        totalCount=total_rows,
+    )
+
+
 async def _compute_groupby(
     client: httpx.AsyncClient,
     soda_base: str,
@@ -205,7 +372,9 @@ def _classify_from_groupby(
         if unique_ratio >= 0.5:
             # Text column — use values from group-by (guaranteed non-null)
             samples = [
-                str(g.get(field) or "") for g in groups[:5] if g.get(field) is not None
+                _truncate_sample(str(g.get(field) or ""))
+                for g in groups[:5]
+                if g.get(field) is not None
             ]
             return ColumnStats(
                 type="text",
@@ -219,7 +388,7 @@ def _classify_from_groupby(
             )
 
     # Categorical
-    values = [str(g.get(field) or "") for g in groups[:20]]
+    values = [_truncate_sample(str(g.get(field) or "")) for g in groups[:20]]
     return ColumnStats(
         type="categorical",
         stats={
@@ -251,10 +420,36 @@ async def compute_column_stats(
         )
         return display_name, stats
 
+    if data_type in TEMPORAL_SOCRATA_TYPES:
+        stats = await _compute_temporal_stats(
+            client, soda_base, field, total_rows, headers
+        )
+        return display_name, stats
+
+    if data_type in GEOSPATIAL_SOCRATA_TYPES:
+        stats = await _compute_geospatial_stats(
+            client, soda_base, field, total_rows, headers, data_type
+        )
+        return display_name, stats
+
+    if data_type in SAMPLED_TEXT_SOCRATA_TYPES:
+        stats = await _compute_sampled_text_stats(
+            client, soda_base, field, total_rows, headers
+        )
+        return display_name, stats
+
+    if data_type in OPAQUE_SOCRATA_TYPES:
+        stats = await _compute_opaque_stats(
+            client, soda_base, field, total_rows, headers
+        )
+        return display_name, stats
+
     if data_type in CATEGORICAL_SOCRATA_TYPES:
-        groups = await _compute_groupby(client, soda_base, field, headers, limit=51)
+        groups = await _compute_groupby(
+            client, soda_base, field, headers, limit=CATEGORICAL_BOUNDED_LIMIT
+        )
         non_null = sum(int(g.get("cnt") or 0) for g in groups)
-        values = [str(g.get(field) or "") for g in groups[:20]]
+        values = [_truncate_sample(str(g.get(field) or "")) for g in groups[:20]]
         unique_count = len(groups)
         return display_name, ColumnStats(
             type="categorical",
@@ -262,13 +457,13 @@ async def compute_column_stats(
                 "count": non_null,
                 "uniqueCount": unique_count,
                 "values": values,
-                "hasMore": unique_count > 20,
+                "hasMore": unique_count >= CATEGORICAL_BOUNDED_LIMIT,
             },
             nullCount=total_rows - non_null,
             totalCount=total_rows,
         )
 
-    # Ambiguous type (text, url, calendar_date, etc.) — run group-by to decide
+    # Ambiguous type (plain text, html, etc.) — run group-by to decide
     groups = await _compute_groupby(client, soda_base, field, headers, limit=51)
     stats = _classify_from_groupby(groups, field, total_rows)
     return display_name, stats

@@ -56,7 +56,7 @@ class SocrataColumnMetadata(BaseModel):
 class ColumnStats(BaseModel):
     """Pre-computed column statistics matching the frontend ColumnInfo shape."""
 
-    type: str  # "numeric" | "categorical" | "text" | "empty"
+    type: str  # "numeric" | "categorical" | "text" | "temporal" | "geospatial" | "opaque" | "empty"
     stats: dict[str, Any]
     nullCount: int
     totalCount: int

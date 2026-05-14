@@ -604,7 +604,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const buildColumnInfo = useCallback((stats: Record<string, ColumnInfo>): string => {
         return Object.entries(stats)
-            .map(([col, info]) => `- ${col} — ${info.type}`)
+            .map(([col, info]) => `- ${col} — ${info.originalType ?? info.type}`)
             .join('\n');
     }, []);
 
@@ -678,7 +678,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             .replace(/\{columnName}/g, sanitizeInline(columnName))
             .replace('{datasetDescription}', sanitizeUntrusted(datasetDesc))
             .replace('{columnStats}', sanitizeUntrusted(statsText))
-            .replace('{dataType}', info.type)
+            .replace('{dataType}', info.originalType ?? info.type)
             .replace('{nonNullCount}', String(nonNullCount))
             .replace('{rowCount}', String(info.totalCount))
             .replace('{completenessPercent}', completenessPercent)
