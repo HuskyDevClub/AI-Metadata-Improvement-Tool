@@ -109,6 +109,13 @@ interface SavedDatasetState {
     tokenUsage: TokenUsage;
     socrataDatasetId: string;
     socrataFieldNameMap: Record<string, string>;
+    // In-flight compare-UI state. Streaming regenerations on one dataset
+    // must not bleed into another tab when the user switches, so we
+    // persist what would otherwise be ambient React state.
+    pendingDatasetDescription: string | null;
+    pendingColumnDescriptions: Record<string, string>;
+    regeneratingDataset: boolean;
+    regeneratingColumns: Set<string>;
 }
 
 export type ResettableColumnField = 'description' | 'displayName' | 'fieldName';
@@ -438,11 +445,15 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const datasetStateRef = useRef({
         csvData, fileName, columnStats, generatedResults, initialResults, showResults,
         importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
+        pendingDatasetDescription, pendingColumnDescriptions,
+        regeneratingDataset, regeneratingColumns,
     });
     useLayoutEffect(() => {
         datasetStateRef.current = {
             csvData, fileName, columnStats, generatedResults, initialResults, showResults,
             importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
+            pendingDatasetDescription, pendingColumnDescriptions,
+            regeneratingDataset, regeneratingColumns,
         };
     });
 
@@ -473,14 +484,14 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setSocrataFieldNameMap(saved.socrataFieldNameMap);
         setIsProcessing(false);
         setGeneratingColumns(new Set());
-        setRegeneratingDataset(false);
-        setRegeneratingColumns(new Set());
+        setRegeneratingDataset(saved.regeneratingDataset);
+        setRegeneratingColumns(new Set(saved.regeneratingColumns));
         setSuggestingDataset(false);
         setDatasetSuggestions([]);
         setSuggestingColumns(new Set());
         setColumnSuggestions({});
-        setPendingDatasetDescription(null);
-        setPendingColumnDescriptions({});
+        setPendingDatasetDescription(saved.pendingDatasetDescription);
+        setPendingColumnDescriptions(saved.pendingColumnDescriptions);
         setIsGeneratingEmpty(false);
         setGeneratingRowLabel(false);
         setGeneratingDatasetTitle(false);
@@ -491,6 +502,70 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setCurrentPage(saved.page);
         setCurrentFieldName(saved.fieldName);
         lastDatasetPageRef.current = { page: saved.page, fieldName: saved.fieldName };
+    }, []);
+
+    // Streaming generations capture the dataset id they were started on, then
+    // route state writes through these helpers. If the user switched tabs
+    // mid-stream, the originating dataset's saved entry is mutated instead of
+    // the now-active state — so compare-UI chunks land on the correct tab.
+    const setPendingDatasetDescriptionForDataset = useCallback((id: string, value: string | null) => {
+        if (id === activeDatasetIdRef.current) {
+            setPendingDatasetDescription(value);
+            return;
+        }
+        const saved = savedDatasetsRef.current.get(id);
+        if (saved) {
+            savedDatasetsRef.current.set(id, { ...saved, pendingDatasetDescription: value });
+        }
+    }, []);
+
+    const setPendingColumnDescriptionForDataset = useCallback((id: string, columnName: string, value: string | null) => {
+        if (id === activeDatasetIdRef.current) {
+            setPendingColumnDescriptions((prev) => {
+                const next = { ...prev };
+                if (value === null) delete next[columnName];
+                else next[columnName] = value;
+                return next;
+            });
+            return;
+        }
+        const saved = savedDatasetsRef.current.get(id);
+        if (saved) {
+            const nextCols = { ...saved.pendingColumnDescriptions };
+            if (value === null) delete nextCols[columnName];
+            else nextCols[columnName] = value;
+            savedDatasetsRef.current.set(id, { ...saved, pendingColumnDescriptions: nextCols });
+        }
+    }, []);
+
+    const setRegeneratingDatasetForDataset = useCallback((id: string, value: boolean) => {
+        if (id === activeDatasetIdRef.current) {
+            setRegeneratingDataset(value);
+            return;
+        }
+        const saved = savedDatasetsRef.current.get(id);
+        if (saved) {
+            savedDatasetsRef.current.set(id, { ...saved, regeneratingDataset: value });
+        }
+    }, []);
+
+    const setRegeneratingColumnForDataset = useCallback((id: string, columnName: string, value: boolean) => {
+        if (id === activeDatasetIdRef.current) {
+            setRegeneratingColumns((prev) => {
+                const next = new Set(prev);
+                if (value) next.add(columnName);
+                else next.delete(columnName);
+                return next;
+            });
+            return;
+        }
+        const saved = savedDatasetsRef.current.get(id);
+        if (saved) {
+            const nextSet = new Set(saved.regeneratingColumns);
+            if (value) nextSet.add(columnName);
+            else nextSet.delete(columnName);
+            savedDatasetsRef.current.set(id, { ...saved, regeneratingColumns: nextSet });
+        }
     }, []);
 
     const switchToDataset = useCallback((id: string) => {
@@ -1047,6 +1122,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setDatasetSuggestions([]);
             setSuggestingColumns(new Set());
             setColumnSuggestions({});
+            setPendingDatasetDescription(null);
+            setPendingColumnDescriptions({});
             setIsGeneratingEmpty(false);
             setGeneratingRowLabel(false);
             setGeneratingDatasetTitle(false);
@@ -1076,6 +1153,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const handleRegenerateDataset = useCallback(
         async (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
             if (!csvData) return;
+            const regenDatasetId = activeDatasetIdRef.current;
+            if (!regenDatasetId) return;
             setRegeneratingDataset(true);
             setPendingDatasetDescription('');
             try {
@@ -1088,7 +1167,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     prompt, openaiConfig, promptTemplates.systemPrompt,
                     (chunk) => {
                         fullContent += chunk;
-                        setPendingDatasetDescription(fullContent);
+                        setPendingDatasetDescriptionForDataset(regenDatasetId, fullContent);
                     },
                     undefined, mode,
                 );
@@ -1098,20 +1177,22 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     type: 'success',
                 });
             } catch (error) {
-                setPendingDatasetDescription(null);
+                setPendingDatasetDescriptionForDataset(regenDatasetId, null);
                 setStatus({
                     message: `Error regenerating: ${error instanceof Error ? error.message : 'Unknown error'}`,
                     type: 'error'
                 });
             } finally {
-                setRegeneratingDataset(false);
+                setRegeneratingDatasetForDataset(regenDatasetId, false);
             }
         },
-        [csvData, fileName, columnStats, importedRowCount, openaiConfig, promptTemplates.systemPrompt, buildDatasetPrompt, callOpenAIStream, addTokenUsage]
+        [csvData, fileName, columnStats, importedRowCount, openaiConfig, promptTemplates.systemPrompt, buildDatasetPrompt, callOpenAIStream, addTokenUsage, setPendingDatasetDescriptionForDataset, setRegeneratingDatasetForDataset]
     );
 
     const handleRegenerateColumn = useCallback(
         async (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
+            const regenDatasetId = activeDatasetIdRef.current;
+            if (!regenDatasetId) return;
             setRegeneratingColumns((prev) => new Set(prev).add(columnName));
             setPendingColumnDescriptions((prev) => ({ ...prev, [columnName]: '' }));
             try {
@@ -1126,7 +1207,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     prompt, openaiConfig, promptTemplates.systemPrompt,
                     (chunk) => {
                         fullContent += chunk;
-                        setPendingColumnDescriptions((prev) => ({ ...prev, [columnName]: fullContent }));
+                        setPendingColumnDescriptionForDataset(regenDatasetId, columnName, fullContent);
                     },
                     undefined, mode,
                 );
@@ -1136,21 +1217,13 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     type: 'success',
                 });
             } catch (error) {
-                setPendingColumnDescriptions((prev) => {
-                    const next = { ...prev };
-                    delete next[columnName];
-                    return next;
-                });
+                setPendingColumnDescriptionForDataset(regenDatasetId, columnName, null);
                 handleRegenerationError(error, setStatus);
             } finally {
-                setRegeneratingColumns((prev) => {
-                    const next = new Set(prev);
-                    next.delete(columnName);
-                    return next;
-                });
+                setRegeneratingColumnForDataset(regenDatasetId, columnName, false);
             }
         },
-        [csvData, columnStats, generatedResults.datasetDescription, openaiConfig, promptTemplates.systemPrompt, buildColumnPrompt, callOpenAIStream, addTokenUsage]
+        [csvData, columnStats, generatedResults.datasetDescription, openaiConfig, promptTemplates.systemPrompt, buildColumnPrompt, callOpenAIStream, addTokenUsage, setPendingColumnDescriptionForDataset, setRegeneratingColumnForDataset]
     );
 
     const handleGenerateSelectedDescriptions = useCallback(async (selectedColumns: string[]) => {
@@ -1245,6 +1318,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const handleApplyDatasetSuggestions = useCallback(async () => {
         const currentDesc = generatedResults.datasetDescription;
         if (!currentDesc || !csvData) return;
+        const regenDatasetId = activeDatasetIdRef.current;
+        if (!regenDatasetId) return;
         setRegeneratingDataset(true);
         setDatasetSuggestions([]);
         setPendingDatasetDescription('');
@@ -1266,7 +1341,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                setPendingDatasetDescription(fullContent);
+                setPendingDatasetDescriptionForDataset(regenDatasetId, fullContent);
             });
             addTokenUsage(result.usage);
             setStatus({
@@ -1274,15 +1349,15 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 type: 'success',
             });
         } catch (error) {
-            setPendingDatasetDescription(null);
+            setPendingDatasetDescriptionForDataset(regenDatasetId, null);
             setStatus({
                 message: `Error applying suggestions: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 type: 'error'
             });
         } finally {
-            setRegeneratingDataset(false);
+            setRegeneratingDatasetForDataset(regenDatasetId, false);
         }
-    }, [csvData, fileName, columnStats, generatedResults.datasetDescription, datasetSuggestions, importedRowCount, openaiConfig, promptTemplates.systemPrompt, callOpenAIStream, addTokenUsage, buildDatasetPromptFromTemplate]);
+    }, [csvData, fileName, columnStats, generatedResults.datasetDescription, datasetSuggestions, importedRowCount, openaiConfig, promptTemplates.systemPrompt, callOpenAIStream, addTokenUsage, buildDatasetPromptFromTemplate, setPendingDatasetDescriptionForDataset, setRegeneratingDatasetForDataset]);
 
     const handleSuggestColumnImprovement = useCallback(async (columnName: string) => {
         const currentDesc = generatedResults.columnDescriptions[columnName];
@@ -1351,6 +1426,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         const info = columnStats[columnName];
         const colValues = csvData?.map((row) => row[columnName]);
         if (!info || colValues === undefined) return;
+        const regenDatasetId = activeDatasetIdRef.current;
+        if (!regenDatasetId) return;
 
         // Capture suggestions before clearing state — the closure reads a stale
         // reference if we read from the state variable inside the async callback.
@@ -1371,7 +1448,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                setPendingColumnDescriptions((prev) => ({ ...prev, [columnName]: fullContent }));
+                setPendingColumnDescriptionForDataset(regenDatasetId, columnName, fullContent);
             });
             addTokenUsage(result.usage);
             setStatus({
@@ -1379,20 +1456,12 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 type: 'success',
             });
         } catch (error) {
-            setPendingColumnDescriptions((prev) => {
-                const next = { ...prev };
-                delete next[columnName];
-                return next;
-            });
+            setPendingColumnDescriptionForDataset(regenDatasetId, columnName, null);
             handleRegenerationError(error, setStatus);
         } finally {
-            setRegeneratingColumns((prev) => {
-                const next = new Set(prev);
-                next.delete(columnName);
-                return next;
-            });
+            setRegeneratingColumnForDataset(regenDatasetId, columnName, false);
         }
-    }, [csvData, columnStats, generatedResults, columnSuggestions, openaiConfig, promptTemplates.systemPrompt, buildColumnPrompt, callOpenAIStream, addTokenUsage]);
+    }, [csvData, columnStats, generatedResults, columnSuggestions, openaiConfig, promptTemplates.systemPrompt, buildColumnPrompt, callOpenAIStream, addTokenUsage, setPendingColumnDescriptionForDataset, setRegeneratingColumnForDataset]);
 
     const handleEditDatasetDescription = useCallback((newDescription: string) => {
         setGeneratedResults((prev) => ({ ...prev, datasetDescription: newDescription }));
