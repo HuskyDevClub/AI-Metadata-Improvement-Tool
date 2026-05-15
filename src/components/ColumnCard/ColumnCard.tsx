@@ -23,6 +23,8 @@ interface ColumnCardProps {
     pendingDescription?: string | null;
     onAcceptPending?: () => void;
     onDiscardPending?: () => void;
+    onReset?: () => void;
+    canReset?: boolean;
 }
 
 export function ColumnCard({
@@ -44,6 +46,8 @@ export function ColumnCard({
                                pendingDescription = null,
                                onAcceptPending,
                                onDiscardPending,
+                               onReset,
+                               canReset = false,
                            }: ColumnCardProps) {
 
     return (
@@ -71,6 +75,8 @@ export function ColumnCard({
                 pendingDescription={pendingDescription}
                 onAcceptPending={onAcceptPending}
                 onDiscardPending={onDiscardPending}
+                onReset={onReset}
+                canReset={canReset}
             />
         </div>
     );

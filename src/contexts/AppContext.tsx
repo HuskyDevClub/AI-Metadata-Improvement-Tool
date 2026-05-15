@@ -103,12 +103,15 @@ interface SavedDatasetState {
     fileName: string;
     columnStats: Record<string, ColumnInfo>;
     generatedResults: GeneratedResults;
+    initialResults: GeneratedResults | null;
     showResults: boolean;
     importedRowCount: number;
     tokenUsage: TokenUsage;
     socrataDatasetId: string;
     socrataFieldNameMap: Record<string, string>;
 }
+
+export type ResettableColumnField = 'description' | 'displayName' | 'fieldName';
 
 interface AppContextType {
     // Navigation
@@ -146,6 +149,7 @@ interface AppContextType {
     fileName: string;
     columnStats: Record<string, ColumnInfo>;
     generatedResults: GeneratedResults;
+    initialResults: GeneratedResults | null;
     showResults: boolean;
     importedRowCount: number;
 
@@ -224,6 +228,8 @@ interface AppContextType {
     handleEditPeriodOfTime: (newPeriodOfTime: string) => void;
     handleGeneratePeriodOfTime: () => Promise<void>;
     handleEditPostingFrequency: (newPostingFrequency: string) => void;
+    handleResetField: <K extends keyof GeneratedResults>(field: K) => void;
+    handleResetColumnField: (columnName: string, field: ResettableColumnField) => void;
     handlePushToSocrata: () => Promise<void>;
     handleCloseDataset: () => void;
     closeTab: (id: string) => void;
@@ -364,6 +370,10 @@ export function AppProvider({ children }: {children: ReactNode}) {
         columnDisplayNames: {},
         columnFieldNames: {},
     });
+    // Snapshot of generatedResults captured at import. Lets users reset
+    // individual fields back to the value loaded from the source (Socrata
+    // metadata for imports; the empty defaults for CSV uploads).
+    const [initialResults, setInitialResults] = useState<GeneratedResults | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -426,12 +436,12 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     // Ref that always holds current per-dataset state (updated synchronously after render)
     const datasetStateRef = useRef({
-        csvData, fileName, columnStats, generatedResults, showResults,
+        csvData, fileName, columnStats, generatedResults, initialResults, showResults,
         importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
     });
     useLayoutEffect(() => {
         datasetStateRef.current = {
-            csvData, fileName, columnStats, generatedResults, showResults,
+            csvData, fileName, columnStats, generatedResults, initialResults, showResults,
             importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
         };
     });
@@ -455,6 +465,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setFileName(saved.fileName);
         setColumnStats(saved.columnStats);
         setGeneratedResults(saved.generatedResults);
+        setInitialResults(saved.initialResults);
         setShowResults(saved.showResults);
         setImportedRowCount(saved.importedRowCount);
         setTokenUsage(saved.tokenUsage);
@@ -943,7 +954,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 });
                 setColumnStats(stats);
 
-                setGeneratedResults({
+                const initialCsvResults: GeneratedResults = {
                     datasetTitle: '',
                     datasetDescription: '',
                     rowLabel: '',
@@ -957,7 +968,9 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     columnDescriptions: {},
                     columnDisplayNames: displayNameMap,
                     columnFieldNames: {},
-                });
+                };
+                setGeneratedResults(initialCsvResults);
+                setInitialResults(initialCsvResults);
 
                 // Add tab
                 setDatasetTabs(prev => [...prev, { id: newId, fileName: result.fileName }]);
@@ -1024,6 +1037,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 columnDisplayNames: {},
                 columnFieldNames: {},
             });
+            setInitialResults(null);
             setShowResults(false);
             setImportedRowCount(0);
             setGeneratingColumns(new Set());
@@ -1695,7 +1709,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 });
                 setSocrataFieldNameMap(fieldMap);
 
-                setGeneratedResults({
+                const initialSocrataResults: GeneratedResults = {
                     datasetTitle: result.datasetName || '',
                     datasetDescription: result.datasetDescription || '',
                     rowLabel: result.rowLabel || '',
@@ -1709,7 +1723,9 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     columnDescriptions,
                     columnDisplayNames: displayNameMap,
                     columnFieldNames: fieldNameMap,
-                });
+                };
+                setGeneratedResults(initialSocrataResults);
+                setInitialResults(initialSocrataResults);
 
                 setShowResults(true);
 
@@ -1795,6 +1811,27 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setStatus({ message: `Failed to clear OpenAI config: ${detail}`, type: 'error' });
         }
     }, []);
+
+    const handleResetField = useCallback(<K extends keyof GeneratedResults>(field: K) => {
+        if (!initialResults) return;
+        setGeneratedResults((prev) => ({ ...prev, [field]: initialResults[field] }));
+    }, [initialResults]);
+
+    const handleResetColumnField = useCallback(
+        (columnName: string, field: ResettableColumnField) => {
+            if (!initialResults) return;
+            const mapKey: 'columnDescriptions' | 'columnDisplayNames' | 'columnFieldNames' =
+                field === 'description' ? 'columnDescriptions'
+                    : field === 'displayName' ? 'columnDisplayNames'
+                        : 'columnFieldNames';
+            const original = initialResults[mapKey][columnName] ?? '';
+            setGeneratedResults((prev) => ({
+                ...prev,
+                [mapKey]: { ...prev[mapKey], [columnName]: original },
+            }));
+        },
+        [initialResults]
+    );
 
     const handlePushToSocrata = useCallback(async () => {
         if (!socrataDatasetId) return;
@@ -1895,6 +1932,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         fileName,
         columnStats,
         generatedResults,
+        initialResults,
         showResults,
         importedRowCount,
         status,
@@ -1965,6 +2003,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         handleEditPeriodOfTime,
         handleGeneratePeriodOfTime,
         handleEditPostingFrequency,
+        handleResetField,
+        handleResetColumnField,
         handlePushToSocrata,
         handleCloseDataset,
         closeTab,

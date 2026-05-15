@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { PageId } from '../../contexts/AppContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { FloatingActions } from '../FloatingActions/FloatingActions';
+import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
 import { StatusMessage } from '../StatusMessage/StatusMessage';
 import { ImportPage } from '../../pages/ImportPage';
 import { DataOverviewPage } from '../../pages/DataOverviewPage';
@@ -65,13 +66,16 @@ function DatasetTitleBar() {
     const {
         fileName,
         generatedResults,
+        initialResults,
         handleEditDatasetTitle,
         handleGenerateDatasetTitle,
+        handleResetField,
         generatingDatasetTitle,
         socrataDatasetId,
     } = useAppContext();
 
     const title = generatedResults.datasetTitle;
+    const titleChanged = !!initialResults && generatedResults.datasetTitle !== initialResults.datasetTitle;
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(title);
 
@@ -150,6 +154,11 @@ function DatasetTitleBar() {
                                     </svg>
                                     {title ? 'Regenerate' : 'Generate'}
                                 </button>
+                                <ResetFieldButton
+                                    show={titleChanged}
+                                    onReset={() => handleResetField('datasetTitle')}
+                                    title="Reset title to the value loaded from the dataset"
+                                />
                             </span>
                         )}
                     </>

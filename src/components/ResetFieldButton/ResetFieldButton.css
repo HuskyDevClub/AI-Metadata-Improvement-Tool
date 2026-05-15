@@ -1,0 +1,33 @@
+.reset-field-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid var(--text-tertiary);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.reset-field-btn:hover:not(:disabled) {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.reset-field-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.reset-field-btn svg {
+    flex-shrink: 0;
+}
+
+.reset-field-btn-label {
+    font-weight: 500;
+}

@@ -2,7 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { type SuggestionItem } from '../../utils/prompts';
 import type { SocrataLicense } from '../../types';
 import { EditableDescription } from '../EditableDescription/EditableDescription';
+import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
 import './DatasetDescription.css';
+
+type DatasetFieldKey =
+    | 'datasetDescription'
+    | 'rowLabel'
+    | 'category'
+    | 'tags'
+    | 'licenseId'
+    | 'attribution'
+    | 'contactEmail'
+    | 'periodOfTime'
+    | 'postingFrequency';
 
 const POSTING_FREQUENCY_OPTIONS = [
     'Annually',
@@ -64,6 +76,8 @@ interface DatasetDescriptionProps {
     isGeneratingPeriodOfTime?: boolean;
     postingFrequency?: string;
     onEditPostingFrequency?: (newPostingFrequency: string) => void;
+    onResetField?: (field: DatasetFieldKey) => void;
+    isFieldChanged?: (field: DatasetFieldKey) => boolean;
 }
 
 export function DatasetDescription({
@@ -110,7 +124,11 @@ export function DatasetDescription({
                                        isGeneratingPeriodOfTime = false,
                                        postingFrequency = '',
                                        onEditPostingFrequency,
+                                       onResetField,
+                                       isFieldChanged,
                                    }: DatasetDescriptionProps) {
+    const canReset = (field: DatasetFieldKey) => !!onResetField && !!isFieldChanged?.(field);
+    const resetHandler = (field: DatasetFieldKey) => () => onResetField?.(field);
     const [isEditingRowLabel, setIsEditingRowLabel] = useState(false);
     const [rowLabelEditValue, setRowLabelEditValue] = useState(rowLabel);
     const [newTagInput, setNewTagInput] = useState('');
@@ -210,6 +228,8 @@ export function DatasetDescription({
                     pendingDescription={pendingDescription}
                     onAcceptPending={onAcceptPending}
                     onDiscardPending={onDiscardPending}
+                    onReset={onResetField ? resetHandler('datasetDescription') : undefined}
+                    canReset={canReset('datasetDescription')}
                 />
 
                 {onEditRowLabel && (
@@ -268,6 +288,11 @@ export function DatasetDescription({
                                         >
                                             Generate
                                         </button>
+                                        <ResetFieldButton
+                                            show={canReset('rowLabel')}
+                                            onReset={resetHandler('rowLabel')}
+                                            title="Reset row label to the value loaded from the dataset"
+                                        />
                                     </span>
                                 )}
                             </div>
@@ -308,6 +333,12 @@ export function DatasetDescription({
                             >
                                 {isGeneratingCategory ? 'Generating...' : 'Generate'}
                             </button>
+                            <ResetFieldButton
+                                show={canReset('category')}
+                                onReset={resetHandler('category')}
+                                disabled={isGeneratingCategory}
+                                title="Reset category to the value loaded from the dataset"
+                            />
                         </div>
                         {categoriesUnavailable && (
                             <div className="dataset-category-unavailable">
@@ -329,6 +360,12 @@ export function DatasetDescription({
                             >
                                 {isGeneratingTags ? 'Generating...' : 'Generate'}
                             </button>
+                            <ResetFieldButton
+                                show={canReset('tags')}
+                                onReset={resetHandler('tags')}
+                                disabled={isGeneratingTags}
+                                title="Reset tags to the values loaded from the dataset"
+                            />
                         </div>
                         <div className="dataset-tags-chips">
                             {tags.length === 0 && !isGeneratingTags && (
@@ -456,6 +493,11 @@ export function DatasetDescription({
                                     </option>
                                 ))}
                             </select>
+                            <ResetFieldButton
+                                show={canReset('licenseId')}
+                                onReset={resetHandler('licenseId')}
+                                title="Reset license to the value loaded from the dataset"
+                            />
                         </div>
                         {licensesUnavailable && (
                             <div className="dataset-category-unavailable">
@@ -470,6 +512,11 @@ export function DatasetDescription({
                                 placeholder="Issuing organization (e.g. Department of Licensing)"
                                 value={attribution}
                                 onChange={(e) => onEditAttribution(e.target.value)}
+                            />
+                            <ResetFieldButton
+                                show={canReset('attribution')}
+                                onReset={resetHandler('attribution')}
+                                title="Reset attribution to the value loaded from the dataset"
                             />
                         </div>
                     </div>
@@ -499,6 +546,12 @@ export function DatasetDescription({
                                         {isGeneratingPeriodOfTime ? 'Generating...' : 'Generate'}
                                     </button>
                                 )}
+                                <ResetFieldButton
+                                    show={canReset('periodOfTime')}
+                                    onReset={resetHandler('periodOfTime')}
+                                    disabled={isGeneratingPeriodOfTime}
+                                    title="Reset Period of Time to the value loaded from the dataset"
+                                />
                             </div>
                         )}
                         {onEditPostingFrequency && (
@@ -527,6 +580,11 @@ export function DatasetDescription({
                                         ))}
                                         <option value={POSTING_FREQUENCY_OTHER}>Other...</option>
                                     </select>
+                                    <ResetFieldButton
+                                        show={canReset('postingFrequency')}
+                                        onReset={resetHandler('postingFrequency')}
+                                        title="Reset posting frequency to the value loaded from the dataset"
+                                    />
                                 </div>
                                 {postingFrequencyCustom && (
                                     <div className="dataset-license-row">
@@ -556,6 +614,11 @@ export function DatasetDescription({
                                 placeholder="e.g. opendata@example.wa.gov"
                                 value={contactEmail}
                                 onChange={(e) => onEditContactEmail(e.target.value)}
+                            />
+                            <ResetFieldButton
+                                show={canReset('contactEmail')}
+                                onReset={resetHandler('contactEmail')}
+                                title="Reset contact email to the value loaded from the dataset"
                             />
                         </div>
                     </div>

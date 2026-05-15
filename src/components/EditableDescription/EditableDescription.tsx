@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { SuggestionItem } from '../../utils/prompts';
+import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
 import './EditableDescription.css';
 
 interface EditableDescriptionProps {
@@ -22,6 +23,8 @@ interface EditableDescriptionProps {
     pendingDescription?: string | null;
     onAcceptPending?: () => void;
     onDiscardPending?: () => void;
+    onReset?: () => void;
+    canReset?: boolean;
 }
 
 export function EditableDescription({
@@ -44,6 +47,8 @@ export function EditableDescription({
                                         pendingDescription = null,
                                         onAcceptPending,
                                         onDiscardPending,
+                                        onReset,
+                                        canReset = false,
                                     }: EditableDescriptionProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(description);
@@ -344,6 +349,15 @@ export function EditableDescription({
                                                 title="Apply">Apply
                                         </button>
                                     </div>
+                                    {onReset && (
+                                        <ResetFieldButton
+                                            show={canReset}
+                                            onReset={onReset}
+                                            disabled={isBusy}
+                                            label="Reset"
+                                            title="Reset description to the value loaded from the dataset"
+                                        />
+                                    )}
                                 </>
                             )}
                         </div>

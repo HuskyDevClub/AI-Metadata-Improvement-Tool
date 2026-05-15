@@ -9,6 +9,7 @@ export function DataOverviewPage() {
         csvData,
         columnStats,
         generatedResults,
+        initialResults,
         isProcessing,
         generatingColumns,
         regeneratingDataset,
@@ -48,8 +49,32 @@ export function DataOverviewPage() {
         handleGeneratePeriodOfTime,
         generatingPeriodOfTime,
         handleEditPostingFrequency,
+        handleResetField,
         renderTokenUsage,
     } = useAppContext();
+
+    const isDatasetFieldChanged = useMemo(() => {
+        return (field:
+                    | 'datasetDescription'
+                    | 'rowLabel'
+                    | 'category'
+                    | 'tags'
+                    | 'licenseId'
+                    | 'attribution'
+                    | 'contactEmail'
+                    | 'periodOfTime'
+                    | 'postingFrequency'): boolean => {
+            if (!initialResults) return false;
+            if (field === 'tags') {
+                const a = generatedResults.tags;
+                const b = initialResults.tags;
+                if (a.length !== b.length) return true;
+                for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return true;
+                return false;
+            }
+            return generatedResults[field] !== initialResults[field];
+        };
+    }, [generatedResults, initialResults]);
 
     const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
@@ -153,6 +178,8 @@ export function DataOverviewPage() {
                     isGeneratingPeriodOfTime={generatingPeriodOfTime}
                     postingFrequency={generatedResults.postingFrequency}
                     onEditPostingFrequency={handleEditPostingFrequency}
+                    onResetField={handleResetField}
+                    isFieldChanged={isDatasetFieldChanged}
                 />
             )}
 

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { ColumnCard } from '../components/ColumnCard/ColumnCard';
 import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
+import { ResetFieldButton } from '../components/ResetFieldButton/ResetFieldButton';
 import { useAppContext } from '../contexts/AppContext';
 import { formatColumnStats } from '../utils/columnAnalyzer';
 import './FieldOverviewPage.css';
@@ -10,6 +11,7 @@ export function FieldOverviewPage() {
         currentFieldName: fieldName,
         columnStats,
         generatedResults,
+        initialResults,
         csvData,
         socrataDatasetId,
         generatingColumns,
@@ -30,6 +32,7 @@ export function FieldOverviewPage() {
         pendingColumnDescriptions,
         handleAcceptPendingColumn,
         handleDiscardPendingColumn,
+        handleResetColumnField,
         renderTokenUsage,
     } = useAppContext();
 
@@ -50,6 +53,12 @@ export function FieldOverviewPage() {
     const displayName = generatedResults.columnDisplayNames[fieldName] ?? fieldName;
     const apiFieldName = generatedResults.columnFieldNames[fieldName] ?? '';
     const isSocrataSourced = Boolean(socrataDatasetId);
+    const initialDescription = initialResults?.columnDescriptions[fieldName] ?? '';
+    const initialDisplayName = initialResults?.columnDisplayNames[fieldName] ?? '';
+    const initialApiFieldName = initialResults?.columnFieldNames[fieldName] ?? '';
+    const descriptionChanged = !!initialResults && description !== initialDescription;
+    const displayNameChanged = !!initialResults && displayName !== initialDisplayName;
+    const apiFieldNameChanged = !!initialResults && apiFieldName !== initialApiFieldName;
     const prevField = currentIndex > 0 ? columnNames[currentIndex - 1] : null;
     const nextField = currentIndex < columnNames.length - 1 ? columnNames[currentIndex + 1] : null;
     const statsText = formatColumnStats(info);
@@ -143,7 +152,14 @@ export function FieldOverviewPage() {
                 <div className="field-overview-identifiers-title">Field Identifiers</div>
                 <div className="field-overview-identifiers-grid">
                     <label className="field-overview-identifier">
-                        <span className="field-overview-identifier-label">Display Name</span>
+                        <span className="field-overview-identifier-label">
+                            Display Name
+                            <ResetFieldButton
+                                show={displayNameChanged}
+                                onReset={() => handleResetColumnField(fieldName, 'displayName')}
+                                title="Reset display name to the value loaded from the dataset"
+                            />
+                        </span>
                         <input
                             type="text"
                             className="field-overview-identifier-input"
@@ -157,7 +173,14 @@ export function FieldOverviewPage() {
                     </label>
                     {isSocrataSourced && (
                         <label className="field-overview-identifier">
-                            <span className="field-overview-identifier-label">API Field Name</span>
+                            <span className="field-overview-identifier-label">
+                                API Field Name
+                                <ResetFieldButton
+                                    show={apiFieldNameChanged}
+                                    onReset={() => handleResetColumnField(fieldName, 'fieldName')}
+                                    title="Reset API field name to the value loaded from the dataset"
+                                />
+                            </span>
                             <input
                                 type="text"
                                 className="field-overview-identifier-input field-overview-identifier-mono"
@@ -199,6 +222,8 @@ export function FieldOverviewPage() {
                     }
                     onAcceptPending={() => handleAcceptPendingColumn(fieldName)}
                     onDiscardPending={() => handleDiscardPendingColumn(fieldName)}
+                    onReset={() => handleResetColumnField(fieldName, 'description')}
+                    canReset={descriptionChanged}
                 />
             </div>
 
