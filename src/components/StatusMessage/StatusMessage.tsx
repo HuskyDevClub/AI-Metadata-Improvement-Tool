@@ -12,16 +12,21 @@ export function StatusMessage({ status, isProcessing, onStop }: StatusMessagePro
     const [hidden, setHidden] = useState(false);
     const [fading, setFading] = useState(false);
 
-    useEffect(() => {
-        if (!status?.autoHide) return;
+    const autoHideMs = status?.autoHide ?? (status?.type === 'success' ? 3000 : undefined);
 
-        const fadeTimer = setTimeout(() => setFading(true), status.autoHide);
-        const hideTimer = setTimeout(() => setHidden(true), status.autoHide + 500);
+    useEffect(() => {
+        setHidden(false);
+        setFading(false);
+
+        if (!autoHideMs) return;
+
+        const fadeTimer = setTimeout(() => setFading(true), autoHideMs);
+        const hideTimer = setTimeout(() => setHidden(true), autoHideMs + 500);
         return () => {
             clearTimeout(fadeTimer);
             clearTimeout(hideTimer);
         };
-    }, [status?.autoHide]);
+    }, [status, autoHideMs]);
 
     if (!status || hidden) return null;
 
