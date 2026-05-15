@@ -52,6 +52,7 @@ export function DataOverviewPage() {
     } = useAppContext();
 
     const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
+    const [searchQuery, setSearchQuery] = useState('');
 
     const columnNames = useMemo(() => Object.keys(columnStats), [columnStats]);
     const emptyColumns = useMemo(
@@ -63,6 +64,27 @@ export function DataOverviewPage() {
         [columnNames, generatedResults.columnDescriptions]
     );
 
+    const filteredColumnNames = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return columnNames;
+        return columnNames.filter(name => {
+            if (name.toLowerCase().includes(q)) return true;
+            const machine = generatedResults.columnFieldNames[name];
+            if (machine && machine.toLowerCase().includes(q)) return true;
+            const title = generatedResults.columnDisplayNames[name];
+            if (title && title.toLowerCase().includes(q)) return true;
+            const desc = generatedResults.columnDescriptions[name];
+            if (desc && desc.toLowerCase().includes(q)) return true;
+            return false;
+        });
+    }, [
+        columnNames,
+        searchQuery,
+        generatedResults.columnFieldNames,
+        generatedResults.columnDisplayNames,
+        generatedResults.columnDescriptions,
+    ]);
+
     const toggleColumn = (col: string) => {
         setSelectedColumns(prev => {
             const next = new Set(prev);
@@ -72,7 +94,7 @@ export function DataOverviewPage() {
         });
     };
 
-    const selectAll = () => setSelectedColumns(new Set(columnNames));
+    const selectAll = () => setSelectedColumns(new Set(filteredColumnNames));
     const selectNone = () => setSelectedColumns(new Set());
     const selectEmpty = () => setSelectedColumns(new Set(emptyColumns));
     const selectNonEmpty = () => setSelectedColumns(new Set(nonEmptyColumns));
@@ -136,7 +158,8 @@ export function DataOverviewPage() {
 
             <div className="section">
                 <div className="sectionTitle">
-                    Fields ({columnNames.length})
+                    Fields ({columnNames.length}
+                    {searchQuery.trim() && ` · ${filteredColumnNames.length} shown`})
                 </div>
 
                 <div className="field-table-controls">
@@ -151,6 +174,13 @@ export function DataOverviewPage() {
                             Non-empty ({nonEmptyColumns.length})
                         </button>
                     </div>
+                    <input
+                        type="search"
+                        className="field-table-search"
+                        placeholder="Search fields by name, title, or description..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                     {selectedColumns.size > 0 && (
                         <button
                             className="field-table-generate-btn"
@@ -171,22 +201,35 @@ export function DataOverviewPage() {
                             <th className="field-table-th-check">
                                 <input
                                     type="checkbox"
-                                    checked={selectedColumns.size === columnNames.length && columnNames.length > 0}
+                                    checked={
+                                        filteredColumnNames.length > 0 &&
+                                        filteredColumnNames.every(n => selectedColumns.has(n))
+                                    }
                                     onChange={(e) => e.target.checked ? selectAll() : selectNone()}
                                 />
                             </th>
-                            <th>Field Name</th>
-                            <th>Type</th>
+                            <th>Column Name</th>
                             <th>Description</th>
+                            <th>API Field Name</th>
+                            <th>Data Type</th>
                             <th>Status</th>
                         </tr>
                         </thead>
                         <tbody>
-                        {columnNames.map(name => {
+                        {filteredColumnNames.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="field-table-empty">
+                                    No fields match "{searchQuery}".
+                                </td>
+                            </tr>
+                        ) : filteredColumnNames.map(name => {
                             const info = columnStats[name];
                             const desc = generatedResults.columnDescriptions[name] || '';
+                            const machineName = generatedResults.columnFieldNames[name] || name;
+                            const title = generatedResults.columnDisplayNames[name] ?? name;
                             const isGenerating = generatingColumns.has(name);
                             const hasDesc = desc.trim().length > 0;
+                            const titleDiffers = title.trim().length > 0 && title !== machineName;
 
                             return (
                                 <tr key={name} className={selectedColumns.has(name) ? 'field-row-selected' : ''}>
@@ -197,16 +240,25 @@ export function DataOverviewPage() {
                                             onChange={() => toggleColumn(name)}
                                         />
                                     </td>
-                                    <td>
-                                        <button
-                                            className="field-name-link"
-                                            onClick={() => navigate('field', name)}
-                                        >
-                                            {name}
-                                        </button>
-                                    </td>
-                                    <td>
-                                        <DataTypeBadge type={info.type} originalType={info.originalType}/>
+                                    <td className="field-title-cell">
+                                        {titleDiffers ? (
+                                            <button
+                                                className="field-name-link"
+                                                onClick={() => navigate('field', name)}
+                                            >
+                                                {title}
+                                            </button>
+                                        ) : title ? (
+                                            <button
+                                                className="field-name-link field-title-same"
+                                                onClick={() => navigate('field', name)}
+                                                title="Same as API field name — AI has not customized this"
+                                            >
+                                                {title}
+                                            </button>
+                                        ) : (
+                                            <span className="field-no-desc">—</span>
+                                        )}
                                     </td>
                                     <td className="field-desc-cell">
                                         {isGenerating ? (
@@ -218,6 +270,12 @@ export function DataOverviewPage() {
                                             desc ? truncate(desc, 120) :
                                                 <span className="field-no-desc">No description</span>
                                         )}
+                                    </td>
+                                    <td>
+                                        <span className="field-name-mono">{machineName}</span>
+                                    </td>
+                                    <td>
+                                        <DataTypeBadge type={info.type} originalType={info.originalType}/>
                                     </td>
                                     <td>
                                         {isGenerating ? (

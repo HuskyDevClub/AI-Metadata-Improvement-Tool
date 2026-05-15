@@ -118,17 +118,24 @@ export function buildSampleRows(data: CsvRow[], columns?: string[]): string {
     const displayCols = cols.slice(0, 15);
     const sampleData = data.slice(0, 5);
 
-    const truncate = (val: string, maxLen: number = 60): string => {
+    const truncate = (val: unknown, maxLen: number = 60): string => {
+        // Socrata sample rows can contain non-string values (geospatial Point
+        // objects, numbers, booleans). Coerce here so .replace doesn't blow up.
+        const str = val == null
+            ? ''
+            : typeof val === 'object'
+                ? JSON.stringify(val)
+                : String(val);
         // Collapse internal whitespace so an injected newline in one cell
         // can't visually break the row apart and impersonate a new instruction.
-        const oneLine = val.replace(/\s+/g, ' ');
+        const oneLine = str.replace(/\s+/g, ' ');
         return oneLine.length > maxLen ? oneLine.slice(0, maxLen - 3) + '...' : oneLine;
     };
 
     const header = displayCols.map(c => truncate(c)).join(' | ');
     const separator = displayCols.map(c => '-'.repeat(Math.min(c.length, 60))).join(' | ');
     const rows = sampleData.map(row =>
-        displayCols.map(c => truncate(row[c] ?? '')).join(' | ')
+        displayCols.map(c => truncate(row[c])).join(' | ')
     );
 
     return [header, separator, ...rows].join('\n');

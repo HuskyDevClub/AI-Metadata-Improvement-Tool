@@ -39,6 +39,24 @@
     color: var(--accent);
 }
 
+.field-table-search {
+    flex: 1 1 240px;
+    max-width: 360px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.field-table-search:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-light);
+}
+
 .field-table-generate-btn {
     padding: 7px 16px;
     border: none;
@@ -78,9 +96,7 @@
     background: var(--surface-secondary);
     font-weight: 600;
     color: var(--text-secondary);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: 13px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -128,9 +144,31 @@
     text-decoration: underline;
 }
 
+.field-name-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+}
+
+.field-title-cell {
+    color: var(--text);
+    max-width: 240px;
+}
+
+.field-title-same {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
 .field-desc-cell {
     max-width: 400px;
     line-height: 1.5;
+}
+
+.field-table-empty {
+    text-align: center;
+    padding: 24px 16px;
+    color: var(--text-tertiary);
+    font-style: italic;
 }
 
 .field-no-desc {
