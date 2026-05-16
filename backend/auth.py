@@ -21,6 +21,7 @@ from .config import (
     SESSION_COOKIE_MAX_AGE,
     SESSION_COOKIE_NAME,
     SOCRATA_APP_TOKEN,
+    SOCRATA_BASE_URL,
     SOCRATA_OAUTH_REDIRECT_URI,
     SOCRATA_SECRET_TOKEN,
     fernet,
@@ -92,10 +93,11 @@ def _update_session(
 
 
 def _build_oauth_authorize_url(is_retry: bool = False) -> str:
-    """Build a data.wa.gov OAuth authorize URL with a signed state token.
+    """Build a Socrata OAuth authorize URL with a signed state token.
 
-    When *is_retry* is True an ``R`` flag is appended to the state so the
-    callback knows not to retry again (prevents infinite redirect loops).
+    Targets the portal configured by SOCRATA_DOMAIN. When *is_retry* is True
+    an ``R`` flag is appended to the state so the callback knows not to retry
+    again (prevents infinite redirect loops).
     """
     random_bytes = secrets.token_bytes(16)
     timestamp = str(int(time.time()))
@@ -118,12 +120,12 @@ def _build_oauth_authorize_url(is_retry: bool = False) -> str:
             "scope": "read_user_info read_site_content write_site_content",
         }
     )
-    return f"https://data.wa.gov/oauth/authorize?{params}"
+    return f"{SOCRATA_BASE_URL}/oauth/authorize?{params}"
 
 
 @router.get("/socrata/login", response_model=SocrataOAuthLoginResponse)
 async def socrata_oauth_login() -> SocrataOAuthLoginResponse:
-    """Return the OAuth authorization URL for data.wa.gov sign-in."""
+    """Return the OAuth authorization URL for the configured Socrata portal."""
     if not SOCRATA_APP_TOKEN:
         raise HTTPException(
             status_code=400,
@@ -189,7 +191,7 @@ async def socrata_oauth_callback(
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             token_resp = await client.post(
-                "https://data.wa.gov/oauth/access_token",
+                f"{SOCRATA_BASE_URL}/oauth/access_token",
                 data={
                     "client_id": SOCRATA_APP_TOKEN,
                     "client_secret": SOCRATA_SECRET_TOKEN,
@@ -201,8 +203,8 @@ async def socrata_oauth_callback(
 
             if token_resp.status_code != 200:
                 logger.error("OAuth token exchange failed: %s", token_resp.text)
-                # data.wa.gov may reissue a stale authorization code from a
-                # previous session.  If so, retry once — the failed exchange
+                # The Socrata portal may reissue a stale authorization code from
+                # a previous session. If so, retry once — the failed exchange
                 # invalidates the old code, so the next authorize round-trip
                 # will produce a fresh one.
                 if not is_retry and "Authorization code invalid" in token_resp.text:
@@ -244,7 +246,7 @@ async def socrata_session(request: Request) -> SocrataSessionResponse:
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(
-                    "https://data.wa.gov/api/users/current.json",
+                    f"{SOCRATA_BASE_URL}/api/users/current.json",
                     headers={"Authorization": f"OAuth {token}"},
                 )
                 if resp.status_code != 200:
@@ -307,7 +309,7 @@ async def socrata_logout(request: Request, response: Response) -> Response:
             try:
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     await client.post(
-                        "https://data.wa.gov/oauth/revoke_token",
+                        f"{SOCRATA_BASE_URL}/oauth/revoke_token",
                         data={
                             "access_token": token,
                             "client_id": SOCRATA_APP_TOKEN,

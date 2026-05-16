@@ -17,6 +17,13 @@ load_dotenv(override=True)
 # --- Socrata ---------------------------------------------------------------
 SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
 SOCRATA_SECRET_TOKEN = os.getenv("SOCRATA_SECRET_TOKEN", "")
+
+# Socrata host this instance is bound to (e.g. data.wa.gov).
+# Every Socrata-platform portal exposes the same /api/views, SODA, OAuth, and
+# catalog endpoints — swap the domain to target a different portal. The OAuth
+# app token must be registered on this same domain.
+SOCRATA_DOMAIN = os.getenv("SOCRATA_DOMAIN", "data.wa.gov").strip() or "data.wa.gov"
+SOCRATA_BASE_URL = f"https://{SOCRATA_DOMAIN}"
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 # Derive OAuth redirect URI. If it's missing or empty, we derive it from
