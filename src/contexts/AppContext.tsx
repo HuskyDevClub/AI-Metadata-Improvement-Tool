@@ -14,6 +14,7 @@ import { useOpenAI } from '../hooks/useOpenAI';
 import {
     describeSocrataType,
     fetchSocrataCategories,
+    fetchSocrataConfig,
     fetchSocrataImport,
     fetchSocrataLicenses,
     fetchSocrataOAuthLoginUrl,
@@ -146,7 +147,10 @@ interface AppContextType {
     ) => Promise<void>;
     handleOpenAIConfigClear: () => Promise<void>;
 
-    // Live data from data.wa.gov
+    // Portal domain this backend is bound to (null until /api/socrata/config resolves).
+    socrataDomain: string | null;
+
+    // Live data from the Socrata portal
     allowedCategories: string[];
     allowedTags: string[];
     allowedLicenses: SocrataLicense[];
@@ -315,12 +319,20 @@ export function AppProvider({ children }: {children: ReactNode}) {
         localStorage.setItem('prompt_templates', JSON.stringify(templates));
     }, []);
 
+    const [socrataDomain, setSocrataDomain] = useState<string | null>(null);
     const [allowedCategories, setAllowedCategories] = useState<string[]>([]);
     const [allowedTags, setAllowedTags] = useState<string[]>([]);
     const [allowedLicenses, setAllowedLicenses] = useState<SocrataLicense[]>([]);
 
     useEffect(() => {
         let cancelled = false;
+        fetchSocrataConfig()
+            .then((config) => {
+                if (!cancelled && config.domain) setSocrataDomain(config.domain);
+            })
+            .catch((err) => {
+                console.warn('Failed to load Socrata config:', err);
+            });
         fetchSocrataCategories()
             .then((list) => {
                 if (!cancelled) setAllowedCategories(list);
@@ -676,8 +688,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
             // Ignore — we still clear local state below
         }
         setSocrataOAuthUser(null);
-        setStatus({ message: 'Signed out from data.wa.gov', type: 'info' });
-    }, []);
+        setStatus({
+            message: socrataDomain ? `Signed out from ${socrataDomain}` : 'Signed out',
+            type: 'info',
+        });
+    }, [socrataDomain]);
 
     const { callOpenAIStream } = useOpenAI();
 
@@ -1712,7 +1727,12 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const handleSocrataImport = useCallback(
         async (datasetId: string) => {
             setIsProcessing(true);
-            setStatus({ message: 'Importing dataset from data.wa.gov...', type: 'info' });
+            setStatus({
+                message: socrataDomain
+                    ? `Importing dataset from ${socrataDomain}...`
+                    : 'Importing dataset...',
+                type: 'info',
+            });
 
             try {
                 const result = await fetchSocrataImport(datasetId);
@@ -1814,7 +1834,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setIsProcessing(false);
             }
         },
-        [saveCurrentDataset]
+        [saveCurrentDataset, socrataDomain]
     );
 
     // Auto-import dataset from ?dataset_id=<id> query parameter on mount
@@ -1905,7 +1925,12 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const handlePushToSocrata = useCallback(async () => {
         if (!socrataDatasetId) return;
         setIsPushingSocrata(true);
-        setStatus({ message: 'Pushing metadata to data.wa.gov...', type: 'info' });
+        setStatus({
+            message: socrataDomain
+                ? `Pushing metadata to ${socrataDomain}...`
+                : 'Pushing metadata...',
+            type: 'info',
+        });
 
         try {
             const columnKeys = new Set<string>([
@@ -1962,7 +1987,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         } finally {
             setIsPushingSocrata(false);
         }
-    }, [socrataDatasetId, generatedResults, socrataFieldNameMap]);
+    }, [socrataDatasetId, socrataDomain, generatedResults, socrataFieldNameMap]);
 
     const renderTokenUsage = useCallback(() => {
         if (tokenUsage.totalTokens > 0) {
@@ -1994,6 +2019,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setPromptTemplates,
         handleOpenAIConfigSave,
         handleOpenAIConfigClear,
+        socrataDomain,
         allowedCategories,
         allowedTags,
         allowedLicenses,

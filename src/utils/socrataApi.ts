@@ -126,6 +126,13 @@ export async function fetchSocrataImport(datasetId: string): Promise<SocrataImpo
     };
 }
 
+export async function fetchSocrataConfig(): Promise<{domain: string}> {
+    const response = await fetch(`${API_BASE_URL}/api/socrata/config`);
+    await assertResponseOk(response, 'Failed to load Socrata config');
+    const result = await response.json();
+    return { domain: String(result.domain || '') };
+}
+
 export async function fetchSocrataCategories(): Promise<string[]> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/categories`);
     await assertResponseOk(response, 'Failed to load categories');

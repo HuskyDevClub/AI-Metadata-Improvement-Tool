@@ -34,6 +34,7 @@ export function FieldOverviewPage() {
         handleDiscardPendingColumn,
         handleResetColumnField,
         renderTokenUsage,
+        socrataDomain,
     } = useAppContext();
 
     const columnNames = useMemo(() => Object.keys(columnStats), [columnStats]);
@@ -167,9 +168,11 @@ export function FieldOverviewPage() {
                             onChange={(e) => handleEditColumnDisplayName(fieldName, e.target.value)}
                             placeholder="Human-readable column name"
                         />
-                        <span className="field-overview-identifier-hint">
-                            Shown to viewers on data.wa.gov.
-                        </span>
+                        {socrataDomain && (
+                            <span className="field-overview-identifier-hint">
+                                Shown to viewers on {socrataDomain}.
+                            </span>
+                        )}
                     </label>
                     {isSocrataSourced && (
                         <label className="field-overview-identifier">

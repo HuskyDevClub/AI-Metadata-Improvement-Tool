@@ -7,10 +7,12 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .auth import read_session, require_xhr_header
+from .config import SOCRATA_BASE_URL, SOCRATA_DOMAIN
 from .models import (
     ColumnStats,
     SocrataCategoriesResponse,
     SocrataColumnMetadata,
+    SocrataConfigResponse,
     SocrataExportRequest,
     SocrataExportResponse,
     SocrataImportRequest,
@@ -39,6 +41,12 @@ _TAGS_TTL_SECONDS = 24 * 60 * 60
 _TAGS_MAX_RETURN = 2000
 
 
+@router.get("/config", response_model=SocrataConfigResponse)
+async def socrata_config() -> SocrataConfigResponse:
+    """Return the portal domain this instance is bound to."""
+    return SocrataConfigResponse(domain=SOCRATA_DOMAIN)
+
+
 @router.post("/import", response_model=SocrataImportResponse)
 async def socrata_import(
     request: SocrataImportRequest, http_request: Request
@@ -50,8 +58,8 @@ async def socrata_import(
     session = read_session(http_request)
     headers = build_socrata_auth(session)
 
-    metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
-    soda_base = f"https://data.wa.gov/resource/{dataset_id}.json"
+    metadata_url = f"{SOCRATA_BASE_URL}/api/views/{dataset_id}.json"
+    soda_base = f"{SOCRATA_BASE_URL}/resource/{dataset_id}.json"
 
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
@@ -170,7 +178,7 @@ async def socrata_import(
     except Exception as e:
         logger.exception("Socrata import error")
         raise HTTPException(
-            status_code=500, detail=f"Failed to fetch from data.wa.gov: {str(e)}"
+            status_code=500, detail=f"Failed to fetch from {SOCRATA_DOMAIN}: {str(e)}"
         )
 
 
@@ -192,14 +200,14 @@ async def socrata_export(
     if not session or session.get("kind") not in ("oauth", "api_key"):
         raise HTTPException(
             status_code=401,
-            detail="Authentication required to update metadata on data.wa.gov. "
+            detail=f"Authentication required to update metadata on {SOCRATA_DOMAIN}. "
             "Please sign in with OAuth or save an API key.",
         )
 
     headers = build_socrata_auth(session)
     headers["Content-Type"] = "application/json"
 
-    metadata_url = f"https://data.wa.gov/api/views/{dataset_id}.json"
+    metadata_url = f"{SOCRATA_BASE_URL}/api/views/{dataset_id}.json"
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -342,7 +350,7 @@ async def socrata_export(
                 )
                 raise HTTPException(
                     status_code=put_resp.status_code,
-                    detail=f"Failed to update metadata on data.wa.gov: {error_detail}",
+                    detail=f"Failed to update metadata on {SOCRATA_DOMAIN}: {error_detail}",
                 )
 
             parts = []
@@ -381,7 +389,7 @@ async def socrata_export(
                 parts.append(
                     f"{renamed_field_count} API field name{'s' if renamed_field_count != 1 else ''} renamed"
                 )
-            message = f"Successfully updated {' and '.join(parts)} on data.wa.gov."
+            message = f"Successfully updated {' and '.join(parts)} on {SOCRATA_DOMAIN}."
 
             return SocrataExportResponse(
                 success=True,
@@ -394,7 +402,8 @@ async def socrata_export(
     except Exception as e:
         logger.exception("Socrata export error")
         raise HTTPException(
-            status_code=500, detail=f"Failed to push metadata to data.wa.gov: {str(e)}"
+            status_code=500,
+            detail=f"Failed to push metadata to {SOCRATA_DOMAIN}: {str(e)}",
         )
 
 
@@ -402,7 +411,7 @@ async def _fetch_socrata_categories() -> list[str]:
     """Fetch the live domain category list from Socrata's public catalog API."""
     url = "https://api.us.socrata.com/api/catalog/v1/domain_categories"
     async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.get(url, params={"domains": "data.wa.gov"})
+        resp = await client.get(url, params={"domains": SOCRATA_DOMAIN})
         resp.raise_for_status()
         data = resp.json()
 
@@ -423,8 +432,8 @@ async def _fetch_socrata_categories() -> list[str]:
 
 
 async def _fetch_socrata_licenses() -> list[SocrataLicenseInfo]:
-    """Fetch the live license list from data.wa.gov."""
-    url = "https://data.wa.gov/api/licenses.json"
+    """Fetch the live license list from the configured Socrata portal."""
+    url = f"{SOCRATA_BASE_URL}/api/licenses.json"
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.get(url)
         resp.raise_for_status()
@@ -454,7 +463,7 @@ async def _fetch_socrata_licenses() -> list[SocrataLicenseInfo]:
 
 @router.get("/licenses", response_model=SocrataLicensesResponse)
 async def socrata_licenses() -> SocrataLicensesResponse:
-    """Return the live list of data.wa.gov licenses, cached for 24 hours."""
+    """Return the live list of portal licenses, cached for 24 hours."""
     now = time.time()
     cached = _licenses_cache["value"]
     fetched_at = _licenses_cache["fetched_at"]
@@ -470,7 +479,7 @@ async def socrata_licenses() -> SocrataLicensesResponse:
             return SocrataLicensesResponse(licenses=cached)
         raise HTTPException(
             status_code=503,
-            detail="Could not reach data.wa.gov to load licenses.",
+            detail=f"Could not reach {SOCRATA_DOMAIN} to load licenses.",
         )
 
     _licenses_cache["value"] = licenses
@@ -480,7 +489,7 @@ async def socrata_licenses() -> SocrataLicensesResponse:
 
 @router.get("/categories", response_model=SocrataCategoriesResponse)
 async def socrata_categories() -> SocrataCategoriesResponse:
-    """Return the live list of data.wa.gov categories, cached for 24 hours."""
+    """Return the live list of portal categories, cached for 24 hours."""
     now = time.time()
     cached = _categories_cache["value"]
     fetched_at = _categories_cache["fetched_at"]
@@ -511,8 +520,8 @@ async def _fetch_socrata_tags(category: str = "") -> list[str]:
     """
     url = "https://api.us.socrata.com/api/catalog/v1/domain_tags"
     # Socrata's catalog API defaults to a 100-row page; request the full set so the
-    # autocomplete list matches what data.wa.gov surfaces.
-    params: dict[str, str] = {"domains": "data.wa.gov", "limit": "10000"}
+    # autocomplete list matches what the portal surfaces.
+    params: dict[str, str] = {"domains": SOCRATA_DOMAIN, "limit": "10000"}
     if category:
         params["categories"] = category
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -542,7 +551,7 @@ async def _fetch_socrata_tags(category: str = "") -> list[str]:
 
 @router.get("/tags", response_model=SocrataTagsResponse)
 async def socrata_tags(category: str = "") -> SocrataTagsResponse:
-    """Return the live list of data.wa.gov tags, optionally scoped to a category.
+    """Return the live list of portal tags, optionally scoped to a category.
 
     Cached for 24 hours per category.
     """

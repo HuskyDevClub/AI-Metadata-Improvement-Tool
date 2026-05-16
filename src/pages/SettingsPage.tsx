@@ -15,6 +15,7 @@ export function SettingsPage() {
         socrataApiKeyId,
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
+        socrataDomain,
     } = useAppContext();
 
     return (
@@ -35,6 +36,7 @@ export function SettingsPage() {
                     keyId={socrataApiKeyId}
                     onSave={handleSocrataApiKeySave}
                     onClear={handleSocrataApiKeyClear}
+                    socrataDomain={socrataDomain}
                 />
             </div>
 
@@ -43,6 +45,7 @@ export function SettingsPage() {
                     templates={promptTemplates}
                     onChange={setPromptTemplates}
                     openaiConfig={openaiConfig}
+                    socrataDomain={socrataDomain}
                 />
             </div>
         </div>

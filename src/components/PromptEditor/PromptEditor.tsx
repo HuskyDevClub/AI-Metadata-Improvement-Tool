@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { OpenAIConfig, PromptTemplates } from '../../types';
 import { useOpenAI } from '../../hooks/useOpenAI';
 import {
@@ -15,47 +15,52 @@ import {
 } from '../../utils/prompts';
 import './PromptEditor.css';
 
-const PROMPT_INFO: Record<string, {description: string; placeholders?: string}> = {
-    systemPrompt: {
-        description: 'Sets the AI\'s persona and rules for all generation tasks (tone, style, language guidelines). Applied as the system message in every request.',
-    },
-    dataset: {
-        description: 'Template for generating a Brief Description of the entire dataset.',
-        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
-    },
-    column: {
-        description: 'Template for generating a description for a single column.',
-        placeholders: '{columnName}, {datasetDescription}, {columnStats}, {dataType}, {nonNullCount}, {rowCount}, {completenessPercent}, {sampleValues}, {nullCount}',
-    },
-    rowLabel: {
-        description: 'Template for determining a short noun phrase (e.g. "license record") that describes what one row represents.',
-        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
-    },
-    datasetTitle: {
-        description: 'Template for generating a short, descriptive title for the dataset (e.g. "Washington State Vehicle Registrations").',
-        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
-    },
-    category: {
-        description: 'Template for picking exactly one category from the list. The AI is asked to return a number from the list; the backend maps it to the category name.',
-        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}, {categoryList}',
-    },
-    tags: {
-        description: 'Template for generating keyword tags. The AI receives a list of tags already in use on data.wa.gov (scoped to the chosen category when available) and is asked to prefer those, only inventing new tags when no listed tag fits.',
-        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}, {tagList}',
-    },
-    periodOfTime: {
-        description: 'Template for inferring the real-world time span the data covers (not the update cadence).',
-        placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
-    },
-    datasetSuggestion: {
-        description: 'Template for reviewing an existing dataset description and returning actionable improvement suggestions.',
-        placeholders: '{currentDescription}',
-    },
-    columnSuggestion: {
-        description: 'Template for reviewing an existing column description and returning actionable improvement suggestions.',
-        placeholders: '{columnName}, {currentDescription}',
-    },
-};
+type PromptInfo = Record<string, {description: string; placeholders?: string}>;
+
+function buildPromptInfo(socrataDomain: string | null): PromptInfo {
+    const portalRef = socrataDomain ? ` on ${socrataDomain}` : '';
+    return {
+        systemPrompt: {
+            description: 'Sets the AI\'s persona and rules for all generation tasks (tone, style, language guidelines). Applied as the system message in every request.',
+        },
+        dataset: {
+            description: 'Template for generating a Brief Description of the entire dataset.',
+            placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+        },
+        column: {
+            description: 'Template for generating a description for a single column.',
+            placeholders: '{columnName}, {datasetDescription}, {columnStats}, {dataType}, {nonNullCount}, {rowCount}, {completenessPercent}, {sampleValues}, {nullCount}',
+        },
+        rowLabel: {
+            description: 'Template for determining a short noun phrase (e.g. "license record") that describes what one row represents.',
+            placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+        },
+        datasetTitle: {
+            description: 'Template for generating a short, descriptive title for the dataset (e.g. "Washington State Vehicle Registrations").',
+            placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+        },
+        category: {
+            description: 'Template for picking exactly one category from the list. The AI is asked to return a number from the list; the backend maps it to the category name.',
+            placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}, {categoryList}',
+        },
+        tags: {
+            description: `Template for generating keyword tags. The AI receives a list of tags already in use${portalRef} (scoped to the chosen category when available) and is asked to prefer those, only inventing new tags when no listed tag fits.`,
+            placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}, {tagList}',
+        },
+        periodOfTime: {
+            description: 'Template for inferring the real-world time span the data covers (not the update cadence).',
+            placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+        },
+        datasetSuggestion: {
+            description: 'Template for reviewing an existing dataset description and returning actionable improvement suggestions.',
+            placeholders: '{currentDescription}',
+        },
+        columnSuggestion: {
+            description: 'Template for reviewing an existing column description and returning actionable improvement suggestions.',
+            placeholders: '{columnName}, {currentDescription}',
+        },
+    };
+}
 
 const DEFAULTS: Record<keyof PromptTemplates, string> = {
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
@@ -140,11 +145,10 @@ function AutoResizeTextarea({ value, onChange }: {
     );
 }
 
-function InfoIcon({ promptKey }: {promptKey: string}) {
-    const info = PROMPT_INFO[promptKey];
-    if (!info) return null;
+function InfoIcon({ description }: {description?: string}) {
+    if (!description) return null;
     return (
-        <span className="prompt-info-icon" data-tooltip={info.description}>
+        <span className="prompt-info-icon" data-tooltip={description}>
             i
         </span>
     );
@@ -166,9 +170,11 @@ interface PromptEditorProps {
     templates: PromptTemplates;
     onChange: (templates: PromptTemplates) => void;
     openaiConfig: OpenAIConfig;
+    socrataDomain: string | null;
 }
 
-export function PromptEditor({ templates, onChange, openaiConfig }: PromptEditorProps) {
+export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain }: PromptEditorProps) {
+    const promptInfo = useMemo(() => buildPromptInfo(socrataDomain), [socrataDomain]);
     const [resetTarget, setResetTarget] = useState<keyof PromptTemplates | null>(null);
     const [aiTarget, setAiTarget] = useState<keyof PromptTemplates | null>(null);
     const [aiMode, setAiMode] = useState<AiMode>('ask');
@@ -229,7 +235,7 @@ export function PromptEditor({ templates, onChange, openaiConfig }: PromptEditor
     const runAi = async () => {
         if (!aiTarget || !aiInput.trim() || isGenerating) return;
         const current = templates[aiTarget];
-        const info = PROMPT_INFO[aiTarget];
+        const info = promptInfo[aiTarget];
         const userMessage = aiMode === 'improve'
             ? buildImproveUserMessage(current, aiInput.trim(), info?.placeholders)
             : buildAskUserMessage(current, aiInput.trim(), info?.placeholders);
@@ -295,11 +301,11 @@ export function PromptEditor({ templates, onChange, openaiConfig }: PromptEditor
             <div className="prompt-editor-content">
                 {PROMPT_FIELDS.map(({ key, label }) => {
                     const isModified = templates[key] !== DEFAULTS[key];
-                    const info = PROMPT_INFO[key];
+                    const info = promptInfo[key];
                     return (
                         <div className="prompt-editor-box" key={key}>
                             <div className="prompt-editor-box-header">
-                                <h4>{label} <InfoIcon promptKey={key}/></h4>
+                                <h4>{label} <InfoIcon description={info?.description}/></h4>
                                 <div className="prompt-editor-box-actions">
                                     <button
                                         className="prompt-improve-btn"

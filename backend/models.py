@@ -36,7 +36,7 @@ class HealthResponse(BaseModel):
 
 
 class SocrataImportRequest(BaseModel):
-    """Request to import a dataset from data.wa.gov by dataset ID.
+    """Request to import a dataset from the Socrata portal by dataset ID.
 
     Auth (OAuth token or API key) is read from the encrypted session cookie.
     """
@@ -103,7 +103,7 @@ class SocrataColumnUpdate(BaseModel):
 
 
 class SocrataExportRequest(BaseModel):
-    """Request to push updated metadata back to data.wa.gov.
+    """Request to push updated metadata back to the Socrata portal.
 
     Auth (OAuth token or API key) is read from the encrypted session cookie.
     """
@@ -123,7 +123,7 @@ class SocrataExportRequest(BaseModel):
 
 
 class SocrataExportResponse(BaseModel):
-    """Response from pushing metadata to data.wa.gov."""
+    """Response from pushing metadata to the Socrata portal."""
 
     success: bool
     message: str
@@ -135,20 +135,26 @@ class SocrataExportResponse(BaseModel):
 # ============================================================================
 
 
+class SocrataConfigResponse(BaseModel):
+    """Public Socrata config the frontend needs at boot (e.g. the portal domain)."""
+
+    domain: str
+
+
 class SocrataCategoriesResponse(BaseModel):
-    """Response with the list of live categories advertised by data.wa.gov."""
+    """Response with the list of live categories advertised by the Socrata portal."""
 
     categories: list[str]
 
 
 class SocrataTagsResponse(BaseModel):
-    """Response with the live list of tags from data.wa.gov, sorted by usage."""
+    """Response with the live list of tags from the Socrata portal, sorted by usage."""
 
     tags: list[str]
 
 
 class SocrataLicenseInfo(BaseModel):
-    """A single license option advertised by data.wa.gov."""
+    """A single license option advertised by the Socrata portal."""
 
     id: str
     name: str
@@ -156,7 +162,7 @@ class SocrataLicenseInfo(BaseModel):
 
 
 class SocrataLicensesResponse(BaseModel):
-    """Response with the live list of licenses advertised by data.wa.gov."""
+    """Response with the live list of licenses advertised by the Socrata portal."""
 
     licenses: list[SocrataLicenseInfo]
 

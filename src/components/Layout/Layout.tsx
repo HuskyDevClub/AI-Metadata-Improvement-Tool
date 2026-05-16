@@ -222,6 +222,7 @@ export function Layout() {
         socrataDatasetId,
         handlePushToSocrata,
         datasetTabs,
+        socrataDomain,
     } = useAppContext();
 
     return (
@@ -246,7 +247,9 @@ export function Layout() {
                             onClick={handleSocrataOAuthLogin}
                             disabled={isSocrataOAuthAuthenticating}
                         >
-                            {isSocrataOAuthAuthenticating ? 'Signing in...' : 'Sign in with data.wa.gov'}
+                            {isSocrataOAuthAuthenticating
+                                ? 'Signing in...'
+                                : socrataDomain ? `Sign in with ${socrataDomain}` : 'Sign in'}
                         </button>
                     )}
                     <button
@@ -285,7 +288,9 @@ export function Layout() {
                                     <polyline points="17 8 12 3 7 8"/>
                                     <line x1="12" y1="3" x2="12" y2="15"/>
                                 </svg>
-                                {isPushingSocrata ? 'Pushing...' : 'Push to data.wa.gov'}
+                                {isPushingSocrata
+                                    ? 'Pushing...'
+                                    : socrataDomain ? `Push to ${socrataDomain}` : 'Push'}
                             </button>
                         )}
                     </div>

@@ -78,6 +78,7 @@ interface DatasetDescriptionProps {
     onEditPostingFrequency?: (newPostingFrequency: string) => void;
     onResetField?: (field: DatasetFieldKey) => void;
     isFieldChanged?: (field: DatasetFieldKey) => boolean;
+    socrataDomain?: string | null;
 }
 
 export function DatasetDescription({
@@ -126,6 +127,7 @@ export function DatasetDescription({
                                        onEditPostingFrequency,
                                        onResetField,
                                        isFieldChanged,
+                                       socrataDomain = null,
                                    }: DatasetDescriptionProps) {
     const canReset = (field: DatasetFieldKey) => !!onResetField && !!isFieldChanged?.(field);
     const resetHandler = (field: DatasetFieldKey) => () => onResetField?.(field);
@@ -320,16 +322,16 @@ export function DatasetDescription({
                             {!categoriesUnavailable && category && !allowedCategories.includes(category) && (
                                 <span
                                     className="dataset-category-warning"
-                                    title="This category is not in the list from data.wa.gov. Pick one from the dropdown to use a recognized value."
+                                    title={`This category is not in the portal's list${socrataDomain ? ` (${socrataDomain})` : ''}. Pick one from the dropdown to use a recognized value.`}
                                 >
-                                    not in data.wa.gov list
+                                    {socrataDomain ? `not in ${socrataDomain} list` : 'not in portal list'}
                                 </span>
                             )}
                             <button
                                 className="dataset-row-label-btn generate"
                                 onClick={onGenerateCategory}
                                 disabled={isGeneratingCategory || categoriesUnavailable}
-                                title="Pick a category with AI (from the data.wa.gov list only)"
+                                title={`Pick a category with AI (from the portal's list${socrataDomain ? ` on ${socrataDomain}` : ''} only)`}
                             >
                                 {isGeneratingCategory ? 'Generating...' : 'Generate'}
                             </button>

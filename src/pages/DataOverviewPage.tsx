@@ -51,6 +51,7 @@ export function DataOverviewPage() {
         handleEditPostingFrequency,
         handleResetField,
         renderTokenUsage,
+        socrataDomain,
     } = useAppContext();
 
     const isDatasetFieldChanged = useMemo(() => {
@@ -180,6 +181,7 @@ export function DataOverviewPage() {
                     onEditPostingFrequency={handleEditPostingFrequency}
                     onResetField={handleResetField}
                     isFieldChanged={isDatasetFieldChanged}
+                    socrataDomain={socrataDomain}
                 />
             )}
 

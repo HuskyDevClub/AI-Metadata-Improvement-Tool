@@ -5,12 +5,14 @@ interface SocrataApiConfigProps {
     keyId: string;
     onSave: (keyId: string, keySecret: string) => Promise<void>;
     onClear: () => void;
+    socrataDomain: string | null;
 }
 
 export function SocrataApiConfig({
                                      keyId,
                                      onSave,
                                      onClear,
+                                     socrataDomain,
                                  }: SocrataApiConfigProps) {
     const [keyIdInput, setKeyIdInput] = useState(keyId);
     const [keySecretInput, setKeySecretInput] = useState('');
@@ -34,7 +36,9 @@ export function SocrataApiConfig({
     return (
         <div className="socrata-api-config-section">
             <div className="socrata-api-config-header">
-                <div className="socrata-api-config-section-title">data.wa.gov API Credentials</div>
+                <div className="socrata-api-config-section-title">
+                    {socrataDomain ? `${socrataDomain} API Credentials` : 'API Credentials'}
+                </div>
                 {isConfigured && !dirty && (
                     <span className="socrata-api-config-status-badge">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -120,7 +124,10 @@ export function SocrataApiConfig({
                 )}
             </div>
             <span className="socrata-api-config-help-text">
-                Generate API keys from your data.wa.gov profile &gt; Developer Settings. Keys are stored in an encrypted server-side session cookie.
+                {socrataDomain && (
+                    <>Generate API keys from your {socrataDomain} profile &gt; Developer Settings.{' '}</>
+                )}
+                Keys are stored in an encrypted server-side session cookie.
             </span>
         </div>
     );

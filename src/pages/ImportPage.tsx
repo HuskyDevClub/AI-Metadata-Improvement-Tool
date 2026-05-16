@@ -13,6 +13,7 @@ export function ImportPage() {
         socrataApiKeyId,
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
+        socrataDomain,
     } = useAppContext();
 
     const [dragging, setDragging] = useState(false);
@@ -120,7 +121,9 @@ export function ImportPage() {
     return (
         <div className="import-page">
             <h1 className="import-title">Import Dataset</h1>
-            <p className="import-subtitle">Enter a dataset ID from data.wa.gov</p>
+            <p className="import-subtitle">
+                Enter a dataset ID{socrataDomain ? ` from ${socrataDomain}` : ''}
+            </p>
 
             <div className="import-form-row">
                 <input
@@ -188,7 +191,9 @@ export function ImportPage() {
                         Remember this API key on this browser
                     </label>
                     <span className="import-form-hint">
-                        Generate API keys from your data.wa.gov profile &gt; Developer Settings.
+                        {socrataDomain && (
+                            <>Generate API keys from your {socrataDomain} profile &gt; Developer Settings.{' '}</>
+                        )}
                         Saved keys live in an encrypted HttpOnly session cookie.
                     </span>
                 </div>
