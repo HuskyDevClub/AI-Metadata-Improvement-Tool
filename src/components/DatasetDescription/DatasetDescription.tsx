@@ -52,17 +52,26 @@ interface DatasetDescriptionProps {
     onEditRowLabel?: (newLabel: string) => void;
     onGenerateRowLabel?: () => void;
     isGeneratingRowLabel?: boolean;
+    pendingRowLabel?: string | null;
+    onAcceptPendingRowLabel?: () => void;
+    onDiscardPendingRowLabel?: () => void;
     category?: string;
     allowedCategories?: string[];
     onEditCategory?: (newCategory: string) => void;
     onGenerateCategory?: () => void;
     isGeneratingCategory?: boolean;
+    pendingCategory?: string | null;
+    onAcceptPendingCategory?: () => void;
+    onDiscardPendingCategory?: () => void;
     tags?: string[];
     allowedTags?: string[];
     onAddTag?: (tag: string) => void;
     onRemoveTag?: (tag: string) => void;
     onGenerateTags?: () => void;
     isGeneratingTags?: boolean;
+    pendingTags?: string[] | null;
+    onAcceptPendingTags?: () => void;
+    onDiscardPendingTags?: () => void;
     licenseId?: string;
     allowedLicenses?: SocrataLicense[];
     onEditLicenseId?: (newLicenseId: string) => void;
@@ -74,6 +83,9 @@ interface DatasetDescriptionProps {
     onEditPeriodOfTime?: (newPeriodOfTime: string) => void;
     onGeneratePeriodOfTime?: () => void;
     isGeneratingPeriodOfTime?: boolean;
+    pendingPeriodOfTime?: string | null;
+    onAcceptPendingPeriodOfTime?: () => void;
+    onDiscardPendingPeriodOfTime?: () => void;
     postingFrequency?: string;
     onEditPostingFrequency?: (newPostingFrequency: string) => void;
     onResetField?: (field: DatasetFieldKey) => void;
@@ -101,17 +113,26 @@ export function DatasetDescription({
                                        onEditRowLabel,
                                        onGenerateRowLabel,
                                        isGeneratingRowLabel = false,
+                                       pendingRowLabel = null,
+                                       onAcceptPendingRowLabel,
+                                       onDiscardPendingRowLabel,
                                        category = '',
                                        allowedCategories = [],
                                        onEditCategory,
                                        onGenerateCategory,
                                        isGeneratingCategory = false,
+                                       pendingCategory = null,
+                                       onAcceptPendingCategory,
+                                       onDiscardPendingCategory,
                                        tags = [],
                                        allowedTags = [],
                                        onAddTag,
                                        onRemoveTag,
                                        onGenerateTags,
                                        isGeneratingTags = false,
+                                       pendingTags = null,
+                                       onAcceptPendingTags,
+                                       onDiscardPendingTags,
                                        licenseId = '',
                                        allowedLicenses = [],
                                        onEditLicenseId,
@@ -123,6 +144,9 @@ export function DatasetDescription({
                                        onEditPeriodOfTime,
                                        onGeneratePeriodOfTime,
                                        isGeneratingPeriodOfTime = false,
+                                       pendingPeriodOfTime = null,
+                                       onAcceptPendingPeriodOfTime,
+                                       onDiscardPendingPeriodOfTime,
                                        postingFrequency = '',
                                        onEditPostingFrequency,
                                        onResetField,
@@ -240,7 +264,42 @@ export function DatasetDescription({
                         <span className="dataset-row-label-hint">
                             Describe what each row in the asset represents (if applicable).
                         </span>
-                        {isEditingRowLabel ? (
+                        {pendingRowLabel !== null ? (
+                            <div className="ed-pending dataset-field-pending">
+                                <div className="ed-pending-block ed-pending-current">
+                                    <div className="ed-pending-label">Current</div>
+                                    <p className="ed-pending-text">
+                                        {rowLabel || <em className="ed-pending-empty">Not set</em>}
+                                    </p>
+                                </div>
+                                <div className="ed-pending-block ed-pending-new">
+                                    <div className="ed-pending-label">New</div>
+                                    <p className="ed-pending-text">
+                                        {pendingRowLabel || (isGeneratingRowLabel ? '' :
+                                            <em className="ed-pending-empty">Empty</em>)}
+                                        {isGeneratingRowLabel && <span className="ed-cursor">|</span>}
+                                    </p>
+                                </div>
+                                <div className="ed-pending-actions">
+                                    <button
+                                        className="ed-btn-primary"
+                                        onClick={onAcceptPendingRowLabel}
+                                        disabled={isGeneratingRowLabel || !onAcceptPendingRowLabel}
+                                        title="Replace the current row label with the new one"
+                                    >
+                                        Keep new
+                                    </button>
+                                    <button
+                                        className="ed-btn-secondary"
+                                        onClick={onDiscardPendingRowLabel}
+                                        disabled={isGeneratingRowLabel || !onDiscardPendingRowLabel}
+                                        title="Discard the new row label and keep the current one"
+                                    >
+                                        Discard
+                                    </button>
+                                </div>
+                            </div>
+                        ) : isEditingRowLabel ? (
                             <div className="dataset-row-label-edit">
                                 <input
                                     type="text"
@@ -305,52 +364,160 @@ export function DatasetDescription({
                 {onEditCategory && (
                     <div className="dataset-category">
                         <span className="dataset-category-title">Category</span>
-                        <div className="dataset-category-display">
-                            <select
-                                className="dataset-category-select"
-                                value={category}
-                                onChange={(e) => onEditCategory(e.target.value)}
-                                disabled={isGeneratingCategory || categoriesUnavailable}
-                            >
-                                <option value="">Not set</option>
-                                {categoryOptions.map((option) => (
-                                    <option key={option} value={option}>
-                                        {option}
-                                    </option>
-                                ))}
-                            </select>
-                            {!categoriesUnavailable && category && !allowedCategories.includes(category) && (
-                                <span
-                                    className="dataset-category-warning"
-                                    title={`This category is not in the portal's list${socrataDomain ? ` (${socrataDomain})` : ''}. Pick one from the dropdown to use a recognized value.`}
-                                >
-                                    {socrataDomain ? `not in ${socrataDomain} list` : 'not in portal list'}
-                                </span>
-                            )}
-                            <button
-                                className="dataset-row-label-btn generate"
-                                onClick={onGenerateCategory}
-                                disabled={isGeneratingCategory || categoriesUnavailable}
-                                title={`Pick a category with AI (from the portal's list${socrataDomain ? ` on ${socrataDomain}` : ''} only)`}
-                            >
-                                {isGeneratingCategory ? 'Generating...' : 'Generate'}
-                            </button>
-                            <ResetFieldButton
-                                show={canReset('category')}
-                                onReset={resetHandler('category')}
-                                disabled={isGeneratingCategory}
-                                title="Reset category to the value loaded from the dataset"
-                            />
-                        </div>
-                        {categoriesUnavailable && (
-                            <div className="dataset-category-unavailable">
-                                Categories unavailable — try again after connection is restored
+                        {pendingCategory !== null ? (
+                            <div className="ed-pending dataset-field-pending">
+                                <div className="ed-pending-block ed-pending-current">
+                                    <div className="ed-pending-label">Current</div>
+                                    <p className="ed-pending-text">
+                                        {category || <em className="ed-pending-empty">Not set</em>}
+                                    </p>
+                                </div>
+                                <div className="ed-pending-block ed-pending-new">
+                                    <div className="ed-pending-label">New</div>
+                                    <p className="ed-pending-text">
+                                        {pendingCategory || (isGeneratingCategory ? '' :
+                                            <em className="ed-pending-empty">Empty</em>)}
+                                        {isGeneratingCategory && <span className="ed-cursor">|</span>}
+                                    </p>
+                                </div>
+                                <div className="ed-pending-actions">
+                                    <button
+                                        className="ed-btn-primary"
+                                        onClick={onAcceptPendingCategory}
+                                        disabled={isGeneratingCategory || !onAcceptPendingCategory}
+                                        title="Replace the current category with the new one"
+                                    >
+                                        Keep new
+                                    </button>
+                                    <button
+                                        className="ed-btn-secondary"
+                                        onClick={onDiscardPendingCategory}
+                                        disabled={isGeneratingCategory || !onDiscardPendingCategory}
+                                        title="Discard the new category and keep the current one"
+                                    >
+                                        Discard
+                                    </button>
+                                </div>
                             </div>
+                        ) : (
+                            <>
+                                <div className="dataset-category-display">
+                                    <select
+                                        className="dataset-category-select"
+                                        value={category}
+                                        onChange={(e) => onEditCategory(e.target.value)}
+                                        disabled={isGeneratingCategory || categoriesUnavailable}
+                                    >
+                                        <option value="">Not set</option>
+                                        {categoryOptions.map((option) => (
+                                            <option key={option} value={option}>
+                                                {option}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {!categoriesUnavailable && category && !allowedCategories.includes(category) && (
+                                        <span
+                                            className="dataset-category-warning"
+                                            title={`This category is not in the portal's list${socrataDomain ? ` (${socrataDomain})` : ''}. Pick one from the dropdown to use a recognized value.`}
+                                        >
+                                            {socrataDomain ? `not in ${socrataDomain} list` : 'not in portal list'}
+                                        </span>
+                                    )}
+                                    <button
+                                        className="dataset-row-label-btn generate"
+                                        onClick={onGenerateCategory}
+                                        disabled={isGeneratingCategory || categoriesUnavailable}
+                                        title={`Pick a category with AI (from the portal's list${socrataDomain ? ` on ${socrataDomain}` : ''} only)`}
+                                    >
+                                        {isGeneratingCategory ? 'Generating...' : 'Generate'}
+                                    </button>
+                                    <ResetFieldButton
+                                        show={canReset('category')}
+                                        onReset={resetHandler('category')}
+                                        disabled={isGeneratingCategory}
+                                        title="Reset category to the value loaded from the dataset"
+                                    />
+                                </div>
+                                {categoriesUnavailable && (
+                                    <div className="dataset-category-unavailable">
+                                        Categories unavailable — try again after connection is restored
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 )}
 
-                {onAddTag && onRemoveTag && (
+                {onAddTag && onRemoveTag && pendingTags !== null && (
+                    <div className="dataset-tags">
+                        <div className="dataset-tags-header">
+                            <span className="dataset-category-title">Tags and Keywords</span>
+                        </div>
+                        <div className="ed-pending dataset-field-pending">
+                            <div className="ed-pending-block ed-pending-current">
+                                <div className="ed-pending-label">Current</div>
+                                <div className="dataset-tags-chips dataset-tags-chips-pending">
+                                    {tags.length === 0 ? (
+                                        <em className="ed-pending-empty">No tags</em>
+                                    ) : (
+                                        tags.map((tag) => {
+                                            const removed = !pendingTags.some((t) => t.toLowerCase() === tag.toLowerCase());
+                                            return (
+                                                <span
+                                                    key={tag}
+                                                    className={`dataset-tag-chip dataset-tag-chip-static ${removed ? 'dataset-tag-chip-removed' : ''}`}
+                                                >
+                                                    {tag}
+                                                </span>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+                            <div className="ed-pending-block ed-pending-new">
+                                <div className="ed-pending-label">New</div>
+                                <div className="dataset-tags-chips dataset-tags-chips-pending">
+                                    {pendingTags.length === 0 && !isGeneratingTags ? (
+                                        <em className="ed-pending-empty">Empty</em>
+                                    ) : (
+                                        pendingTags.map((tag) => {
+                                            const added = !tags.some((t) => t.toLowerCase() === tag.toLowerCase());
+                                            return (
+                                                <span
+                                                    key={tag}
+                                                    className={`dataset-tag-chip dataset-tag-chip-static ${added ? 'dataset-tag-chip-added' : ''}`}
+                                                >
+                                                    {tag}
+                                                </span>
+                                            );
+                                        })
+                                    )}
+                                    {isGeneratingTags && <span className="ed-cursor">|</span>}
+                                </div>
+                            </div>
+                            <div className="ed-pending-actions">
+                                <button
+                                    className="ed-btn-primary"
+                                    onClick={onAcceptPendingTags}
+                                    disabled={isGeneratingTags || !onAcceptPendingTags}
+                                    title="Replace the current tags with the new ones"
+                                >
+                                    Keep new
+                                </button>
+                                <button
+                                    className="ed-btn-secondary"
+                                    onClick={onDiscardPendingTags}
+                                    disabled={isGeneratingTags || !onDiscardPendingTags}
+                                    title="Discard the new tags and keep the current ones"
+                                >
+                                    Discard
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {onAddTag && onRemoveTag && pendingTags === null && (
                     <div className="dataset-tags">
                         <div className="dataset-tags-header">
                             <span className="dataset-category-title">Tags and Keywords</span>
@@ -527,7 +694,46 @@ export function DatasetDescription({
                 {(onEditPeriodOfTime || onEditPostingFrequency) && (
                     <div className="dataset-temporal">
                         <span className="dataset-category-title">Temporal</span>
-                        {onEditPeriodOfTime && (
+                        {onEditPeriodOfTime && pendingPeriodOfTime !== null && (
+                            <div className="dataset-temporal-pending-row">
+                                <label className="dataset-license-label">Period of Time</label>
+                                <div className="ed-pending dataset-field-pending dataset-temporal-pending">
+                                    <div className="ed-pending-block ed-pending-current">
+                                        <div className="ed-pending-label">Current</div>
+                                        <p className="ed-pending-text">
+                                            {periodOfTime || <em className="ed-pending-empty">Not set</em>}
+                                        </p>
+                                    </div>
+                                    <div className="ed-pending-block ed-pending-new">
+                                        <div className="ed-pending-label">New</div>
+                                        <p className="ed-pending-text">
+                                            {pendingPeriodOfTime || (isGeneratingPeriodOfTime ? '' :
+                                                <em className="ed-pending-empty">Empty</em>)}
+                                            {isGeneratingPeriodOfTime && <span className="ed-cursor">|</span>}
+                                        </p>
+                                    </div>
+                                    <div className="ed-pending-actions">
+                                        <button
+                                            className="ed-btn-primary"
+                                            onClick={onAcceptPendingPeriodOfTime}
+                                            disabled={isGeneratingPeriodOfTime || !onAcceptPendingPeriodOfTime}
+                                            title="Replace the current Period of Time with the new one"
+                                        >
+                                            Keep new
+                                        </button>
+                                        <button
+                                            className="ed-btn-secondary"
+                                            onClick={onDiscardPendingPeriodOfTime}
+                                            disabled={isGeneratingPeriodOfTime || !onDiscardPendingPeriodOfTime}
+                                            title="Discard the new Period of Time and keep the current one"
+                                        >
+                                            Discard
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {onEditPeriodOfTime && pendingPeriodOfTime === null && (
                             <div className="dataset-license-row">
                                 <label className="dataset-license-label">Period of Time</label>
                                 <input

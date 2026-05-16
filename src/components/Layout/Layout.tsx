@@ -72,12 +72,16 @@ function DatasetTitleBar() {
         handleResetField,
         generatingDatasetTitle,
         socrataDatasetId,
+        pendingDatasetTitle,
+        handleAcceptPendingDatasetTitle,
+        handleDiscardPendingDatasetTitle,
     } = useAppContext();
 
     const title = generatedResults.datasetTitle;
     const titleChanged = !!initialResults && generatedResults.datasetTitle !== initialResults.datasetTitle;
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(title);
+    const hasPending = pendingDatasetTitle !== null;
 
     const save = () => {
         handleEditDatasetTitle(editValue.trim());
@@ -90,7 +94,48 @@ function DatasetTitleBar() {
 
     const isSocrataImport = !!socrataDatasetId;
     const subtitleText = isSocrataImport ? socrataDatasetId : fileName;
-    const showSubtitle = !isEditing && !!title && title !== subtitleText;
+    const showSubtitle = !isEditing && !hasPending && !!title && title !== subtitleText;
+
+    if (hasPending) {
+        return (
+            <div className="layout-dataset-title-group">
+                <div className="layout-dataset-title-pending ed-pending">
+                    <div className="ed-pending-block ed-pending-current">
+                        <div className="ed-pending-label">Current title</div>
+                        <p className="ed-pending-text">
+                            {title || <em className="ed-pending-empty">No title</em>}
+                        </p>
+                    </div>
+                    <div className="ed-pending-block ed-pending-new">
+                        <div className="ed-pending-label">New title</div>
+                        <p className="ed-pending-text">
+                            {pendingDatasetTitle || (generatingDatasetTitle ? '' :
+                                <em className="ed-pending-empty">Empty</em>)}
+                            {generatingDatasetTitle && <span className="ed-cursor">|</span>}
+                        </p>
+                    </div>
+                    <div className="ed-pending-actions">
+                        <button
+                            className="ed-btn-primary"
+                            onClick={handleAcceptPendingDatasetTitle}
+                            disabled={generatingDatasetTitle}
+                            title="Replace the current title with the new one"
+                        >
+                            Keep new
+                        </button>
+                        <button
+                            className="ed-btn-secondary"
+                            onClick={handleDiscardPendingDatasetTitle}
+                            disabled={generatingDatasetTitle}
+                            title="Discard the new title and keep the current one"
+                        >
+                            Discard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="layout-dataset-title-group">

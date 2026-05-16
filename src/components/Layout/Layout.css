@@ -213,6 +213,18 @@
     min-width: 0;
 }
 
+.layout-dataset-title-pending {
+    width: 100%;
+    max-width: 720px;
+}
+
+.layout-dataset-title-pending .ed-pending-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+}
+
 .layout-dataset-title {
     margin: 0;
     font-size: 20px;

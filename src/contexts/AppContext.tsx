@@ -115,6 +115,11 @@ interface SavedDatasetState {
     // persist what would otherwise be ambient React state.
     pendingDatasetDescription: string | null;
     pendingColumnDescriptions: Record<string, string>;
+    pendingDatasetTitle: string | null;
+    pendingRowLabel: string | null;
+    pendingCategory: string | null;
+    pendingTags: string[] | null;
+    pendingPeriodOfTime: string | null;
     regeneratingDataset: boolean;
     regeneratingColumns: Set<string>;
 }
@@ -202,10 +207,25 @@ interface AppContextType {
     handleRegenerateColumn: (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
     pendingDatasetDescription: string | null;
     pendingColumnDescriptions: Record<string, string>;
+    pendingDatasetTitle: string | null;
+    pendingRowLabel: string | null;
+    pendingCategory: string | null;
+    pendingTags: string[] | null;
+    pendingPeriodOfTime: string | null;
     handleAcceptPendingDataset: () => void;
     handleDiscardPendingDataset: () => void;
     handleAcceptPendingColumn: (columnName: string) => void;
     handleDiscardPendingColumn: (columnName: string) => void;
+    handleAcceptPendingDatasetTitle: () => void;
+    handleDiscardPendingDatasetTitle: () => void;
+    handleAcceptPendingRowLabel: () => void;
+    handleDiscardPendingRowLabel: () => void;
+    handleAcceptPendingCategory: () => void;
+    handleDiscardPendingCategory: () => void;
+    handleAcceptPendingTags: () => void;
+    handleDiscardPendingTags: () => void;
+    handleAcceptPendingPeriodOfTime: () => void;
+    handleDiscardPendingPeriodOfTime: () => void;
     handleGenerateSelectedDescriptions: (selectedColumns: string[]) => Promise<void>;
     handleSuggestDatasetImprovement: () => Promise<void>;
     handleDismissDatasetSuggestions: () => void;
@@ -422,6 +442,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const [columnSuggestions, setColumnSuggestions] = useState<Record<string, SuggestionItem[]>>({});
     const [pendingDatasetDescription, setPendingDatasetDescription] = useState<string | null>(null);
     const [pendingColumnDescriptions, setPendingColumnDescriptions] = useState<Record<string, string>>({});
+    const [pendingDatasetTitle, setPendingDatasetTitle] = useState<string | null>(null);
+    const [pendingRowLabel, setPendingRowLabel] = useState<string | null>(null);
+    const [pendingCategory, setPendingCategory] = useState<string | null>(null);
+    const [pendingTags, setPendingTags] = useState<string[] | null>(null);
+    const [pendingPeriodOfTime, setPendingPeriodOfTime] = useState<string | null>(null);
     const [tokenUsage, setTokenUsage] = useState<TokenUsage>({
         promptTokens: 0,
         completionTokens: 0,
@@ -458,6 +483,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         csvData, fileName, columnStats, generatedResults, initialResults, showResults,
         importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
         pendingDatasetDescription, pendingColumnDescriptions,
+        pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, pendingPeriodOfTime,
         regeneratingDataset, regeneratingColumns,
     });
     useLayoutEffect(() => {
@@ -465,6 +491,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             csvData, fileName, columnStats, generatedResults, initialResults, showResults,
             importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
             pendingDatasetDescription, pendingColumnDescriptions,
+            pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, pendingPeriodOfTime,
             regeneratingDataset, regeneratingColumns,
         };
     });
@@ -504,6 +531,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setColumnSuggestions({});
         setPendingDatasetDescription(saved.pendingDatasetDescription);
         setPendingColumnDescriptions(saved.pendingColumnDescriptions);
+        setPendingDatasetTitle(saved.pendingDatasetTitle);
+        setPendingRowLabel(saved.pendingRowLabel);
+        setPendingCategory(saved.pendingCategory);
+        setPendingTags(saved.pendingTags);
+        setPendingPeriodOfTime(saved.pendingPeriodOfTime);
         setIsGeneratingEmpty(false);
         setGeneratingRowLabel(false);
         setGeneratingDatasetTitle(false);
@@ -547,6 +579,61 @@ export function AppProvider({ children }: {children: ReactNode}) {
             if (value === null) delete nextCols[columnName];
             else nextCols[columnName] = value;
             savedDatasetsRef.current.set(id, { ...saved, pendingColumnDescriptions: nextCols });
+        }
+    }, []);
+
+    const setPendingDatasetTitleForDataset = useCallback((id: string, value: string | null) => {
+        if (id === activeDatasetIdRef.current) {
+            setPendingDatasetTitle(value);
+            return;
+        }
+        const saved = savedDatasetsRef.current.get(id);
+        if (saved) {
+            savedDatasetsRef.current.set(id, { ...saved, pendingDatasetTitle: value });
+        }
+    }, []);
+
+    const setPendingRowLabelForDataset = useCallback((id: string, value: string | null) => {
+        if (id === activeDatasetIdRef.current) {
+            setPendingRowLabel(value);
+            return;
+        }
+        const saved = savedDatasetsRef.current.get(id);
+        if (saved) {
+            savedDatasetsRef.current.set(id, { ...saved, pendingRowLabel: value });
+        }
+    }, []);
+
+    const setPendingCategoryForDataset = useCallback((id: string, value: string | null) => {
+        if (id === activeDatasetIdRef.current) {
+            setPendingCategory(value);
+            return;
+        }
+        const saved = savedDatasetsRef.current.get(id);
+        if (saved) {
+            savedDatasetsRef.current.set(id, { ...saved, pendingCategory: value });
+        }
+    }, []);
+
+    const setPendingTagsForDataset = useCallback((id: string, value: string[] | null) => {
+        if (id === activeDatasetIdRef.current) {
+            setPendingTags(value);
+            return;
+        }
+        const saved = savedDatasetsRef.current.get(id);
+        if (saved) {
+            savedDatasetsRef.current.set(id, { ...saved, pendingTags: value });
+        }
+    }, []);
+
+    const setPendingPeriodOfTimeForDataset = useCallback((id: string, value: string | null) => {
+        if (id === activeDatasetIdRef.current) {
+            setPendingPeriodOfTime(value);
+            return;
+        }
+        const saved = savedDatasetsRef.current.get(id);
+        if (saved) {
+            savedDatasetsRef.current.set(id, { ...saved, pendingPeriodOfTime: value });
         }
     }, []);
 
@@ -861,16 +948,14 @@ export function AppProvider({ children }: {children: ReactNode}) {
             data: CsvRow[],
             name: string,
             stats: Record<string, ColumnInfo>,
-            rowCountOverride?: number,
+            rowCountOverride: number | undefined,
+            onPartial: (value: string) => void,
         ): Promise<{content: string}> => {
             const prompt = buildRowLabelPrompt(data, name, stats, rowCountOverride);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                setGeneratedResults((prev) => ({
-                    ...prev,
-                    rowLabel: fullContent.trim(),
-                }));
+                onPartial(fullContent.trim());
             });
             addTokenUsage(result.usage);
             return { content: fullContent.trim() };
@@ -883,16 +968,14 @@ export function AppProvider({ children }: {children: ReactNode}) {
             data: CsvRow[],
             name: string,
             stats: Record<string, ColumnInfo>,
-            rowCountOverride?: number,
+            rowCountOverride: number | undefined,
+            onPartial: (value: string) => void,
         ): Promise<{content: string}> => {
             const prompt = buildDatasetTitlePrompt(data, name, stats, rowCountOverride);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                setGeneratedResults((prev) => ({
-                    ...prev,
-                    datasetTitle: fullContent.trim().replace(/^["']|["']$/g, ''),
-                }));
+                onPartial(fullContent.trim().replace(/^["']|["']$/g, ''));
             });
             addTokenUsage(result.usage);
             return { content: fullContent.trim().replace(/^["']|["']$/g, '') };
@@ -933,7 +1016,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
             data: CsvRow[],
             name: string,
             stats: Record<string, ColumnInfo>,
-            rowCountOverride?: number,
+            rowCountOverride: number | undefined,
+            onResult: (value: string) => void,
         ): Promise<{content: string}> => {
             const prompt = buildCategoryPrompt(data, name, stats, rowCountOverride);
             let fullContent = '';
@@ -949,7 +1033,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 });
                 return { content: '' };
             }
-            setGeneratedResults((prev) => ({ ...prev, category: matched }));
+            onResult(matched);
             return { content: matched };
         },
         [openaiConfig, promptTemplates.systemPrompt, buildCategoryPrompt, callOpenAIStream, addTokenUsage, allowedCategories]
@@ -960,7 +1044,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
             data: CsvRow[],
             name: string,
             stats: Record<string, ColumnInfo>,
-            rowCountOverride?: number,
+            rowCountOverride: number | undefined,
+            onPartial: (value: string[]) => void,
         ): Promise<{tags: string[]}> => {
             const currentCategory = datasetStateRef.current.generatedResults.category || '';
             // Prefer category-scoped tags, then top-of-domain tags as fallback fill.
@@ -989,12 +1074,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                const streaming = parseTagsFromResponse(fullContent);
-                setGeneratedResults((prev) => ({ ...prev, tags: streaming }));
+                onPartial(parseTagsFromResponse(fullContent));
             });
             addTokenUsage(result.usage);
             const finalTags = parseTagsFromResponse(fullContent);
-            setGeneratedResults((prev) => ({ ...prev, tags: finalTags }));
+            onPartial(finalTags);
             return { tags: finalTags };
         },
         [openaiConfig, promptTemplates.systemPrompt, buildTagsPrompt, callOpenAIStream, addTokenUsage]
@@ -1139,6 +1223,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setColumnSuggestions({});
             setPendingDatasetDescription(null);
             setPendingColumnDescriptions({});
+            setPendingDatasetTitle(null);
+            setPendingRowLabel(null);
+            setPendingCategory(null);
+            setPendingTags(null);
+            setPendingPeriodOfTime(null);
             setIsGeneratingEmpty(false);
             setGeneratingRowLabel(false);
             setGeneratingDatasetTitle(false);
@@ -1518,6 +1607,71 @@ export function AppProvider({ children }: {children: ReactNode}) {
         });
     }, []);
 
+    const handleAcceptPendingDatasetTitle = useCallback(() => {
+        setPendingDatasetTitle((pending) => {
+            if (pending !== null) {
+                setGeneratedResults((prev) => ({ ...prev, datasetTitle: pending }));
+            }
+            return null;
+        });
+    }, []);
+
+    const handleDiscardPendingDatasetTitle = useCallback(() => {
+        setPendingDatasetTitle(null);
+    }, []);
+
+    const handleAcceptPendingRowLabel = useCallback(() => {
+        setPendingRowLabel((pending) => {
+            if (pending !== null) {
+                setGeneratedResults((prev) => ({ ...prev, rowLabel: pending }));
+            }
+            return null;
+        });
+    }, []);
+
+    const handleDiscardPendingRowLabel = useCallback(() => {
+        setPendingRowLabel(null);
+    }, []);
+
+    const handleAcceptPendingCategory = useCallback(() => {
+        setPendingCategory((pending) => {
+            if (pending !== null) {
+                setGeneratedResults((prev) => ({ ...prev, category: pending }));
+            }
+            return null;
+        });
+    }, []);
+
+    const handleDiscardPendingCategory = useCallback(() => {
+        setPendingCategory(null);
+    }, []);
+
+    const handleAcceptPendingTags = useCallback(() => {
+        setPendingTags((pending) => {
+            if (pending !== null) {
+                setGeneratedResults((prev) => ({ ...prev, tags: pending }));
+            }
+            return null;
+        });
+    }, []);
+
+    const handleDiscardPendingTags = useCallback(() => {
+        setPendingTags(null);
+    }, []);
+
+    const handleAcceptPendingPeriodOfTime = useCallback(() => {
+        setPendingPeriodOfTime((pending) => {
+            if (pending !== null) {
+                setGeneratedResults((prev) => ({ ...prev, periodOfTime: pending }));
+            }
+            return null;
+        });
+    }, []);
+
+    const handleDiscardPendingPeriodOfTime = useCallback(() => {
+        setPendingPeriodOfTime(null);
+    }, []);
+
     const handleEditColumnDescription = useCallback((columnName: string, newDescription: string) => {
         setGeneratedResults((prev) => ({
             ...prev,
@@ -1545,11 +1699,17 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const handleGenerateRowLabel = useCallback(async () => {
         if (!csvData) return;
+        const genId = activeDatasetIdRef.current;
+        if (!genId) return;
         setGeneratingRowLabel(true);
+        setPendingRowLabelForDataset(genId, '');
         try {
-            await generateRowLabel(csvData, fileName, columnStats, importedRowCount || undefined);
+            await generateRowLabel(csvData, fileName, columnStats, importedRowCount || undefined, (value) => {
+                setPendingRowLabelForDataset(genId, value);
+            });
             setStatus({ message: 'Successfully generated row label!', type: 'success' });
         } catch (error) {
+            setPendingRowLabelForDataset(genId, null);
             setStatus({
                 message: `Error generating row label: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 type: 'error',
@@ -1557,7 +1717,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         } finally {
             setGeneratingRowLabel(false);
         }
-    }, [csvData, fileName, columnStats, importedRowCount, generateRowLabel]);
+    }, [csvData, fileName, columnStats, importedRowCount, generateRowLabel, setPendingRowLabelForDataset]);
 
     const handleEditDatasetTitle = useCallback((newTitle: string) => {
         setGeneratedResults((prev) => ({ ...prev, datasetTitle: newTitle }));
@@ -1565,11 +1725,17 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const handleGenerateDatasetTitle = useCallback(async () => {
         if (!csvData) return;
+        const genId = activeDatasetIdRef.current;
+        if (!genId) return;
         setGeneratingDatasetTitle(true);
+        setPendingDatasetTitleForDataset(genId, '');
         try {
-            await generateDatasetTitle(csvData, fileName, columnStats, importedRowCount || undefined);
+            await generateDatasetTitle(csvData, fileName, columnStats, importedRowCount || undefined, (value) => {
+                setPendingDatasetTitleForDataset(genId, value);
+            });
             setStatus({ message: 'Successfully generated dataset title!', type: 'success' });
         } catch (error) {
+            setPendingDatasetTitleForDataset(genId, null);
             setStatus({
                 message: `Error generating dataset title: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 type: 'error',
@@ -1577,7 +1743,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         } finally {
             setGeneratingDatasetTitle(false);
         }
-    }, [csvData, fileName, columnStats, importedRowCount, generateDatasetTitle]);
+    }, [csvData, fileName, columnStats, importedRowCount, generateDatasetTitle, setPendingDatasetTitleForDataset]);
 
     const handleEditCategory = useCallback((newCategory: string) => {
         setGeneratedResults((prev) => ({ ...prev, category: newCategory }));
@@ -1592,13 +1758,18 @@ export function AppProvider({ children }: {children: ReactNode}) {
             });
             return;
         }
+        const genId = activeDatasetIdRef.current;
+        if (!genId) return;
         setGeneratingCategory(true);
         try {
-            const result = await generateCategory(csvData, fileName, columnStats, importedRowCount || undefined);
+            const result = await generateCategory(csvData, fileName, columnStats, importedRowCount || undefined, (value) => {
+                setPendingCategoryForDataset(genId, value);
+            });
             if (result.content) {
                 setStatus({ message: 'Successfully generated category!', type: 'success' });
             }
         } catch (error) {
+            setPendingCategoryForDataset(genId, null);
             setStatus({
                 message: `Error generating category: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 type: 'error',
@@ -1606,7 +1777,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         } finally {
             setGeneratingCategory(false);
         }
-    }, [csvData, fileName, columnStats, importedRowCount, generateCategory, allowedCategories]);
+    }, [csvData, fileName, columnStats, importedRowCount, generateCategory, allowedCategories, setPendingCategoryForDataset]);
 
     const handleEditTags = useCallback((newTags: string[]) => {
         const seen = new Set<string>();
@@ -1641,11 +1812,17 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const handleGenerateTags = useCallback(async () => {
         if (!csvData) return;
+        const genId = activeDatasetIdRef.current;
+        if (!genId) return;
         setGeneratingTags(true);
+        setPendingTagsForDataset(genId, []);
         try {
-            await generateTags(csvData, fileName, columnStats, importedRowCount || undefined);
+            await generateTags(csvData, fileName, columnStats, importedRowCount || undefined, (value) => {
+                setPendingTagsForDataset(genId, value);
+            });
             setStatus({ message: 'Successfully generated tags!', type: 'success' });
         } catch (error) {
+            setPendingTagsForDataset(genId, null);
             setStatus({
                 message: `Error generating tags: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 type: 'error',
@@ -1653,7 +1830,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         } finally {
             setGeneratingTags(false);
         }
-    }, [csvData, fileName, columnStats, importedRowCount, generateTags]);
+    }, [csvData, fileName, columnStats, importedRowCount, generateTags, setPendingTagsForDataset]);
 
     const buildPeriodOfTimePrompt = useCallback((
         data: CsvRow[],
@@ -1669,20 +1846,18 @@ export function AppProvider({ children }: {children: ReactNode}) {
             data: CsvRow[],
             name: string,
             stats: Record<string, ColumnInfo>,
-            rowCountOverride?: number,
+            rowCountOverride: number | undefined,
+            onPartial: (value: string) => void,
         ): Promise<{content: string}> => {
             const prompt = buildPeriodOfTimePrompt(data, name, stats, rowCountOverride);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                setGeneratedResults((prev) => ({
-                    ...prev,
-                    periodOfTime: fullContent.trim().replace(/^["']|["']$/g, ''),
-                }));
+                onPartial(fullContent.trim().replace(/^["']|["']$/g, ''));
             });
             addTokenUsage(result.usage);
             const cleaned = fullContent.trim().replace(/^["']|["']$/g, '');
-            setGeneratedResults((prev) => ({ ...prev, periodOfTime: cleaned }));
+            onPartial(cleaned);
             return { content: cleaned };
         },
         [openaiConfig, promptTemplates.systemPrompt, buildPeriodOfTimePrompt, callOpenAIStream, addTokenUsage]
@@ -1710,11 +1885,17 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const handleGeneratePeriodOfTime = useCallback(async () => {
         if (!csvData) return;
+        const genId = activeDatasetIdRef.current;
+        if (!genId) return;
         setGeneratingPeriodOfTime(true);
+        setPendingPeriodOfTimeForDataset(genId, '');
         try {
-            await generatePeriodOfTime(csvData, fileName, columnStats, importedRowCount || undefined);
+            await generatePeriodOfTime(csvData, fileName, columnStats, importedRowCount || undefined, (value) => {
+                setPendingPeriodOfTimeForDataset(genId, value);
+            });
             setStatus({ message: 'Successfully generated Period of Time!', type: 'success' });
         } catch (error) {
+            setPendingPeriodOfTimeForDataset(genId, null);
             setStatus({
                 message: `Error generating Period of Time: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 type: 'error',
@@ -1722,7 +1903,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         } finally {
             setGeneratingPeriodOfTime(false);
         }
-    }, [csvData, fileName, columnStats, importedRowCount, generatePeriodOfTime]);
+    }, [csvData, fileName, columnStats, importedRowCount, generatePeriodOfTime, setPendingPeriodOfTimeForDataset]);
 
     const handleSocrataImport = useCallback(
         async (datasetId: string) => {
@@ -2061,10 +2242,25 @@ export function AppProvider({ children }: {children: ReactNode}) {
         handleRegenerateColumn,
         pendingDatasetDescription,
         pendingColumnDescriptions,
+        pendingDatasetTitle,
+        pendingRowLabel,
+        pendingCategory,
+        pendingTags,
+        pendingPeriodOfTime,
         handleAcceptPendingDataset,
         handleDiscardPendingDataset,
         handleAcceptPendingColumn,
         handleDiscardPendingColumn,
+        handleAcceptPendingDatasetTitle,
+        handleDiscardPendingDatasetTitle,
+        handleAcceptPendingRowLabel,
+        handleDiscardPendingRowLabel,
+        handleAcceptPendingCategory,
+        handleDiscardPendingCategory,
+        handleAcceptPendingTags,
+        handleDiscardPendingTags,
+        handleAcceptPendingPeriodOfTime,
+        handleDiscardPendingPeriodOfTime,
         handleGenerateSelectedDescriptions,
         handleSuggestDatasetImprovement,
         handleDismissDatasetSuggestions,

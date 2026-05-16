@@ -343,3 +343,46 @@
 .dataset-license-input:focus {
     border-color: var(--accent, #1a73e8);
 }
+
+/* Pending compare blocks (reuses .ed-pending-* base styles) */
+.dataset-field-pending {
+    margin-top: 6px;
+}
+
+.dataset-tags-chips-pending {
+    margin-bottom: 0;
+}
+
+.dataset-tag-chip-static {
+    padding: 3px 10px;
+}
+
+.dataset-tag-chip-added {
+    border-color: #16a34a;
+    background: rgba(22, 163, 74, 0.08);
+    color: #15803d;
+}
+
+.dataset-tag-chip-removed {
+    border-color: #dc2626;
+    background: rgba(220, 38, 38, 0.08);
+    color: #b91c1c;
+    text-decoration: line-through;
+    opacity: 0.85;
+}
+
+.dataset-temporal-pending-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.dataset-temporal-pending-row > .dataset-license-label {
+    padding-top: 18px;
+}
+
+.dataset-temporal-pending {
+    flex: 1;
+    max-width: 720px;
+}

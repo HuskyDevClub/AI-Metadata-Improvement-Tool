@@ -28,6 +28,18 @@ export function DataOverviewPage() {
         pendingDatasetDescription,
         handleAcceptPendingDataset,
         handleDiscardPendingDataset,
+        pendingRowLabel,
+        handleAcceptPendingRowLabel,
+        handleDiscardPendingRowLabel,
+        pendingCategory,
+        handleAcceptPendingCategory,
+        handleDiscardPendingCategory,
+        pendingTags,
+        handleAcceptPendingTags,
+        handleDiscardPendingTags,
+        pendingPeriodOfTime,
+        handleAcceptPendingPeriodOfTime,
+        handleDiscardPendingPeriodOfTime,
         handleGenerateSelectedDescriptions,
         handleEditRowLabel,
         handleGenerateRowLabel,
@@ -155,17 +167,26 @@ export function DataOverviewPage() {
                     onEditRowLabel={handleEditRowLabel}
                     onGenerateRowLabel={handleGenerateRowLabel}
                     isGeneratingRowLabel={generatingRowLabel}
+                    pendingRowLabel={pendingRowLabel}
+                    onAcceptPendingRowLabel={handleAcceptPendingRowLabel}
+                    onDiscardPendingRowLabel={handleDiscardPendingRowLabel}
                     category={generatedResults.category}
                     allowedCategories={allowedCategories}
                     onEditCategory={handleEditCategory}
                     onGenerateCategory={handleGenerateCategory}
                     isGeneratingCategory={generatingCategory}
+                    pendingCategory={pendingCategory}
+                    onAcceptPendingCategory={handleAcceptPendingCategory}
+                    onDiscardPendingCategory={handleDiscardPendingCategory}
                     tags={generatedResults.tags}
                     allowedTags={allowedTags}
                     onAddTag={handleAddTag}
                     onRemoveTag={handleRemoveTag}
                     onGenerateTags={handleGenerateTags}
                     isGeneratingTags={generatingTags}
+                    pendingTags={pendingTags}
+                    onAcceptPendingTags={handleAcceptPendingTags}
+                    onDiscardPendingTags={handleDiscardPendingTags}
                     licenseId={generatedResults.licenseId}
                     allowedLicenses={allowedLicenses}
                     onEditLicenseId={handleEditLicenseId}
@@ -177,6 +198,9 @@ export function DataOverviewPage() {
                     onEditPeriodOfTime={handleEditPeriodOfTime}
                     onGeneratePeriodOfTime={handleGeneratePeriodOfTime}
                     isGeneratingPeriodOfTime={generatingPeriodOfTime}
+                    pendingPeriodOfTime={pendingPeriodOfTime}
+                    onAcceptPendingPeriodOfTime={handleAcceptPendingPeriodOfTime}
+                    onDiscardPendingPeriodOfTime={handleDiscardPendingPeriodOfTime}
                     postingFrequency={generatedResults.postingFrequency}
                     onEditPostingFrequency={handleEditPostingFrequency}
                     onResetField={handleResetField}
