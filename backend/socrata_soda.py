@@ -529,6 +529,7 @@ def _classify_from_groupby(
     field: str,
     total_rows: int,
     threshold: int,
+    non_null_count: int,
 ) -> ColumnStats:
     """Given group-by results, classify as categorical or text and build stats.
 
@@ -536,9 +537,14 @@ def _classify_from_groupby(
     cardinality is unbounded" cutoff. The caller should fetch `threshold + 1`
     rows so we can tell "exactly threshold" apart from "more than threshold".
     `has_more` is true iff we got back more than `threshold` rows.
+
+    `non_null_count` is the true count of non-null values for the field (a
+    separate `count(field)` aggregate from the caller). Summing the group
+    counts here would undercount whenever `has_more` is true — the top
+    `threshold` groups don't cover the rest of the values, so nullCount would
+    blow up. Always pass the aggregate, not a partial sum.
     """
     unique_count = len(groups)
-    non_null_count = sum(int(g.get("cnt") or 0) for g in groups)
     if non_null_count == 0:
         return ColumnStats(
             type="empty", stats={}, nullCount=total_rows, totalCount=total_rows
@@ -639,12 +645,16 @@ async def compute_column_stats(
         # Fetch limit+1 so we can tell "exactly limit" apart from "more than limit"
         # — otherwise a column with exactly CATEGORICAL_BOUNDED_LIMIT distinct
         # values would falsely report hasMore=True.
-        groups = await _compute_groupby(
-            client, soda_base, field, headers, limit=CATEGORICAL_BOUNDED_LIMIT + 1
+        # Run the count(field) aggregate in parallel rather than summing the
+        # truncated group counts — the sum undercounts whenever has_more is true.
+        groups, non_null = await asyncio.gather(
+            _compute_groupby(
+                client, soda_base, field, headers, limit=CATEGORICAL_BOUNDED_LIMIT + 1
+            ),
+            _compute_non_null_count(client, soda_base, field, headers),
         )
         has_more = len(groups) > CATEGORICAL_BOUNDED_LIMIT
         groups = groups[:CATEGORICAL_BOUNDED_LIMIT]
-        non_null = sum(int(g.get("cnt") or 0) for g in groups)
         values = [_truncate_sample(str(g.get(field) or "")) for g in groups]
         unique_count = len(groups)
         return display_name, ColumnStats(
@@ -661,8 +671,16 @@ async def compute_column_stats(
 
     # Ambiguous type (plain text, html, etc.) — run group-by to decide.
     # Fetch threshold+1 so has_more can distinguish "exactly threshold" from "more".
-    groups = await _compute_groupby(
-        client, soda_base, field, headers, limit=TEXT_GROUPBY_LIMIT + 1
+    # count(field) runs in parallel: summing the truncated group counts would
+    # massively undercount non-nulls on any column with >TEXT_GROUPBY_LIMIT
+    # distinct values (which is most real-world text columns).
+    groups, non_null = await asyncio.gather(
+        _compute_groupby(
+            client, soda_base, field, headers, limit=TEXT_GROUPBY_LIMIT + 1
+        ),
+        _compute_non_null_count(client, soda_base, field, headers),
     )
-    stats = _classify_from_groupby(groups, field, total_rows, TEXT_GROUPBY_LIMIT)
+    stats = _classify_from_groupby(
+        groups, field, total_rows, TEXT_GROUPBY_LIMIT, non_null
+    )
     return display_name, stats
