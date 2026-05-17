@@ -41,14 +41,6 @@ LLM_MODEL_CONCISE = os.getenv("LLM_MODEL_CONCISE", "")
 LLM_MODEL_DETAILED = os.getenv("LLM_MODEL_DETAILED", "")
 LLM_MODEL_SUGGEST = os.getenv("LLM_MODEL_SUGGEST", "")
 
-# Judge model for the dev-mode eval. Falls back to LLM_MODEL so judge runs work
-# out of the box; override in env when you want a different model judging output.
-JUDGE_LLM_MODEL = os.getenv("JUDGE_LLM_MODEL", "") or LLM_MODEL
-# The /api/eval/run endpoint is dev-only. It uses server-side LLM keys to drive
-# a bulk regenerate+judge loop, so it is off by default and must be opted into
-# explicitly via ENABLE_EVAL=1 in backend/.env (or the process env).
-ENABLE_EVAL = os.getenv("ENABLE_EVAL", "").strip() == "1"
-
 # --- Session / cookie crypto ----------------------------------------------
 # Secret for signing OAuth state tokens (used to prevent CSRF). Fresh on every
 # server start — restart invalidates outstanding state tokens, but users simply

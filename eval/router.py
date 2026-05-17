@@ -19,7 +19,6 @@ from openai.types.shared_params import (
 from openai.types.shared_params.response_format_json_schema import JSONSchema
 
 from .config import (
-    ENABLE_EVAL,
     JUDGE_LLM_MODEL,
     LLM_API_KEY,
     LLM_ENDPOINT,
@@ -30,11 +29,7 @@ from .models import EvalRunRequest
 
 logger = logging.getLogger(__name__)
 
-_CSV_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "scripts"
-    / "DatasetsWithSolidMetadata - Sheet1.csv"
-)
+_CSV_PATH = Path(__file__).resolve().parent / "DatasetsWithSolidMetadata - Sheet1.csv"
 
 _FENCE_RE = re.compile(r"<<<\s*(?:END_)?UNTRUSTED_DATA\s*>>>", re.IGNORECASE)
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0B-\x1F\x7F]")
@@ -537,15 +532,6 @@ router = APIRouter()
 
 @router.post("/api/eval/run")
 async def eval_run(request: EvalRunRequest, http_request: Request) -> StreamingResponse:
-    if not ENABLE_EVAL:
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                "The eval endpoint is disabled. Set ENABLE_EVAL=1 in the backend "
-                "environment (e.g. backend/.env) to enable it for local dev."
-            ),
-        )
-
     missing = [
         name
         for name, value in (
@@ -573,7 +559,7 @@ async def eval_run(request: EvalRunRequest, http_request: Request) -> StreamingR
         raise HTTPException(status_code=400, detail="CSV contains no dataset IDs")
 
     started_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    judge_model = JUDGE_LLM_MODEL or LLM_MODEL
+    judge_model = JUDGE_LLM_MODEL
 
     async def event_stream() -> AsyncGenerator[str, None]:
         def line(payload: dict[str, Any]) -> str:
