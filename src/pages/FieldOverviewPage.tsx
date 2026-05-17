@@ -205,10 +205,10 @@ export function FieldOverviewPage() {
                     info={info}
                     description={description}
                     onEdit={(newDesc) => handleEditColumnDescription(fieldName, newDesc)}
-                    onRegenerate={(modifier, customInstruction) =>
-                        handleRegenerateColumn(fieldName, modifier, customInstruction)
+                    onRegenerate={(modifier, customInstruction, sourceText) =>
+                        handleRegenerateColumn(fieldName, modifier, customInstruction, sourceText)
                     }
-                    onSuggestImprovement={() => handleSuggestColumnImprovement(fieldName)}
+                    onSuggestImprovement={(sourceText) => handleSuggestColumnImprovement(fieldName, sourceText)}
                     onDismissSuggestions={() => handleDismissColumnSuggestions(fieldName)}
                     suggestions={columnSuggestions[fieldName] || []}
                     isSuggesting={suggestingColumns.has(fieldName)}
@@ -217,7 +217,7 @@ export function FieldOverviewPage() {
                     onToggleSuggestion={(id) => handleToggleColumnSuggestion(fieldName, id)}
                     onEditSuggestion={(id, text) => handleEditColumnSuggestion(fieldName, id, text)}
                     onAddSuggestion={(text) => handleAddColumnSuggestion(fieldName, text)}
-                    onApplySuggestions={() => handleApplyColumnSuggestions(fieldName)}
+                    onApplySuggestions={(sourceText) => handleApplyColumnSuggestions(fieldName, sourceText)}
                     pendingDescription={
                         Object.prototype.hasOwnProperty.call(pendingColumnDescriptions, fieldName)
                             ? pendingColumnDescriptions[fieldName]

@@ -35,8 +35,8 @@ const POSTING_FREQUENCY_OTHER = '__other__';
 interface DatasetDescriptionProps {
     description: string;
     onEdit: (newDescription: string) => void;
-    onRegenerate: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => void;
-    onSuggestImprovement: () => void;
+    onRegenerate: (modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => void;
+    onSuggestImprovement: (sourceText?: string) => void;
     onDismissSuggestions: () => void;
     suggestions: SuggestionItem[];
     isSuggesting: boolean;
@@ -44,7 +44,7 @@ interface DatasetDescriptionProps {
     onToggleSuggestion: (id: string) => void;
     onEditSuggestion: (id: string, text: string) => void;
     onAddSuggestion: (text: string) => void;
-    onApplySuggestions: () => void;
+    onApplySuggestions: (sourceText?: string) => void;
     pendingDescription?: string | null;
     onAcceptPending?: () => void;
     onDiscardPending?: () => void;

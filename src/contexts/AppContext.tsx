@@ -40,6 +40,7 @@ import {
     buildColumnImprovementPrompt,
     buildDatasetImprovementPrompt,
     buildNumberedCategoryList,
+    buildRefinePrompt,
     buildRegenerateWithSuggestionsPrompt,
     DEFAULT_CATEGORY_PROMPT,
     DEFAULT_COLUMN_PROMPT,
@@ -203,8 +204,8 @@ interface AppContextType {
     handleAnalyze: (file: File) => Promise<void>;
     handleSocrataImport: (datasetId: string, keyId?: string, keySecret?: string) => Promise<void>;
     handleStop: () => void;
-    handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
-    handleRegenerateColumn: (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => Promise<void>;
+    handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => Promise<void>;
+    handleRegenerateColumn: (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => Promise<void>;
     pendingDatasetDescription: string | null;
     pendingColumnDescriptions: Record<string, string>;
     pendingDatasetTitle: string | null;
@@ -227,18 +228,18 @@ interface AppContextType {
     handleAcceptPendingPeriodOfTime: () => void;
     handleDiscardPendingPeriodOfTime: () => void;
     handleGenerateSelectedDescriptions: (selectedColumns: string[]) => Promise<void>;
-    handleSuggestDatasetImprovement: () => Promise<void>;
+    handleSuggestDatasetImprovement: (sourceText?: string) => Promise<void>;
     handleDismissDatasetSuggestions: () => void;
     handleToggleDatasetSuggestion: (id: string) => void;
     handleEditDatasetSuggestion: (id: string, text: string) => void;
     handleAddDatasetSuggestion: (text: string) => void;
-    handleApplyDatasetSuggestions: () => Promise<void>;
-    handleSuggestColumnImprovement: (columnName: string) => Promise<void>;
+    handleApplyDatasetSuggestions: (sourceText?: string) => Promise<void>;
+    handleSuggestColumnImprovement: (columnName: string, sourceText?: string) => Promise<void>;
     handleDismissColumnSuggestions: (columnName: string) => void;
     handleToggleColumnSuggestion: (columnName: string, id: string) => void;
     handleEditColumnSuggestion: (columnName: string, id: string, text: string) => void;
     handleAddColumnSuggestion: (columnName: string, text: string) => void;
-    handleApplyColumnSuggestions: (columnName: string) => Promise<void>;
+    handleApplyColumnSuggestions: (columnName: string, sourceText?: string) => Promise<void>;
     handleEditDatasetDescription: (newDescription: string) => void;
     handleEditColumnDescription: (columnName: string, newDescription: string) => void;
     handleEditColumnDisplayName: (columnName: string, newDisplayName: string) => void;
@@ -1255,16 +1256,19 @@ export function AppProvider({ children }: {children: ReactNode}) {
     }, [handleCloseDataset]);
 
     const handleRegenerateDataset = useCallback(
-        async (modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
+        async (modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => {
             if (!csvData) return;
             const regenDatasetId = activeDatasetIdRef.current;
             if (!regenDatasetId) return;
             setRegeneratingDataset(true);
             setPendingDatasetDescription('');
             try {
-                const prompt = buildDatasetPrompt(
-                    csvData, fileName, columnStats, modifier, customInstruction, importedRowCount || undefined,
+                const basePrompt = buildDatasetPrompt(
+                    csvData, fileName, columnStats, '', undefined, importedRowCount || undefined,
                 );
+                const prompt = sourceText
+                    ? buildRefinePrompt(basePrompt, sourceText, modifier, customInstruction)
+                    : appendPromptModifiers(basePrompt, modifier, customInstruction);
                 const mode = modifier === '' ? 'default' : modifier;
                 let fullContent = '';
                 const result = await callOpenAIStream(
@@ -1294,7 +1298,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     );
 
     const handleRegenerateColumn = useCallback(
-        async (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string) => {
+        async (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => {
             const regenDatasetId = activeDatasetIdRef.current;
             if (!regenDatasetId) return;
             setRegeneratingColumns((prev) => new Set(prev).add(columnName));
@@ -1302,9 +1306,12 @@ export function AppProvider({ children }: {children: ReactNode}) {
             try {
                 const info = columnStats[columnName];
                 const colValues = csvData?.map(row => row[columnName]);
-                const prompt = buildColumnPrompt(
-                    columnName, info, generatedResults.datasetDescription, colValues, modifier, customInstruction,
+                const basePrompt = buildColumnPrompt(
+                    columnName, info, generatedResults.datasetDescription, colValues, '', undefined,
                 );
+                const prompt = sourceText
+                    ? buildRefinePrompt(basePrompt, sourceText, modifier, customInstruction)
+                    : appendPromptModifiers(basePrompt, modifier, customInstruction);
                 const mode = modifier === '' ? 'default' : modifier;
                 let fullContent = '';
                 const result = await callOpenAIStream(
@@ -1372,8 +1379,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         }
     }, [csvData, columnStats, generatedResults, fileName, generateDatasetDescription, generateColumnDescription]);
 
-    const handleSuggestDatasetImprovement = useCallback(async () => {
-        const currentDesc = generatedResults.datasetDescription;
+    const handleSuggestDatasetImprovement = useCallback(async (sourceText?: string) => {
+        const currentDesc = sourceText ?? generatedResults.datasetDescription;
         if (!currentDesc) return;
         setSuggestingDataset(true);
         setDatasetSuggestions([]);
@@ -1419,9 +1426,9 @@ export function AppProvider({ children }: {children: ReactNode}) {
         ]);
     }, []);
 
-    const handleApplyDatasetSuggestions = useCallback(async () => {
-        const currentDesc = generatedResults.datasetDescription;
-        if (!currentDesc || !csvData) return;
+    const handleApplyDatasetSuggestions = useCallback(async (sourceText?: string) => {
+        const baseDesc = sourceText ?? generatedResults.datasetDescription;
+        if (!baseDesc || !csvData) return;
         const regenDatasetId = activeDatasetIdRef.current;
         if (!regenDatasetId) return;
         setRegeneratingDataset(true);
@@ -1441,7 +1448,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 importedRowCount || undefined,
             );
 
-            const prompt = buildRegenerateWithSuggestionsPrompt(originalPrompt, datasetSuggestions);
+            const prompt = buildRegenerateWithSuggestionsPrompt(originalPrompt, datasetSuggestions, sourceText);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
@@ -1463,8 +1470,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         }
     }, [csvData, fileName, columnStats, generatedResults.datasetDescription, datasetSuggestions, importedRowCount, openaiConfig, promptTemplates.systemPrompt, callOpenAIStream, addTokenUsage, buildDatasetPromptFromTemplate, setPendingDatasetDescriptionForDataset, setRegeneratingDatasetForDataset]);
 
-    const handleSuggestColumnImprovement = useCallback(async (columnName: string) => {
-        const currentDesc = generatedResults.columnDescriptions[columnName];
+    const handleSuggestColumnImprovement = useCallback(async (columnName: string, sourceText?: string) => {
+        const currentDesc = sourceText ?? generatedResults.columnDescriptions[columnName];
         if (!currentDesc) return;
         setSuggestingColumns((prev) => new Set(prev).add(columnName));
         setColumnSuggestions((prev) => ({ ...prev, [columnName]: [] }));
@@ -1524,9 +1531,9 @@ export function AppProvider({ children }: {children: ReactNode}) {
         }));
     }, []);
 
-    const handleApplyColumnSuggestions = useCallback(async (columnName: string) => {
-        const currentDesc = generatedResults.columnDescriptions[columnName];
-        if (!currentDesc) return;
+    const handleApplyColumnSuggestions = useCallback(async (columnName: string, sourceText?: string) => {
+        const baseDesc = sourceText ?? generatedResults.columnDescriptions[columnName];
+        if (!baseDesc) return;
         const info = columnStats[columnName];
         const colValues = csvData?.map((row) => row[columnName]);
         if (!info || colValues === undefined) return;
@@ -1548,7 +1555,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             const originalPrompt = buildColumnPrompt(
                 columnName, info, generatedResults.datasetDescription || '', colValues, '', undefined
             );
-            const prompt = buildRegenerateWithSuggestionsPrompt(originalPrompt, suggestions);
+            const prompt = buildRegenerateWithSuggestionsPrompt(originalPrompt, suggestions, sourceText);
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
