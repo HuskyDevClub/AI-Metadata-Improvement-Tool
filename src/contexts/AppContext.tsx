@@ -396,6 +396,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
     }, [setComparisonEnabled, setComparisonTokenUsage, comparisonSlotCount]);
 
+    // Log total comparison cost whenever it changes
+    useEffect(() => {
+        if (comparisonEnabled && comparisonTokenUsage.totalCost > 0) {
+            console.log('[Comparison] Total Cost Updated:', `$${comparisonTokenUsage.totalCost.toFixed(4)}`, {
+                modelsCost: comparisonTokenUsage.modelsCost.reduce((a, b) => a + b, 0).toFixed(4),
+                judgeCost: comparisonTokenUsage.judgeCost.toFixed(4),
+                totalTokens: comparisonTokenUsage.total.totalTokens
+            });
+        }
+    }, [comparisonEnabled, comparisonTokenUsage.totalCost, comparisonTokenUsage.modelsCost, comparisonTokenUsage.judgeCost, comparisonTokenUsage.total.totalTokens]);
+
     const { generateParallel, callJudge } = useComparisonGeneration();
     const { validateDataset } = useValidation();
 
@@ -556,6 +567,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
         const judgeResult = await callJudge(context, outputs, judgeConfig, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories);
         addComparisonTokenUsage({ type: 'judge', model: comparisonConfig.judgeModel }, judgeResult.usage);
+        console.log('[Comparison] Dataset judgment completed - Tokens:', judgeResult.usage.totalTokens);
         setDatasetComparison((prev) => ({
             ...prev,
             judgeResult: judgeResult.result,
@@ -571,6 +583,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const judgeConfig = getComparisonModelConfig(comparisonConfig.judgeModel);
         const judgeResult = await callJudge(context, outputs, judgeConfig, comparisonConfig.judgeSystemPrompt, comparisonConfig.judgeEvaluationPrompt, comparisonConfig.scoringCategories);
         addComparisonTokenUsage({ type: 'judge', model: comparisonConfig.judgeModel }, judgeResult.usage);
+        console.log(`[Comparison] Column "${columnName}" judgment completed - Tokens:`, judgeResult.usage.totalTokens);
         setColumnComparisons((prev) => ({
             ...prev,
             [columnName]: {
@@ -624,6 +637,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const result = await generateParallel(prompts, configs, systemPrompts, onChunks, abortSignal);
             result.usages.forEach((usage, i) => {
                 addComparisonTokenUsage({ type: 'model', index: i, model: comparisonConfig.models[i] }, usage);
+                const cost = getEstimatedCost(comparisonConfig.models[i], usage.promptTokens, usage.completionTokens);
+                console.log(`[Comparison] Model "${comparisonConfig.models[i]}" generated dataset - Tokens: ${usage.totalTokens}, Cost: $${(cost || 0).toFixed(4)}`);
             });
             for (let i = 0; i < slotCount; i++) {
                 setGeneratingDatasetModel(i, false);
@@ -732,6 +747,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const result = await generateParallel(prompts, configs, systemPrompts, onChunks, abortSignal);
             result.usages.forEach((usage, i) => {
                 addComparisonTokenUsage({ type: 'model', index: i, model: comparisonConfig.models[i] }, usage);
+                const cost = getEstimatedCost(comparisonConfig.models[i], usage.promptTokens, usage.completionTokens);
+                console.log(`[Comparison] Model "${comparisonConfig.models[i]}" generated column "${columnName}" - Tokens: ${usage.totalTokens}, Cost: $${(cost || 0).toFixed(4)}`);
             });
             for (let i = 0; i < slotCount; i++) {
                 setGeneratingColumnModel(i, columnName, false);
@@ -1825,47 +1842,54 @@ FORMAT RULES:
                     ? comparisonConfig.promptModel
                     : comparisonConfig.models[i];
 
+            // Calculate total cost
+            let totalCost = 0;
+            for (let i = 0; i < comparisonSlotCount; i++) {
+                const usage = comparisonTokenUsage.models[i];
+                if (usage) {
+                    totalCost += getEstimatedCost(getSlotModel(i), usage.promptTokens, usage.completionTokens) || 0;
+                }
+            }
+            totalCost += getEstimatedCost(comparisonConfig.judgeModel, comparisonTokenUsage.judge.promptTokens, comparisonTokenUsage.judge.completionTokens) || 0;
+
             return (
-                <div className="tokenUsage comparison">
-                    {Array.from({ length: comparisonSlotCount }, (_, i) => (
-                        <div className="tokenUsageRow" key={i}>
-                            <span className="tokenLabel">{comparisonSlotShortNames[i]}:</span>
+                <div className="tokenUsageContainer">
+                    <div className="tokenUsage comparison">
+                        {Array.from({ length: comparisonSlotCount }, (_, i) => (
+                            <div className="tokenUsageRow" key={i}>
+                                <span className="tokenLabel">{comparisonSlotShortNames[i]}:</span>
+                                <span
+                                    className="tokenValue">{comparisonTokenUsage.models[i]?.totalTokens.toLocaleString() || 0} tokens</span>
+                                {(() => {
+                                    const usage = comparisonTokenUsage.models[i];
+                                    if (!usage) return null;
+                                    const cost = getEstimatedCost(getSlotModel(i), usage.promptTokens, usage.completionTokens);
+                                    return cost !== null ? <span className="tokenCost">~${cost.toFixed(4)}</span> : null;
+                                })()}
+                            </div>
+                        ))}
+                        <div className="tokenUsageRow">
+                            <span className="tokenLabel">Judge:</span>
                             <span
-                                className="tokenValue">{comparisonTokenUsage.models[i]?.totalTokens.toLocaleString() || 0} tokens</span>
+                                className="tokenValue">{comparisonTokenUsage.judge.totalTokens.toLocaleString()} tokens</span>
                             {(() => {
-                                const usage = comparisonTokenUsage.models[i];
-                                if (!usage) return null;
-                                const cost = getEstimatedCost(getSlotModel(i), usage.promptTokens, usage.completionTokens);
-                                return cost !== null ? <span className="tokenCost">~${cost.toFixed(4)}</span> : null;
+                                const cost = getEstimatedCost(comparisonConfig.judgeModel, comparisonTokenUsage.judge.promptTokens, comparisonTokenUsage.judge.completionTokens);
+                                return cost !== null ? <span className="tokenCost judge">~${cost.toFixed(4)}</span> : null;
                             })()}
                         </div>
-                    ))}
-                    <div className="tokenUsageRow">
-                        <span className="tokenLabel">Judge:</span>
-                        <span
-                            className="tokenValue">{comparisonTokenUsage.judge.totalTokens.toLocaleString()} tokens</span>
-                        {(() => {
-                            const cost = getEstimatedCost(comparisonConfig.judgeModel, comparisonTokenUsage.judge.promptTokens, comparisonTokenUsage.judge.completionTokens);
-                            return cost !== null ? <span className="tokenCost judge">~${cost.toFixed(4)}</span> : null;
-                        })()}
+                        <div className="tokenUsageRow total">
+                            <span className="tokenLabel">Total:</span>
+                            <span
+                                className="tokenValue tokenTotal">{comparisonTokenUsage.total.totalTokens.toLocaleString()} tokens</span>
+                            {totalCost > 0 ? <span className="tokenCost total">~${totalCost.toFixed(4)}</span> : null}
+                        </div>
                     </div>
-                    <div className="tokenUsageRow total">
-                        <span className="tokenLabel">Total:</span>
-                        <span
-                            className="tokenValue tokenTotal">{comparisonTokenUsage.total.totalTokens.toLocaleString()} tokens</span>
-                        {(() => {
-                            let totalCost = 0;
-                            for (let i = 0; i < comparisonSlotCount; i++) {
-                                const usage = comparisonTokenUsage.models[i];
-                                if (usage) {
-                                    totalCost += getEstimatedCost(getSlotModel(i), usage.promptTokens, usage.completionTokens) || 0;
-                                }
-                            }
-                            totalCost += getEstimatedCost(comparisonConfig.judgeModel, comparisonTokenUsage.judge.promptTokens, comparisonTokenUsage.judge.completionTokens) || 0;
-                            return totalCost > 0 ?
-                                <span className="tokenCost total">~${totalCost.toFixed(4)}</span> : null;
-                        })()}
-                    </div>
+                    {totalCost > 0 && (
+                        <div className="totalCostSummary">
+                            <span className="costLabel">Total Comparison Cost:</span>
+                            <span className="costAmount">~${totalCost.toFixed(4)}</span>
+                        </div>
+                    )}
                 </div>
             );
         }

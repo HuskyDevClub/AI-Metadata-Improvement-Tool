@@ -60,6 +60,12 @@ export function ComparePage() {
                     isGenerating={isAnyModelGenerating}
                     promptTemplates={promptTemplates}
                 />
+                {comparisonEnabled && comparisonTokenUsage.totalCost > 0 && (
+                    <div className="comparison-cost-banner">
+                        <span className="cost-label">Total Comparison Cost:</span>
+                        <span className="cost-value">~${comparisonTokenUsage.totalCost.toFixed(4)}</span>
+                    </div>
+                )}
             </div>
 
             {!comparisonEnabled && (
