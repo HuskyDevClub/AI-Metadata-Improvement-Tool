@@ -1,28 +1,19 @@
 # AI Metadata Improvement Tool
 
-A Generative AI tool designed to assist data publishers in improving the quality, consistency, and accessibility of
-metadata on the Washington State Open Data Portal ([data.wa.gov](https://data.wa.gov)).
+A Generative AI tool designed to assist data publishers in improving the quality, consistency, and accessibility of metadata on the Washington State Open Data Portal ([data.wa.gov](https://data.wa.gov)).
 
 ## Project Overview
 
-This project was developed as part of the **MSIM Capstone** program in partnership with **Washington Technology
-Solutions** and the **State of Washington Open Data Program**.
+This project was developed as part of the **MSIM Capstone** program in partnership with **Washington Technology Solutions** and the **State of Washington Open Data Program**.
 
-High-value datasets regarding state licensing, transportation, healthcare, and fiscal matters are hosted on the Socrata
-platform. However, metadata often falls short of completeness or fails to use "plain language," making it difficult for
-the public to utilize these resources. This tool addresses that gap by using AI to generate compliant, descriptive
-metadata automatically.
+High-value datasets regarding state licensing, transportation, healthcare, and fiscal matters are hosted on the Socrata platform. However, metadata often falls short of completeness or fails to use "plain language," making it difficult for the public to utilize these resources. This tool addresses that gap by using AI to generate compliant, descriptive metadata automatically.
 
 ## Goals and Objectives
 
-- **Automate Metadata Generation**: Utilize LLMs to analyze dataset samples and schemas to suggest titles, descriptions,
-  and column definitions automatically
-- **Enhance Accessibility & Consistency**: Enforce Plain Language standards (expanding acronyms, simplifying jargon) and
-  ensure consistency with U.S. open data standards
-- **Enable User Iteration**: Create a "Human-in-the-Loop" workflow that lets publishers accept, reject, or regenerate
-  suggestions with specific instructions
-- **Cost & Performance Optimization**: Generate high-quality descriptions quickly and cost-effectively for sustainable
-  public-sector use
+- **Automate Metadata Generation**: Utilize LLMs to analyze dataset samples and schemas to suggest titles, descriptions, and column definitions automatically
+- **Enhance Accessibility & Consistency**: Enforce Plain Language standards (expanding acronyms, simplifying jargon) and ensure consistency with U.S. open data standards
+- **Enable User Iteration**: Create a "Human-in-the-Loop" workflow that lets publishers accept, reject, or regenerate suggestions with specific instructions
+- **Cost & Performance Optimization**: Generate high-quality descriptions quickly and cost-effectively for sustainable public-sector use
 - **Platform Independence**: Free, open-access tool deployable without reliance on ongoing subscriptions
 
 ## Features
@@ -125,13 +116,11 @@ OAuth login allows users to authenticate with their own portal credentials. Socr
 
 ## Usage
 
-1. **Configure LLM Provider**: Enter your API base URL, API key, and model name (or pre-configure via environment
-   variables).
+1. **Configure LLM Provider**: Enter your API base URL, API key, and model name (or pre-configure via environment variables).
 2. **Import Data**:
    - Enter a Socrata dataset ID (e.g., `6fex-3r7d`) to import from data.wa.gov, or
    - Upload a local CSV file
-3. **Review Results**: View the generated dataset title, description, row label, category, tags, and individual column descriptions with
-   real-time streaming
+3. **Review Results**: View the generated dataset title, description, row label, category, tags, and individual column descriptions with real-time streaming
 4. **Iterate**:
    - Edit descriptions inline
    - Regenerate with "More Concise", "More Detailed", or custom instructions
@@ -164,9 +153,7 @@ For automated production deployments, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
 ## OpenAI-Compatible API Support
 
-This tool works with **any LLM provider that implements the OpenAI chat completion API**. The backend uses the
-[OpenAI Python SDK](https://github.com/openai/openai-python) with a configurable `base_url`, so any service exposing
-a compatible `/v1/chat/completions` endpoint will work out of the box.
+This tool works with **any LLM provider that implements the OpenAI chat completion API**. The backend uses the [OpenAI Python SDK](https://github.com/openai/openai-python) with a configurable `base_url`, so any service exposing a compatible `/v1/chat/completions` endpoint will work out of the box.
 
 ### Supported Providers
 
@@ -208,5 +195,4 @@ a compatible `/v1/chat/completions` endpoint will work out of the box.
 
 ## License
 
-This project is licensed under the [Apache License 2.0](LICENSE). It is open-access and free to use, designed for
-replication by other government data portals using Tyler Technologies Data & Insights.
+This project is licensed under the [Apache License 2.0](LICENSE). It is open-access and free to use, designed for replication by other government data portals using Tyler Technologies Data & Insights.

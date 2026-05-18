@@ -81,20 +81,23 @@ cd - > /dev/null
 echo "==> Updating Databricks Git Folder at $WORKSPACE_PATH..."
 databricks repos update "$WORKSPACE_PATH" --branch "$DEPLOY_BRANCH"
 
-# Ensure the app is RUNNING before deploy (deploy fails on stopped apps).
-# `apps start` is idempotent — no-op if already running.
+# If the app is stopped, `apps start` boots it using the just-synced workspace
+# path — that single operation IS the deploy, so an explicit `apps deploy`
+# afterward would hit Databricks' ~20-minute per-app deployment rate limit.
+# Only call `apps deploy` when the app is already running.
 APP_STATE=$(databricks apps get "$APP_NAME" --output json | jq -r '.compute_status.state // "UNKNOWN"')
 echo "    Current state: $APP_STATE"
 if [ "$APP_STATE" != "ACTIVE" ]; then
-  echo "==> App not active — starting..."
+  echo "==> App not active — starting (this deploys the freshly-synced code)..."
   databricks apps start "$APP_NAME"
+  echo "==> Start picked up the updated workspace path; skipping explicit deploy."
+else
+  # Env vars come from app-level resources (configured in CI via
+  # `databricks apps update --json`) and are wired into the runtime via
+  # `valueFrom` entries in app.yaml.
+  echo "==> Triggering Databricks deploy for app '$APP_NAME' from $WORKSPACE_PATH..."
+  databricks apps deploy "$APP_NAME" \
+    --source-code-path "$WORKSPACE_PATH"
 fi
-
-# Trigger Databricks Deploy. Env vars come from app-level resources
-# (configured in CI via `databricks apps update --json`) and are wired into
-# the runtime via `valueFrom` entries in app.yaml.
-echo "==> Triggering Databricks deploy for app '$APP_NAME' from $WORKSPACE_PATH..."
-databricks apps deploy "$APP_NAME" \
-  --source-code-path "$WORKSPACE_PATH"
 
 echo "==> Done. Check status with: databricks apps get $APP_NAME"
