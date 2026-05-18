@@ -7,11 +7,9 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import RequestResponseEndpoint
 
-# Importing config first triggers dotenv loading for the whole package, so any
-# module imported afterwards (e.g. .eval) sees a populated environment.
-from .config import ENABLE_EVAL, FRONTEND_URL, PORT
+# Importing config first triggers dotenv loading for the whole package.
+from .config import FRONTEND_URL, PORT
 from .auth import router as auth_router
-from .eval import router as eval_router
 from .llm import router as llm_router
 from .models import HealthResponse
 from .socrata import router as socrata_router
@@ -32,23 +30,12 @@ _cors_origins = (
     if FRONTEND_URL
     else ["http://localhost:5173", "http://localhost:8000"]
 )
-if ENABLE_EVAL:
-    # The eval viewer is a standalone HTML in scripts/, usually opened either
-    # via `python -m http.server 5500` or directly off disk (file://). Allow
-    # those origins only when ENABLE_EVAL is on so prod CORS is untouched.
-    for extra in (
-        "http://localhost:5500",
-        "http://127.0.0.1:5500",
-        "null",
-    ):
-        if extra not in _cors_origins:
-            _cors_origins.append(extra)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    allow_headers=["Content-Type", "X-Requested-With"],
 )
 
 
@@ -81,12 +68,11 @@ async def health_check() -> HealthResponse:
     )
 
 
-# Register API routers. Eval router must be included before the SPA catch-all
-# below so /api/eval/run is not shadowed.
+# Register API routers. Routers must be included before the SPA catch-all below
+# so /api/* paths are not shadowed.
 app.include_router(auth_router)
 app.include_router(socrata_router)
 app.include_router(llm_router)
-app.include_router(eval_router)
 
 
 # Serve static files (React frontend) - must be last

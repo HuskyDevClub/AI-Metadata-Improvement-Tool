@@ -162,6 +162,10 @@ async def socrata_oauth_callback(
         random_b64, sig_b64, timestamp_str = parts[0], parts[1], parts[2]
         is_retry = len(parts) == 4 and parts[3] == "R"
         timestamp = int(timestamp_str)
+        # binascii.Error is a ValueError subclass, so a corrupted b64 segment
+        # is caught here and surfaces as state_invalid instead of a raw 500.
+        random_bytes = base64.urlsafe_b64decode(random_b64 + "==")
+        sig = base64.urlsafe_b64decode(sig_b64 + "==")
     except (ValueError, OverflowError):
         logger.warning("OAuth state parse failed: state=%s", state)
         return RedirectResponse(url=f"{base}/#oauth_error=state_invalid")
@@ -174,8 +178,6 @@ async def socrata_oauth_callback(
         return RedirectResponse(url=f"{base}/#oauth_error=state_expired")
 
     # Verify HMAC signature
-    random_bytes = base64.urlsafe_b64decode(random_b64 + "==")
-    sig = base64.urlsafe_b64decode(sig_b64 + "==")
     expected_sig = hmac.new(
         OAUTH_STATE_SECRET.encode(),
         random_bytes + timestamp_str.encode(),

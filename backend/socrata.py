@@ -79,8 +79,13 @@ async def socrata_import(
             metadata = metadata_resp.json()
             dataset_name = metadata.get("name") or dataset_id
             dataset_description = metadata.get("description") or ""
+
+            nested_metadata = metadata.get("metadata") or {}
+            if not isinstance(nested_metadata, dict):
+                nested_metadata = {}
+
             row_label = (
-                metadata.get("metadata", {}).get("rowLabel", "")
+                nested_metadata.get("rowLabel", "")
                 or metadata.get("rowLabel", "")
                 or ""
             )
@@ -94,9 +99,6 @@ async def socrata_import(
             license_id = metadata.get("licenseId") or ""
             attribution = metadata.get("attribution") or ""
 
-            nested_metadata = metadata.get("metadata") or {}
-            if not isinstance(nested_metadata, dict):
-                nested_metadata = {}
             contact_email = nested_metadata.get("contactEmail") or ""
 
             custom_fields = nested_metadata.get("custom_fields") or {}
@@ -222,7 +224,9 @@ async def socrata_export(
 
             # 2. Build update payload — merge into existing metadata to avoid overwriting
             update_payload: dict[str, Any] = {}
-            existing_metadata: dict[str, Any] = current_metadata.get("metadata", {})
+            existing_metadata = current_metadata.get("metadata") or {}
+            if not isinstance(existing_metadata, dict):
+                existing_metadata = {}
 
             if request.datasetTitle is not None:
                 update_payload["name"] = request.datasetTitle
@@ -328,7 +332,11 @@ async def socrata_export(
                         if col_changed:
                             updated_col_count += 1
                     updated_columns.append(col)
-                update_payload["columns"] = updated_columns
+                # Only include columns in the PUT if something actually changed —
+                # otherwise we'd push every column back unchanged and produce a
+                # message with no parts ("Successfully updated  on …").
+                if updated_col_count > 0:
+                    update_payload["columns"] = updated_columns
 
             if not update_payload:
                 return SocrataExportResponse(
