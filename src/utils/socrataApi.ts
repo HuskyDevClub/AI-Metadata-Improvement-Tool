@@ -126,11 +126,45 @@ export async function fetchSocrataImport(datasetId: string): Promise<SocrataImpo
     };
 }
 
-export async function fetchSocrataConfig(): Promise<{domain: string}> {
+export interface SocrataConfig {
+    /** Portal currently in effect (per-user override or server default). */
+    domain: string;
+    /** Server default — lets the UI offer a "reset to default" action. */
+    defaultDomain: string;
+}
+
+function parseSocrataConfig(result: unknown): SocrataConfig {
+    const data = (result ?? {}) as Record<string, unknown>;
+    const domain = String(data.domain || '');
+    return {
+        domain,
+        defaultDomain: String(data.defaultDomain || domain || ''),
+    };
+}
+
+export async function fetchSocrataConfig(): Promise<SocrataConfig> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/config`);
     await assertResponseOk(response, 'Failed to load Socrata config');
-    const result = await response.json();
-    return { domain: String(result.domain || '') };
+    return parseSocrataConfig(await response.json());
+}
+
+/**
+ * Set or clear the per-user Socrata portal override. Pass an empty string to
+ * clear the override and revert to the server default. Returns the resulting
+ * effective config.
+ */
+export async function saveSocrataDomain(domain: string): Promise<SocrataConfig> {
+    const response = await fetch(`${API_BASE_URL}/api/socrata/config`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ domain }),
+    });
+    await assertResponseOk(response, 'Failed to save portal domain');
+    return parseSocrataConfig(await response.json());
 }
 
 export async function fetchSocrataCategories(): Promise<string[]> {

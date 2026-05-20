@@ -205,6 +205,8 @@ export function DatasetDescription({
         setShowTagSuggestions(false);
     };
 
+    const tagsTooltipText = `Keywords someone would use to search for your data. Match existing ${socrataDomain || 'portal'} tags whenever possible. Don't list your agency, Washington, or years covered. Use one good tag (“licensing”), not a list of variants (e.g., license, licenses, licensing).`;
+
     return (
         <div className="dataset-desc-section">
             <div className="dataset-desc-section-title">Dataset Description</div>
@@ -337,7 +339,7 @@ export function DatasetDescription({
                             <span className="dataset-category-title">
                                 Tags and Keywords
                                 <InfoTooltip
-                                    text="Keywords someone would use to search for your data. Match existing data.wa.gov tags whenever possible. Don't list your agency, Washington, or years covered. Use one good tag (“licensing”), not a list of variants (e.g., license, licenses, licensing)."
+                                    text={tagsTooltipText}
                                     width="400px"/>
                             </span>
                         </div>
@@ -411,7 +413,7 @@ export function DatasetDescription({
                             <span className="dataset-category-title">
                                 Tags and Keywords
                                 <InfoTooltip
-                                    text="Keywords someone would use to search for your data. Match existing data.wa.gov tags whenever possible. Don't list your agency, Washington, or years covered. Use one good tag (“licensing”), not a list of variants (e.g., license, licenses, licensing)."
+                                    text={tagsTooltipText}
                                     width="400px"/>
                             </span>
                             <button

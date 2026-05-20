@@ -1,6 +1,7 @@
 import { OpenAIConfig } from '../components/OpenAIConfig/OpenAIConfig';
 import { PromptEditor } from '../components/PromptEditor/PromptEditor';
 import { SocrataApiConfig } from '../components/SocrataApiConfig/SocrataApiConfig';
+import { SocrataDomainConfig } from '../components/SocrataDomainConfig/SocrataDomainConfig';
 import { useAppContext } from '../contexts/AppContext';
 import './SettingsPage.css';
 
@@ -16,6 +17,8 @@ export function SettingsPage() {
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
         socrataDomain,
+        socrataDefaultDomain,
+        handleSocrataDomainSave,
     } = useAppContext();
 
     return (
@@ -27,6 +30,15 @@ export function SettingsPage() {
                     isConfigured={isOpenAIConfigured}
                     onSave={handleOpenAIConfigSave}
                     onClear={handleOpenAIConfigClear}
+                />
+            </div>
+
+            <div className="settings-page-section">
+                <SocrataDomainConfig
+                    key={socrataDomain || 'none'}
+                    domain={socrataDomain}
+                    defaultDomain={socrataDefaultDomain}
+                    onSave={handleSocrataDomainSave}
                 />
             </div>
 

@@ -11,6 +11,21 @@ function extractDatasetId(input: string): string | null {
     return match ? match[1].toLowerCase() : null;
 }
 
+/** Pull the portal host out of a pasted dataset URL. Null for a bare ID. */
+function extractDomain(input: string): string | null {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+    const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    try {
+        const host = new URL(withScheme).hostname.toLowerCase();
+        // A bare dataset id ("6fex-3r7d") parses to a host with no dot —
+        // reject those so only real URLs/domains count as a portal.
+        return host.includes('.') ? host : null;
+    } catch {
+        return null;
+    }
+}
+
 export function ImportPage() {
     const {
         handleAnalyze,
@@ -22,6 +37,7 @@ export function ImportPage() {
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
         socrataDomain,
+        handleSocrataDomainSave,
     } = useAppContext();
 
     const [dragging, setDragging] = useState(false);
@@ -62,6 +78,13 @@ export function ImportPage() {
         if (!datasetId.trim()) return;
 
         const parsedId = extractDatasetId(datasetId) ?? datasetId.trim();
+        const parsedDomain = extractDomain(datasetId);
+
+        // A pasted URL from a different portal switches the tool to that
+        // portal (and refreshes its catalog data) before importing.
+        if (parsedDomain && parsedDomain !== socrataDomain) {
+            await handleSocrataDomainSave(parsedDomain);
+        }
 
         const trimmedKeyId = apiKeyIdInput.trim();
         const trimmedKeySecret = apiKeySecretInput.trim();
@@ -122,11 +145,16 @@ export function ImportPage() {
         }
     }, [handleAnalyze]);
 
-    // When the input is a URL (not a bare ID), surface the ID we extracted
-    // from it so the user can confirm the right dataset will be imported.
+    // When the input is a URL (not a bare ID), surface the ID — and any
+    // different portal — we extracted, so the user can confirm before import.
     const trimmedDatasetInput = datasetId.trim();
     const detectedId = extractDatasetId(trimmedDatasetInput);
+    const detectedDomain = extractDomain(trimmedDatasetInput);
     const isUrlInput = detectedId !== null && trimmedDatasetInput.toLowerCase() !== detectedId;
+    const domainSwitch =
+        detectedDomain && socrataDomain && detectedDomain !== socrataDomain
+            ? detectedDomain
+            : null;
 
     return (
         <div className="import-page">
@@ -158,6 +186,12 @@ export function ImportPage() {
             {isUrlInput && (
                 <span className="import-form-detected-id">
                     Will import dataset <code>{detectedId}</code>
+                    {detectedDomain && <> from <code>{detectedDomain}</code></>}
+                </span>
+            )}
+            {!isUrlInput && domainSwitch && (
+                <span className="import-form-detected-id">
+                    Will switch portal to <code>{domainSwitch}</code>
                 </span>
             )}
             <span className="import-form-hint">

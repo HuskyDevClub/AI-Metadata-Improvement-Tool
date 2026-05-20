@@ -25,6 +25,7 @@ import {
     pushSocrataMetadata,
     type PushSocrataMetadataOptions,
     saveSocrataApiKey,
+    saveSocrataDomain,
 } from '../utils/socrataApi';
 import { fetchOpenAISession, logoutOpenAI, saveOpenAIConfig, } from '../utils/openaiApi';
 import {
@@ -153,8 +154,12 @@ interface AppContextType {
     ) => Promise<void>;
     handleOpenAIConfigClear: () => Promise<void>;
 
-    // Portal domain this backend is bound to (null until /api/socrata/config resolves).
+    // Portal domain currently in effect (null until /api/socrata/config resolves).
     socrataDomain: string | null;
+    // The server default portal — lets the UI offer a "reset to default".
+    socrataDefaultDomain: string | null;
+    // Set or clear the per-user portal override (pass '' to reset to default).
+    handleSocrataDomainSave: (domain: string) => Promise<void>;
 
     // Live data from the Socrata portal
     allowedCategories: string[];
@@ -341,6 +346,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     }, []);
 
     const [socrataDomain, setSocrataDomain] = useState<string | null>(null);
+    const [socrataDefaultDomain, setSocrataDefaultDomain] = useState<string | null>(null);
     const [allowedCategories, setAllowedCategories] = useState<string[]>([]);
     const [allowedTags, setAllowedTags] = useState<string[]>([]);
     const [allowedLicenses, setAllowedLicenses] = useState<SocrataLicense[]>([]);
@@ -370,7 +376,9 @@ export function AppProvider({ children }: {children: ReactNode}) {
         let cancelled = false;
         fetchSocrataConfig()
             .then((config) => {
-                if (!cancelled && config.domain) setSocrataDomain(config.domain);
+                if (cancelled) return;
+                if (config.domain) setSocrataDomain(config.domain);
+                if (config.defaultDomain) setSocrataDefaultDomain(config.defaultDomain);
             })
             .catch((err) => {
                 console.warn('Failed to load Socrata config:', err);
@@ -788,6 +796,56 @@ export function AppProvider({ children }: {children: ReactNode}) {
             // Ignore — we still clear local state below
         }
         setSocrataApiKeyId('');
+    }, []);
+
+    // Switch the Socrata portal the whole app talks to. The backend persists
+    // the choice in a cookie; categories/tags/licenses and the auth session are
+    // all portal-specific, so refresh them for the new domain. Pass '' to reset.
+    const handleSocrataDomainSave = useCallback(async (domain: string) => {
+        let config;
+        try {
+            config = await saveSocrataDomain(domain);
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : 'Unknown error';
+            setStatus({ message: `Failed to set portal: ${detail}`, type: 'error' });
+            return;
+        }
+        setSocrataDomain(config.domain);
+        setSocrataDefaultDomain(config.defaultDomain);
+        setStatus({
+            message: `Portal set to ${config.domain}`,
+            type: 'success',
+            autoHide: 3000,
+        });
+
+        // Refresh portal-specific catalog data for the new domain.
+        fetchSocrataCategories()
+            .then(setAllowedCategories)
+            .catch(() => setAllowedCategories([]));
+        fetchSocrataLicenses()
+            .then(setAllowedLicenses)
+            .catch(() => setAllowedLicenses([]));
+        fetchSocrataTags('')
+            .then(setAllowedTags)
+            .catch(() => setAllowedTags([]));
+
+        // OAuth sessions are bound to a portal — re-check against the new one.
+        // (API-key sessions are domain-independent and survive the switch.)
+        fetchSocrataSession()
+            .then((session) => {
+                if (session.kind === 'oauth') {
+                    setSocrataOAuthUser(session.user);
+                    setSocrataApiKeyId('');
+                } else if (session.kind === 'api_key') {
+                    setSocrataApiKeyId(session.apiKeyId);
+                    setSocrataOAuthUser(null);
+                } else {
+                    setSocrataOAuthUser(null);
+                    setSocrataApiKeyId('');
+                }
+            })
+            .catch(() => { /* leave existing session state untouched on error */
+            });
     }, []);
 
     const handleSocrataOAuthLogout = useCallback(async () => {
@@ -2229,6 +2287,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         handleOpenAIConfigSave,
         handleOpenAIConfigClear,
         socrataDomain,
+        socrataDefaultDomain,
+        handleSocrataDomainSave,
         allowedCategories,
         allowedTags,
         allowedLicenses,

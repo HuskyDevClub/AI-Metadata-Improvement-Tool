@@ -119,7 +119,11 @@ OAuth login allows users to authenticate with their own portal credentials. Socr
 1. **Configure LLM Provider**: Enter your API base URL, API key, and model name (or pre-configure via environment variables).
 2. **Import Data**:
    - Enter a Socrata dataset ID (e.g., `6fex-3r7d`) to import from data.wa.gov, or
+   - Paste a full dataset URL — the tool extracts both the dataset ID and the
+     portal, switching to that portal automatically (e.g. a `data.cityofnewyork.us`
+     URL), or
    - Upload a local CSV file
+   - To target a different portal directly, set it under **Settings → Socrata Portal**
 3. **Review Results**: View the generated dataset title, description, row label, category, tags, and individual column descriptions with real-time streaming
 4. **Iterate**:
    - Edit descriptions inline
