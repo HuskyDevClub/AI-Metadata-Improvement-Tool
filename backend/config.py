@@ -1,10 +1,12 @@
 import os
+import re
 import secrets
 from pathlib import Path
 from typing import Literal
 
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
+from fastapi import Request
 
 # Env load order: .env.databricks fills baseline values for the deployed app,
 # then local .env files override for local dev (backend/.env, then cwd .env).
@@ -18,19 +20,72 @@ load_dotenv(override=True)
 SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
 SOCRATA_SECRET_TOKEN = os.getenv("SOCRATA_SECRET_TOKEN", "")
 
-# Socrata host this instance is bound to (e.g. data.wa.gov).
+# Hostname shape: alphanumeric/hyphen labels joined by dots, at least one dot.
+# Deliberately strict — the value is interpolated straight into outbound URLs.
+_DOMAIN_RE = re.compile(
+    r"^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+    r"(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$"
+)
+
+
+def normalize_socrata_domain(raw: str) -> str:
+    """Reduce a domain or pasted URL to a bare lowercase hostname.
+
+    Strips the scheme, any path/query/fragment, and trailing slashes, so both
+    "https://data.wa.gov/d/abc" and "data.wa.gov" normalize to "data.wa.gov".
+    """
+    value = (raw or "").strip()
+    for prefix in ("https://", "http://"):
+        if value.lower().startswith(prefix):
+            value = value[len(prefix) :]
+            break
+    # Keep only the host — drop any /path, ?query, or #fragment.
+    value = value.split("/")[0].split("?")[0].split("#")[0]
+    return value.strip().rstrip("/").lower()
+
+
+def is_valid_socrata_domain(domain: str) -> bool:
+    """True when *domain* is a plausible bare hostname safe to put in a URL."""
+    return bool(_DOMAIN_RE.match(domain or ""))
+
+
+def socrata_base_url(domain: str) -> str:
+    """Return the https base URL for a Socrata portal domain."""
+    return f"https://{domain}"
+
+
+# Socrata host this instance is bound to by default (e.g. data.wa.gov).
 # Every Socrata-platform portal exposes the same /api/views, SODA, OAuth, and
 # catalog endpoints — swap the domain to target a different portal. The OAuth
-# app token must be registered on this same domain.
-SOCRATA_DOMAIN = os.getenv("SOCRATA_DOMAIN", "data.wa.gov").strip() or "data.wa.gov"
-# Allow users to paste full URLs (e.g. "https://data.cityofnewyork.us/") —
-# strip the scheme and trailing slashes so only the bare domain remains.
-for _prefix in ("https://", "http://"):
-    if SOCRATA_DOMAIN.startswith(_prefix):
-        SOCRATA_DOMAIN = SOCRATA_DOMAIN[len(_prefix) :]
-        break
-SOCRATA_DOMAIN = SOCRATA_DOMAIN.rstrip("/")
-SOCRATA_BASE_URL = f"https://{SOCRATA_DOMAIN}"
+# app token must be registered on whichever domain is in use.
+#
+# This is only the *default*: users can override the portal at runtime from the
+# Settings page. The override is stored in the SOCRATA_DOMAIN cookie and
+# resolved per-request by resolve_socrata_domain().
+SOCRATA_DOMAIN = (
+    normalize_socrata_domain(os.getenv("SOCRATA_DOMAIN", "")) or "data.wa.gov"
+)
+SOCRATA_BASE_URL = socrata_base_url(SOCRATA_DOMAIN)
+
+# Per-user domain override. Stored as a standalone (non-session) cookie so the
+# portal choice survives sign-out and isn't entangled with auth credentials.
+SOCRATA_DOMAIN_COOKIE_NAME = "socrata_domain"
+DOMAIN_COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
+
+
+def resolve_socrata_domain(request: Request) -> str:
+    """Return the effective Socrata domain for this request.
+
+    Honors a valid per-user override from the SOCRATA_DOMAIN cookie; otherwise
+    falls back to the server default.
+    """
+    raw = request.cookies.get(SOCRATA_DOMAIN_COOKIE_NAME)
+    if raw:
+        candidate = normalize_socrata_domain(raw)
+        if is_valid_socrata_domain(candidate):
+            return candidate
+    return SOCRATA_DOMAIN
+
 
 # Socrata's public catalog API lives on a separate domain (api.us.socrata.com
 # for US, api.eu.socrata.com for EU). Override if targeting a non-US portal.

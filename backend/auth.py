@@ -21,10 +21,11 @@ from .config import (
     SESSION_COOKIE_MAX_AGE,
     SESSION_COOKIE_NAME,
     SOCRATA_APP_TOKEN,
-    SOCRATA_BASE_URL,
     SOCRATA_OAUTH_REDIRECT_URI,
     SOCRATA_SECRET_TOKEN,
     fernet,
+    resolve_socrata_domain,
+    socrata_base_url,
 )
 from .models import (
     OpenAIConfigRequest,
@@ -92,12 +93,12 @@ def _update_session(
     return session
 
 
-def _build_oauth_authorize_url(is_retry: bool = False) -> str:
+def _build_oauth_authorize_url(domain: str, is_retry: bool = False) -> str:
     """Build a Socrata OAuth authorize URL with a signed state token.
 
-    Targets the portal configured by SOCRATA_DOMAIN. When *is_retry* is True
-    an ``R`` flag is appended to the state so the callback knows not to retry
-    again (prevents infinite redirect loops).
+    Targets the portal *domain* in effect for the request. When *is_retry* is
+    True an ``R`` flag is appended to the state so the callback knows not to
+    retry again (prevents infinite redirect loops).
     """
     random_bytes = secrets.token_bytes(16)
     timestamp = str(int(time.time()))
@@ -120,18 +121,19 @@ def _build_oauth_authorize_url(is_retry: bool = False) -> str:
             "scope": "read_user_info read_site_content write_site_content",
         }
     )
-    return f"{SOCRATA_BASE_URL}/oauth/authorize?{params}"
+    return f"{socrata_base_url(domain)}/oauth/authorize?{params}"
 
 
 @router.get("/socrata/login", response_model=SocrataOAuthLoginResponse)
-async def socrata_oauth_login() -> SocrataOAuthLoginResponse:
-    """Return the OAuth authorization URL for the configured Socrata portal."""
+async def socrata_oauth_login(request: Request) -> SocrataOAuthLoginResponse:
+    """Return the OAuth authorization URL for the Socrata portal in effect."""
     if not SOCRATA_APP_TOKEN:
         raise HTTPException(
             status_code=400,
             detail="OAuth not configured. Set SOCRATA_APP_TOKEN in the environment.",
         )
-    return SocrataOAuthLoginResponse(authUrl=_build_oauth_authorize_url())
+    domain = resolve_socrata_domain(request)
+    return SocrataOAuthLoginResponse(authUrl=_build_oauth_authorize_url(domain))
 
 
 @router.get("/socrata/callback")
@@ -143,6 +145,7 @@ async def socrata_oauth_callback(
 ) -> RedirectResponse:
     """OAuth callback — exchanges authorization code for access token, redirects to frontend."""
     base = FRONTEND_URL.rstrip("/") if FRONTEND_URL else ""
+    domain = resolve_socrata_domain(request)
 
     if error:
         return RedirectResponse(url=f"{base}/#oauth_error={error}")
@@ -193,7 +196,7 @@ async def socrata_oauth_callback(
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             token_resp = await client.post(
-                f"{SOCRATA_BASE_URL}/oauth/access_token",
+                f"{socrata_base_url(domain)}/oauth/access_token",
                 data={
                     "client_id": SOCRATA_APP_TOKEN,
                     "client_secret": SOCRATA_SECRET_TOKEN,
@@ -212,7 +215,7 @@ async def socrata_oauth_callback(
                 if not is_retry and "Authorization code invalid" in token_resp.text:
                     logger.info("Stale authorization code — retrying OAuth flow")
                     return RedirectResponse(
-                        url=_build_oauth_authorize_url(is_retry=True)
+                        url=_build_oauth_authorize_url(domain, is_retry=True)
                     )
                 return RedirectResponse(
                     url=f"{base}/#oauth_error=token_exchange_failed"
@@ -245,10 +248,11 @@ async def socrata_session(request: Request) -> SocrataSessionResponse:
         token = session.get("token") or ""
         if not token:
             return SocrataSessionResponse(kind=None)
+        domain = resolve_socrata_domain(request)
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(
-                    f"{SOCRATA_BASE_URL}/api/users/current.json",
+                    f"{socrata_base_url(domain)}/api/users/current.json",
                     headers={"Authorization": f"OAuth {token}"},
                 )
                 if resp.status_code != 200:
@@ -309,9 +313,10 @@ async def socrata_logout(request: Request, response: Response) -> Response:
         token = session.get("token")
         if token:
             try:
+                domain = resolve_socrata_domain(request)
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     await client.post(
-                        f"{SOCRATA_BASE_URL}/oauth/revoke_token",
+                        f"{socrata_base_url(domain)}/oauth/revoke_token",
                         data={
                             "access_token": token,
                             "client_id": SOCRATA_APP_TOKEN,

@@ -136,9 +136,23 @@ class SocrataExportResponse(BaseModel):
 
 
 class SocrataConfigResponse(BaseModel):
-    """Public Socrata config the frontend needs at boot (e.g. the portal domain)."""
+    """Public Socrata config the frontend needs at boot (e.g. the portal domain).
+
+    `domain` is the portal currently in effect (per-user override or default);
+    `defaultDomain` is the server default, so the UI can offer a reset.
+    """
 
     domain: str
+    defaultDomain: str
+
+
+class SocrataDomainRequest(BaseModel):
+    """Request body for setting the per-user Socrata portal override.
+
+    An empty string clears the override and reverts to the server default.
+    """
+
+    domain: str = Field(default="", max_length=253)
 
 
 class SocrataCategoriesResponse(BaseModel):

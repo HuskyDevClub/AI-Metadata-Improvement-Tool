@@ -4,15 +4,27 @@ import time
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from .auth import read_session, require_xhr_header
-from .config import SOCRATA_BASE_URL, SOCRATA_CATALOG_DOMAIN, SOCRATA_DOMAIN
+from .config import (
+    COOKIE_SAMESITE,
+    COOKIE_SECURE,
+    DOMAIN_COOKIE_MAX_AGE,
+    SOCRATA_CATALOG_DOMAIN,
+    SOCRATA_DOMAIN,
+    SOCRATA_DOMAIN_COOKIE_NAME,
+    is_valid_socrata_domain,
+    normalize_socrata_domain,
+    resolve_socrata_domain,
+    socrata_base_url,
+)
 from .models import (
     ColumnStats,
     SocrataCategoriesResponse,
     SocrataColumnMetadata,
     SocrataConfigResponse,
+    SocrataDomainRequest,
     SocrataExportRequest,
     SocrataExportResponse,
     SocrataImportRequest,
@@ -27,24 +39,66 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/socrata")
 
-# Cache for the live category list fetched from the Socrata catalog API.
-# Populated lazily on first request; refreshed after TTL expires.
-_categories_cache: dict[str, Any] = {"value": None, "fetched_at": 0.0}
+# Live catalog caches. Each portal advertises its own categories/tags/licenses,
+# so every cache is keyed by domain (tags additionally by category). Entries are
+# {"value": ..., "fetched_at": float}; populated lazily, refreshed after TTL.
+_categories_cache: dict[str, dict[str, Any]] = {}
 _CATEGORIES_TTL_SECONDS = 24 * 60 * 60
 
-_licenses_cache: dict[str, Any] = {"value": None, "fetched_at": 0.0}
+_licenses_cache: dict[str, dict[str, Any]] = {}
 _LICENSES_TTL_SECONDS = 24 * 60 * 60
 
-# Tag list cache, keyed by category (empty string = no category filter).
-_tags_cache: dict[str, dict[str, Any]] = {}
+_tags_cache: dict[tuple[str, str], dict[str, Any]] = {}
 _TAGS_TTL_SECONDS = 24 * 60 * 60
 _TAGS_MAX_RETURN = 2000
 
 
 @router.get("/config", response_model=SocrataConfigResponse)
-async def socrata_config() -> SocrataConfigResponse:
-    """Return the portal domain this instance is bound to."""
-    return SocrataConfigResponse(domain=SOCRATA_DOMAIN)
+async def socrata_config(request: Request) -> SocrataConfigResponse:
+    """Return the portal domain in effect (per-user override or server default)."""
+    return SocrataConfigResponse(
+        domain=resolve_socrata_domain(request),
+        defaultDomain=SOCRATA_DOMAIN,
+    )
+
+
+@router.put(
+    "/config",
+    response_model=SocrataConfigResponse,
+    dependencies=[Depends(require_xhr_header)],
+)
+async def set_socrata_config(
+    body: SocrataDomainRequest, response: Response
+) -> SocrataConfigResponse:
+    """Set or clear the per-user Socrata portal override.
+
+    An empty domain clears the override and reverts to the server default. The
+    chosen value is normalized (scheme/path stripped) and validated as a bare
+    hostname before being stored in a long-lived cookie.
+    """
+    raw = (body.domain or "").strip()
+    if not raw:
+        response.delete_cookie(SOCRATA_DOMAIN_COOKIE_NAME, path="/")
+        return SocrataConfigResponse(
+            domain=SOCRATA_DOMAIN, defaultDomain=SOCRATA_DOMAIN
+        )
+
+    domain = normalize_socrata_domain(raw)
+    if not is_valid_socrata_domain(domain):
+        raise HTTPException(
+            status_code=400,
+            detail="Enter a valid portal domain, e.g. data.wa.gov.",
+        )
+    response.set_cookie(
+        SOCRATA_DOMAIN_COOKIE_NAME,
+        domain,
+        max_age=DOMAIN_COOKIE_MAX_AGE,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        path="/",
+    )
+    return SocrataConfigResponse(domain=domain, defaultDomain=SOCRATA_DOMAIN)
 
 
 @router.post("/import", response_model=SocrataImportResponse)
@@ -55,11 +109,13 @@ async def socrata_import(
         raise HTTPException(status_code=400, detail="Dataset ID is required")
 
     dataset_id = request.datasetId.strip()
+    domain = resolve_socrata_domain(http_request)
+    base_url = socrata_base_url(domain)
     session = read_session(http_request)
     headers = build_socrata_auth(session)
 
-    metadata_url = f"{SOCRATA_BASE_URL}/api/views/{dataset_id}.json"
-    soda_base = f"{SOCRATA_BASE_URL}/resource/{dataset_id}.json"
+    metadata_url = f"{base_url}/api/views/{dataset_id}.json"
+    soda_base = f"{base_url}/resource/{dataset_id}.json"
 
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
@@ -194,7 +250,7 @@ async def socrata_import(
     except Exception as e:
         logger.exception("Socrata import error")
         raise HTTPException(
-            status_code=500, detail=f"Failed to fetch from {SOCRATA_DOMAIN}: {str(e)}"
+            status_code=500, detail=f"Failed to fetch from {domain}: {str(e)}"
         )
 
 
@@ -210,20 +266,21 @@ async def socrata_export(
         raise HTTPException(status_code=400, detail="Dataset ID is required")
 
     dataset_id = request.datasetId.strip()
+    domain = resolve_socrata_domain(http_request)
     session = read_session(http_request)
 
     # Write operations require authentication — OAuth or API key
     if not session or session.get("kind") not in ("oauth", "api_key"):
         raise HTTPException(
             status_code=401,
-            detail=f"Authentication required to update metadata on {SOCRATA_DOMAIN}. "
+            detail=f"Authentication required to update metadata on {domain}. "
             "Please sign in with OAuth or save an API key.",
         )
 
     headers = build_socrata_auth(session)
     headers["Content-Type"] = "application/json"
 
-    metadata_url = f"{SOCRATA_BASE_URL}/api/views/{dataset_id}.json"
+    metadata_url = f"{socrata_base_url(domain)}/api/views/{dataset_id}.json"
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -372,7 +429,7 @@ async def socrata_export(
                 )
                 raise HTTPException(
                     status_code=put_resp.status_code,
-                    detail=f"Failed to update metadata on {SOCRATA_DOMAIN}: {error_detail}",
+                    detail=f"Failed to update metadata on {domain}: {error_detail}",
                 )
 
             parts = []
@@ -411,7 +468,7 @@ async def socrata_export(
                 parts.append(
                     f"{renamed_field_count} API field name{'s' if renamed_field_count != 1 else ''} renamed"
                 )
-            message = f"Successfully updated {' and '.join(parts)} on {SOCRATA_DOMAIN}."
+            message = f"Successfully updated {' and '.join(parts)} on {domain}."
 
             return SocrataExportResponse(
                 success=True,
@@ -425,15 +482,15 @@ async def socrata_export(
         logger.exception("Socrata export error")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to push metadata to {SOCRATA_DOMAIN}: {str(e)}",
+            detail=f"Failed to push metadata to {domain}: {str(e)}",
         )
 
 
-async def _fetch_socrata_categories() -> list[str]:
+async def _fetch_socrata_categories(domain: str) -> list[str]:
     """Fetch the live domain category list from Socrata's public catalog API."""
     url = f"https://{SOCRATA_CATALOG_DOMAIN}/api/catalog/v1/domain_categories"
     async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.get(url, params={"domains": SOCRATA_DOMAIN})
+        resp = await client.get(url, params={"domains": domain})
         resp.raise_for_status()
         data = resp.json()
 
@@ -453,9 +510,9 @@ async def _fetch_socrata_categories() -> list[str]:
     return categories
 
 
-async def _fetch_socrata_licenses() -> list[SocrataLicenseInfo]:
-    """Fetch the live license list from the configured Socrata portal."""
-    url = f"{SOCRATA_BASE_URL}/api/licenses.json"
+async def _fetch_socrata_licenses(domain: str) -> list[SocrataLicenseInfo]:
+    """Fetch the live license list from the given Socrata portal."""
+    url = f"{socrata_base_url(domain)}/api/licenses.json"
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.get(url)
         resp.raise_for_status()
@@ -484,58 +541,56 @@ async def _fetch_socrata_licenses() -> list[SocrataLicenseInfo]:
 
 
 @router.get("/licenses", response_model=SocrataLicensesResponse)
-async def socrata_licenses() -> SocrataLicensesResponse:
-    """Return the live list of portal licenses, cached for 24 hours."""
+async def socrata_licenses(request: Request) -> SocrataLicensesResponse:
+    """Return the live list of portal licenses, cached for 24 hours per domain."""
+    domain = resolve_socrata_domain(request)
     now = time.time()
-    cached = _licenses_cache["value"]
-    fetched_at = _licenses_cache["fetched_at"]
+    cached = _licenses_cache.get(domain)
 
-    if cached is not None and (now - fetched_at) < _LICENSES_TTL_SECONDS:
-        return SocrataLicensesResponse(licenses=cached)
+    if cached and (now - cached["fetched_at"]) < _LICENSES_TTL_SECONDS:
+        return SocrataLicensesResponse(licenses=cached["value"])
 
     try:
-        licenses = await _fetch_socrata_licenses()
+        licenses = await _fetch_socrata_licenses(domain)
     except Exception as e:
         logger.warning("Failed to fetch Socrata licenses: %s", e)
-        if cached is not None:
-            return SocrataLicensesResponse(licenses=cached)
+        if cached:
+            return SocrataLicensesResponse(licenses=cached["value"])
         raise HTTPException(
             status_code=503,
-            detail=f"Could not reach {SOCRATA_DOMAIN} to load licenses.",
+            detail=f"Could not reach {domain} to load licenses.",
         )
 
-    _licenses_cache["value"] = licenses
-    _licenses_cache["fetched_at"] = now
+    _licenses_cache[domain] = {"value": licenses, "fetched_at": now}
     return SocrataLicensesResponse(licenses=licenses)
 
 
 @router.get("/categories", response_model=SocrataCategoriesResponse)
-async def socrata_categories() -> SocrataCategoriesResponse:
-    """Return the live list of portal categories, cached for 24 hours."""
+async def socrata_categories(request: Request) -> SocrataCategoriesResponse:
+    """Return the live list of portal categories, cached for 24 hours per domain."""
+    domain = resolve_socrata_domain(request)
     now = time.time()
-    cached = _categories_cache["value"]
-    fetched_at = _categories_cache["fetched_at"]
+    cached = _categories_cache.get(domain)
 
-    if cached is not None and (now - fetched_at) < _CATEGORIES_TTL_SECONDS:
-        return SocrataCategoriesResponse(categories=cached)
+    if cached and (now - cached["fetched_at"]) < _CATEGORIES_TTL_SECONDS:
+        return SocrataCategoriesResponse(categories=cached["value"])
 
     try:
-        categories = await _fetch_socrata_categories()
+        categories = await _fetch_socrata_categories(domain)
     except Exception as e:
         logger.warning("Failed to fetch Socrata categories: %s", e)
-        if cached is not None:
-            return SocrataCategoriesResponse(categories=cached)
+        if cached:
+            return SocrataCategoriesResponse(categories=cached["value"])
         raise HTTPException(
             status_code=503,
             detail="Could not reach Socrata catalog API to load categories.",
         )
 
-    _categories_cache["value"] = categories
-    _categories_cache["fetched_at"] = now
+    _categories_cache[domain] = {"value": categories, "fetched_at": now}
     return SocrataCategoriesResponse(categories=categories)
 
 
-async def _fetch_socrata_tags(category: str = "") -> list[str]:
+async def _fetch_socrata_tags(domain: str, category: str = "") -> list[str]:
     """Fetch the live tag list from Socrata's catalog, optionally scoped to a category.
 
     Returns tags sorted by descending usage count, capped at _TAGS_MAX_RETURN.
@@ -543,7 +598,7 @@ async def _fetch_socrata_tags(category: str = "") -> list[str]:
     url = f"https://{SOCRATA_CATALOG_DOMAIN}/api/catalog/v1/domain_tags"
     # Socrata's catalog API defaults to a 100-row page; request the full set so the
     # autocomplete list matches what the portal surfaces.
-    params: dict[str, str] = {"domains": SOCRATA_DOMAIN, "limit": "10000"}
+    params: dict[str, str] = {"domains": domain, "limit": "10000"}
     if category:
         params["categories"] = category
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -572,21 +627,22 @@ async def _fetch_socrata_tags(category: str = "") -> list[str]:
 
 
 @router.get("/tags", response_model=SocrataTagsResponse)
-async def socrata_tags(category: str = "") -> SocrataTagsResponse:
+async def socrata_tags(request: Request, category: str = "") -> SocrataTagsResponse:
     """Return the live list of portal tags, optionally scoped to a category.
 
-    Cached for 24 hours per category.
+    Cached for 24 hours per (domain, category).
     """
-    key = category.strip()
+    domain = resolve_socrata_domain(request)
+    key = (domain, category.strip())
     now = time.time()
     entry = _tags_cache.get(key)
     if entry and (now - entry["fetched_at"]) < _TAGS_TTL_SECONDS:
         return SocrataTagsResponse(tags=entry["value"])
 
     try:
-        tags = await _fetch_socrata_tags(key)
+        tags = await _fetch_socrata_tags(domain, key[1])
     except Exception as e:
-        logger.warning("Failed to fetch Socrata tags (category=%r): %s", key, e)
+        logger.warning("Failed to fetch Socrata tags (key=%r): %s", key, e)
         if entry is not None:
             return SocrataTagsResponse(tags=entry["value"])
         raise HTTPException(
