@@ -23,6 +23,13 @@ SOCRATA_SECRET_TOKEN = os.getenv("SOCRATA_SECRET_TOKEN", "")
 # catalog endpoints — swap the domain to target a different portal. The OAuth
 # app token must be registered on this same domain.
 SOCRATA_DOMAIN = os.getenv("SOCRATA_DOMAIN", "data.wa.gov").strip() or "data.wa.gov"
+# Allow users to paste full URLs (e.g. "https://data.cityofnewyork.us/") —
+# strip the scheme and trailing slashes so only the bare domain remains.
+for _prefix in ("https://", "http://"):
+    if SOCRATA_DOMAIN.startswith(_prefix):
+        SOCRATA_DOMAIN = SOCRATA_DOMAIN[len(_prefix) :]
+        break
+SOCRATA_DOMAIN = SOCRATA_DOMAIN.rstrip("/")
 SOCRATA_BASE_URL = f"https://{SOCRATA_DOMAIN}"
 
 # Socrata's public catalog API lives on a separate domain (api.us.socrata.com
