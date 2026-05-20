@@ -7,7 +7,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .auth import read_session, require_xhr_header
-from .config import SOCRATA_BASE_URL, SOCRATA_DOMAIN
+from .config import SOCRATA_BASE_URL, SOCRATA_CATALOG_DOMAIN, SOCRATA_DOMAIN
 from .models import (
     ColumnStats,
     SocrataCategoriesResponse,
@@ -140,15 +140,29 @@ async def socrata_import(
             stats_results = await asyncio.gather(*stats_tasks, return_exceptions=True)
 
             column_stats: dict[str, ColumnStats] = {}
-            for result in stats_results:
+            display_counts: dict[str, int] = {}
+            field_to_display: dict[str, str] = {}
+
+            for col, result in zip(columns, stats_results):
+                base_display = col.name or col.fieldName
+                count = display_counts.get(base_display, 0)
+                if count > 0:
+                    display_name = f"{base_display} ({count})"
+                else:
+                    display_name = base_display
+                display_counts[base_display] = count + 1
+
+                field_to_display[col.fieldName] = display_name
+
                 if isinstance(result, BaseException):
                     logger.warning("Column stats computation failed: %s", result)
                     continue
-                display_name, col_stats = result
+
+                _, col_stats = result
                 column_stats[display_name] = col_stats
 
             # Remap sample row keys from fieldName to displayName
-            field_to_display = {c.fieldName: (c.name or c.fieldName) for c in columns}
+
             remapped_samples: list[dict[str, Any]] = []
             for row in sample_rows:
                 remapped: dict[str, Any] = {}
@@ -417,7 +431,7 @@ async def socrata_export(
 
 async def _fetch_socrata_categories() -> list[str]:
     """Fetch the live domain category list from Socrata's public catalog API."""
-    url = "https://api.us.socrata.com/api/catalog/v1/domain_categories"
+    url = f"https://{SOCRATA_CATALOG_DOMAIN}/api/catalog/v1/domain_categories"
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.get(url, params={"domains": SOCRATA_DOMAIN})
         resp.raise_for_status()
@@ -526,7 +540,7 @@ async def _fetch_socrata_tags(category: str = "") -> list[str]:
 
     Returns tags sorted by descending usage count, capped at _TAGS_MAX_RETURN.
     """
-    url = "https://api.us.socrata.com/api/catalog/v1/domain_tags"
+    url = f"https://{SOCRATA_CATALOG_DOMAIN}/api/catalog/v1/domain_tags"
     # Socrata's catalog API defaults to a 100-row page; request the full set so the
     # autocomplete list matches what the portal surfaces.
     params: dict[str, str] = {"domains": SOCRATA_DOMAIN, "limit": "10000"}

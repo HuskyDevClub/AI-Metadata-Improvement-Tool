@@ -109,10 +109,10 @@ class SocrataExportRequest(BaseModel):
     """
 
     datasetId: str
-    datasetTitle: str | None = None
+    datasetTitle: str | None = Field(default=None, min_length=1)
     datasetDescription: str | None = None
     rowLabel: str | None = None
-    category: str | None = None
+    category: str | None = Field(default=None, min_length=1)
     tags: list[str] | None = None
     licenseId: str | None = None
     attribution: str | None = None

@@ -24,6 +24,13 @@ SOCRATA_SECRET_TOKEN = os.getenv("SOCRATA_SECRET_TOKEN", "")
 # app token must be registered on this same domain.
 SOCRATA_DOMAIN = os.getenv("SOCRATA_DOMAIN", "data.wa.gov").strip() or "data.wa.gov"
 SOCRATA_BASE_URL = f"https://{SOCRATA_DOMAIN}"
+
+# Socrata's public catalog API lives on a separate domain (api.us.socrata.com
+# for US, api.eu.socrata.com for EU). Override if targeting a non-US portal.
+SOCRATA_CATALOG_DOMAIN = (
+    os.getenv("SOCRATA_CATALOG_DOMAIN", "api.us.socrata.com").strip()
+    or "api.us.socrata.com"
+)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 # Derive OAuth redirect URI. If it's missing or empty, we derive it from
@@ -42,14 +49,13 @@ LLM_MODEL_DETAILED = os.getenv("LLM_MODEL_DETAILED", "")
 LLM_MODEL_SUGGEST = os.getenv("LLM_MODEL_SUGGEST", "")
 
 # --- Session / cookie crypto ----------------------------------------------
-# Secret for signing OAuth state tokens (used to prevent CSRF). Fresh on every
-# server start — restart invalidates outstanding state tokens, but users simply
-# re-initiate the OAuth flow. Stronger than deriving from SOCRATA_SECRET_TOKEN.
-# Note: this is per-process, so a multi-worker deploy (e.g. uvicorn --workers N)
-# would fail any callback that lands on a different worker than the authorize
-# call. The app is currently single-worker on Databricks; if that ever changes,
-# move this to a shared env var (e.g. OAUTH_STATE_SECRET) with a stable value.
-OAUTH_STATE_SECRET = secrets.token_hex(32)
+# Secret for signing OAuth state tokens (used to prevent CSRF). Prefers a stable
+# value from the OAUTH_STATE_SECRET env var so multi-worker / multi-instance
+# deploys (e.g. uvicorn --workers N) share the same secret. Falls back to a
+# fresh random key per process — fine for single-worker Databricks Apps, but
+# restart or worker mismatch will invalidate outstanding state tokens (users
+# simply re-initiate the OAuth flow).
+OAUTH_STATE_SECRET = os.getenv("OAUTH_STATE_SECRET") or secrets.token_hex(32)
 
 # Fernet key for encrypting the OAuth session cookie. Prefer a stable key from
 # the environment to keep users logged in across restarts; fall back to a
