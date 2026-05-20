@@ -71,6 +71,26 @@
     display: block;
 }
 
+/* Dataset ID extracted from a pasted URL */
+.import-form-detected-id {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+
+.import-form-detected-id code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-light);
+    padding: 2px 7px;
+    border-radius: 4px;
+}
+
 /* API key toggle */
 .import-form-toggle {
     display: flex;

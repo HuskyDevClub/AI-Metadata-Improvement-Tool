@@ -3,6 +3,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import './ImportPage.css';
 
+const DATASET_ID_PATTERN = /(?:^|\/)([a-z0-9]{4}-[a-z0-9]{4})(?:$|\/|\?)/i;
+
+/** Pull a Socrata dataset ID out of a bare ID or a full dataset URL. */
+function extractDatasetId(input: string): string | null {
+    const match = input.trim().match(DATASET_ID_PATTERN);
+    return match ? match[1].toLowerCase() : null;
+}
+
 export function ImportPage() {
     const {
         handleAnalyze,
@@ -53,11 +61,7 @@ export function ImportPage() {
     const handleSocrataSubmit = async () => {
         if (!datasetId.trim()) return;
 
-        let parsedId = datasetId.trim();
-        const idMatch = parsedId.match(/(?:^|\/)([a-z0-9]{4}-[a-z0-9]{4})(?:$|\/|\?)/i);
-        if (idMatch) {
-            parsedId = idMatch[1].toLowerCase();
-        }
+        const parsedId = extractDatasetId(datasetId) ?? datasetId.trim();
 
         const trimmedKeyId = apiKeyIdInput.trim();
         const trimmedKeySecret = apiKeySecretInput.trim();
@@ -118,6 +122,12 @@ export function ImportPage() {
         }
     }, [handleAnalyze]);
 
+    // When the input is a URL (not a bare ID), surface the ID we extracted
+    // from it so the user can confirm the right dataset will be imported.
+    const trimmedDatasetInput = datasetId.trim();
+    const detectedId = extractDatasetId(trimmedDatasetInput);
+    const isUrlInput = detectedId !== null && trimmedDatasetInput.toLowerCase() !== detectedId;
+
     return (
         <div className="import-page">
             <h1 className="import-title">Import Dataset</h1>
@@ -145,6 +155,11 @@ export function ImportPage() {
                     {isProcessing ? 'Importing...' : 'Import'}
                 </button>
             </div>
+            {isUrlInput && (
+                <span className="import-form-detected-id">
+                    Will import dataset <code>{detectedId}</code>
+                </span>
+            )}
             <span className="import-form-hint">
                 The identifier or full URL of the dataset
             </span>
