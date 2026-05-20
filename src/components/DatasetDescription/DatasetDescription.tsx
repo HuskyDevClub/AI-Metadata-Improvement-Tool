@@ -3,6 +3,7 @@ import { type SuggestionItem } from '../../utils/prompts';
 import type { SocrataLicense } from '../../types';
 import { EditableDescription } from '../EditableDescription/EditableDescription';
 import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
+import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
 import './DatasetDescription.css';
 
 type DatasetFieldKey =
@@ -234,7 +235,12 @@ export function DatasetDescription({
         <div className="dataset-desc-section">
             <div className="dataset-desc-section-title">Dataset Description</div>
             <div className="dataset-desc-box">
-                <h3>Overview</h3>
+                <h3>
+                    Overview
+                    <InfoTooltip
+                        text="A short, plain-language description of what the data includes and why it’s collected. Cite legislation if applicable. Note common uses or users. You can include disclaimers, but users will see a Note more immediately."
+                        width="350px"/>
+                </h3>
 
                 <EditableDescription
                     description={description}
@@ -260,7 +266,12 @@ export function DatasetDescription({
 
                 {onEditRowLabel && (
                     <div className="dataset-row-label">
-                        <span className="dataset-row-label-title">Row Label</span>
+                        <span className="dataset-row-label-title">
+                            Row Label
+                            <InfoTooltip
+                                text="A short description of what distinguishes one row from another. Ideally each row is one unique observation, e.g., the number of adult fish counted at a specific site on a certain date."
+                                width="350px"/>
+                        </span>
                         <span className="dataset-row-label-hint">
                             Describe what each row in the asset represents (if applicable).
                         </span>
@@ -363,7 +374,12 @@ export function DatasetDescription({
 
                 {onEditCategory && (
                     <div className="dataset-category">
-                        <span className="dataset-category-title">Category</span>
+                        <span className="dataset-category-title">
+                            Category
+                            <InfoTooltip
+                                text="If you need a new category beyond the menu of options, contact the Open Data Program (opendata@wa.gov)."
+                                width="300px"/>
+                        </span>
                         {pendingCategory !== null ? (
                             <div className="ed-pending dataset-field-pending">
                                 <div className="ed-pending-block ed-pending-current">
@@ -451,7 +467,12 @@ export function DatasetDescription({
                 {onAddTag && onRemoveTag && pendingTags !== null && (
                     <div className="dataset-tags">
                         <div className="dataset-tags-header">
-                            <span className="dataset-category-title">Tags and Keywords</span>
+                            <span className="dataset-category-title">
+                                Tags and Keywords
+                                <InfoTooltip
+                                    text="Keywords someone would use to search for your data. Match existing data.wa.gov tags whenever possible. Don't list your agency, Washington, or years covered. Use one good tag (“licensing”), not a list of variants (e.g., license, licenses, licensing)."
+                                    width="400px"/>
+                            </span>
                         </div>
                         <div className="ed-pending dataset-field-pending">
                             <div className="ed-pending-block ed-pending-current">
@@ -520,7 +541,12 @@ export function DatasetDescription({
                 {onAddTag && onRemoveTag && pendingTags === null && (
                     <div className="dataset-tags">
                         <div className="dataset-tags-header">
-                            <span className="dataset-category-title">Tags and Keywords</span>
+                            <span className="dataset-category-title">
+                                Tags and Keywords
+                                <InfoTooltip
+                                    text="Keywords someone would use to search for your data. Match existing data.wa.gov tags whenever possible. Don't list your agency, Washington, or years covered. Use one good tag (“licensing”), not a list of variants (e.g., license, licenses, licensing)."
+                                    width="400px"/>
+                            </span>
                             <button
                                 className="dataset-row-label-btn generate"
                                 onClick={onGenerateTags}
@@ -696,7 +722,12 @@ export function DatasetDescription({
                         <span className="dataset-category-title">Temporal</span>
                         {onEditPeriodOfTime && pendingPeriodOfTime !== null && (
                             <div className="dataset-temporal-pending-row">
-                                <label className="dataset-license-label">Period of Time</label>
+                                <label className="dataset-license-label">
+                                    Period of Time
+                                    <InfoTooltip
+                                        text="Earliest-to-most-recent dates covered by the data itself. You may use &quot;the present&quot; for the most recent date, if the data is kept current."
+                                        width="300px"/>
+                                </label>
                                 <div className="ed-pending dataset-field-pending dataset-temporal-pending">
                                     <div className="ed-pending-block ed-pending-current">
                                         <div className="ed-pending-label">Current</div>
@@ -735,7 +766,12 @@ export function DatasetDescription({
                         )}
                         {onEditPeriodOfTime && pendingPeriodOfTime === null && (
                             <div className="dataset-license-row">
-                                <label className="dataset-license-label">Period of Time</label>
+                                <label className="dataset-license-label">
+                                    Period of Time
+                                    <InfoTooltip
+                                        text="Earliest-to-most-recent dates covered by the data itself. You may use &quot;the present&quot; for the most recent date, if the data is kept current."
+                                        width="300px"/>
+                                </label>
                                 <input
                                     type="text"
                                     className="dataset-row-label-input dataset-license-input"
@@ -765,7 +801,12 @@ export function DatasetDescription({
                         {onEditPostingFrequency && (
                             <>
                                 <div className="dataset-license-row">
-                                    <label className="dataset-license-label">Posting Frequency</label>
+                                    <label className="dataset-license-label">
+                                        Posting Frequency
+                                        <InfoTooltip
+                                            text="How frequently the data is updated, e.g., annually, quarterly, monthly, weekly, daily or as needed."
+                                            width="300px"/>
+                                    </label>
                                     <select
                                         className="dataset-category-select"
                                         value={postingFrequencyCustom ? POSTING_FREQUENCY_OTHER : postingFrequency}

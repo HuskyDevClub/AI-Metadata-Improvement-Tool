@@ -4,6 +4,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import { FloatingActions } from '../FloatingActions/FloatingActions';
 import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
 import { StatusMessage } from '../StatusMessage/StatusMessage';
+import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
 import { ImportPage } from '../../pages/ImportPage';
 import { DataOverviewPage } from '../../pages/DataOverviewPage';
 import { FieldOverviewPage } from '../../pages/FieldOverviewPage';
@@ -160,7 +161,7 @@ function DatasetTitleBar() {
                     </div>
                 ) : (
                     <>
-                        <h2 className="layout-dataset-title" title={title || fileName}>
+                        <h2 className="layout-dataset-title">
                             {generatingDatasetTitle ? (
                                 <span className="layout-dataset-title-generating">
                                     {title || 'Generating title...'}
@@ -170,6 +171,7 @@ function DatasetTitleBar() {
                                 title || <span className="layout-dataset-title-fallback">{fileName}</span>
                             )}
                         </h2>
+                        <InfoTooltip text="If someone sees just this title in search results, will they understand what the data includes? Don't use the word data, your agency name or years covered. Put location at the end in parentheses, (e.g., Library Branch Locations (Washington State))." width="400px" />
                         {!generatingDatasetTitle && (
                             <span className="layout-dataset-title-actions">
                                 <button

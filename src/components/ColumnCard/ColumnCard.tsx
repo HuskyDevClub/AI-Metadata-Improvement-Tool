@@ -2,6 +2,7 @@ import type { SuggestionItem } from '../../utils/prompts';
 import type { ColumnInfo } from '../../types';
 import { formatColumnStats, sanitizeId } from '../../utils/columnAnalyzer';
 import { EditableDescription } from '../EditableDescription/EditableDescription';
+import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
 import './ColumnCard.css';
 
 interface ColumnCardProps {
@@ -54,6 +55,9 @@ export function ColumnCard({
         <div className="column-card" id={`column-${sanitizeId(name)}`}>
             <h4>
                 Description
+                <InfoTooltip
+                    text="What does the column name mean and what does this field include? Describe the range of possible values, their unit of measurement, and the way the data is collected (by humans? By sensors? Is the data standardized in any way?). Always explain what empty cells could mean."
+                    width="400px"/>
             </h4>
             <div className="column-card-stats">{formatColumnStats(info)}</div>
 
