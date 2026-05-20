@@ -49,13 +49,6 @@ interface DatasetDescriptionProps {
     pendingDescription?: string | null;
     onAcceptPending?: () => void;
     onDiscardPending?: () => void;
-    rowLabel?: string;
-    onEditRowLabel?: (newLabel: string) => void;
-    onGenerateRowLabel?: () => void;
-    isGeneratingRowLabel?: boolean;
-    pendingRowLabel?: string | null;
-    onAcceptPendingRowLabel?: () => void;
-    onDiscardPendingRowLabel?: () => void;
     category?: string;
     allowedCategories?: string[];
     onEditCategory?: (newCategory: string) => void;
@@ -110,13 +103,6 @@ export function DatasetDescription({
                                        pendingDescription = null,
                                        onAcceptPending,
                                        onDiscardPending,
-                                       rowLabel = '',
-                                       onEditRowLabel,
-                                       onGenerateRowLabel,
-                                       isGeneratingRowLabel = false,
-                                       pendingRowLabel = null,
-                                       onAcceptPendingRowLabel,
-                                       onDiscardPendingRowLabel,
                                        category = '',
                                        allowedCategories = [],
                                        onEditCategory,
@@ -156,8 +142,6 @@ export function DatasetDescription({
                                    }: DatasetDescriptionProps) {
     const canReset = (field: DatasetFieldKey) => !!onResetField && !!isFieldChanged?.(field);
     const resetHandler = (field: DatasetFieldKey) => () => onResetField?.(field);
-    const [isEditingRowLabel, setIsEditingRowLabel] = useState(false);
-    const [rowLabelEditValue, setRowLabelEditValue] = useState(rowLabel);
     const [newTagInput, setNewTagInput] = useState('');
     const [showTagSuggestions, setShowTagSuggestions] = useState(false);
     const [activeTagSuggestion, setActiveTagSuggestion] = useState(0);
@@ -221,16 +205,6 @@ export function DatasetDescription({
         setShowTagSuggestions(false);
     };
 
-    const handleRowLabelSave = () => {
-        onEditRowLabel?.(rowLabelEditValue);
-        setIsEditingRowLabel(false);
-    };
-
-    const handleRowLabelCancel = () => {
-        setRowLabelEditValue(rowLabel);
-        setIsEditingRowLabel(false);
-    };
-
     return (
         <div className="dataset-desc-section">
             <div className="dataset-desc-section-title">Dataset Description</div>
@@ -264,113 +238,6 @@ export function DatasetDescription({
                     canReset={canReset('datasetDescription')}
                 />
 
-                {onEditRowLabel && (
-                    <div className="dataset-row-label">
-                        <span className="dataset-row-label-title">
-                            Row Label
-                            <InfoTooltip
-                                text="A short description of what distinguishes one row from another. Ideally each row is one unique observation, e.g., the number of adult fish counted at a specific site on a certain date."
-                                width="350px"/>
-                        </span>
-                        <span className="dataset-row-label-hint">
-                            Describe what each row in the asset represents (if applicable).
-                        </span>
-                        {pendingRowLabel !== null ? (
-                            <div className="ed-pending dataset-field-pending">
-                                <div className="ed-pending-block ed-pending-current">
-                                    <div className="ed-pending-label">Current</div>
-                                    <p className="ed-pending-text">
-                                        {rowLabel || <em className="ed-pending-empty">Not set</em>}
-                                    </p>
-                                </div>
-                                <div className="ed-pending-block ed-pending-new">
-                                    <div className="ed-pending-label">New</div>
-                                    <p className="ed-pending-text">
-                                        {pendingRowLabel || (isGeneratingRowLabel ? '' :
-                                            <em className="ed-pending-empty">Empty</em>)}
-                                        {isGeneratingRowLabel && <span className="ed-cursor">|</span>}
-                                    </p>
-                                </div>
-                                <div className="ed-pending-actions">
-                                    <button
-                                        className="ed-btn-primary"
-                                        onClick={onAcceptPendingRowLabel}
-                                        disabled={isGeneratingRowLabel || !onAcceptPendingRowLabel}
-                                        title="Replace the current row label with the new one"
-                                    >
-                                        Keep new
-                                    </button>
-                                    <button
-                                        className="ed-btn-secondary"
-                                        onClick={onDiscardPendingRowLabel}
-                                        disabled={isGeneratingRowLabel || !onDiscardPendingRowLabel}
-                                        title="Discard the new row label and keep the current one"
-                                    >
-                                        Discard
-                                    </button>
-                                </div>
-                            </div>
-                        ) : isEditingRowLabel ? (
-                            <div className="dataset-row-label-edit">
-                                <input
-                                    type="text"
-                                    value={rowLabelEditValue}
-                                    onChange={(e) => setRowLabelEditValue(e.target.value)}
-                                    className="dataset-row-label-input"
-                                    placeholder="e.g. license record, traffic incident..."
-                                    autoFocus
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleRowLabelSave();
-                                        if (e.key === 'Escape') handleRowLabelCancel();
-                                    }}
-                                />
-                                <button className="dataset-row-label-btn save" onClick={handleRowLabelSave}>Save
-                                </button>
-                                <button className="dataset-row-label-btn cancel" onClick={handleRowLabelCancel}>Cancel
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="dataset-row-label-display">
-                                <span className="dataset-row-label-value">
-                                    {isGeneratingRowLabel ? (
-                                        <span className="dataset-row-label-generating">
-                                            {rowLabel || 'Generating...'}
-                                            <span className="ed-cursor">|</span>
-                                        </span>
-                                    ) : (
-                                        rowLabel || <em className="dataset-row-label-empty">Not set</em>
-                                    )}
-                                </span>
-                                {!isGeneratingRowLabel && (
-                                    <span className="dataset-row-label-actions">
-                                        <button
-                                            className="dataset-row-label-btn edit"
-                                            onClick={() => {
-                                                setRowLabelEditValue(rowLabel);
-                                                setIsEditingRowLabel(true);
-                                            }}
-                                            title="Edit row label"
-                                        >
-                                            &#9998;
-                                        </button>
-                                        <button
-                                            className="dataset-row-label-btn generate"
-                                            onClick={onGenerateRowLabel}
-                                            title="Generate row label with AI"
-                                        >
-                                            Generate
-                                        </button>
-                                        <ResetFieldButton
-                                            show={canReset('rowLabel')}
-                                            onReset={resetHandler('rowLabel')}
-                                            title="Reset row label to the value loaded from the dataset"
-                                        />
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
 
                 {onEditCategory && (
                     <div className="dataset-category">

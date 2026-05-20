@@ -338,8 +338,6 @@
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
     align-items: center;
 }
 
@@ -467,7 +465,6 @@
 .ed-compact .ed-regenerate-controls {
     gap: 6px;
     margin-top: 12px;
-    padding-top: 12px;
 }
 
 .ed-compact .ed-btn-regenerate {

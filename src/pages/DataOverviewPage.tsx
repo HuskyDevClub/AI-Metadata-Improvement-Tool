@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { DatasetDescription } from '../components/DatasetDescription/DatasetDescription';
 import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
+import { ResetFieldButton } from '../components/ResetFieldButton/ResetFieldButton';
+import { InfoTooltip } from '../components/InfoTooltip/InfoTooltip';
 import { useAppContext } from '../contexts/AppContext';
 import './DataOverviewPage.css';
 
@@ -91,6 +93,18 @@ export function DataOverviewPage() {
 
     const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
+    const [isEditingRowLabel, setIsEditingRowLabel] = useState(false);
+    const [rowLabelEditValue, setRowLabelEditValue] = useState(generatedResults.rowLabel || '');
+
+    const handleRowLabelSave = () => {
+        handleEditRowLabel?.(rowLabelEditValue);
+        setIsEditingRowLabel(false);
+    };
+
+    const handleRowLabelCancel = () => {
+        setRowLabelEditValue(generatedResults.rowLabel || '');
+        setIsEditingRowLabel(false);
+    };
 
     const columnNames = useMemo(() => Object.keys(columnStats), [columnStats]);
     const emptyColumns = useMemo(
@@ -163,13 +177,6 @@ export function DataOverviewPage() {
                     pendingDescription={pendingDatasetDescription}
                     onAcceptPending={handleAcceptPendingDataset}
                     onDiscardPending={handleDiscardPendingDataset}
-                    rowLabel={generatedResults.rowLabel}
-                    onEditRowLabel={handleEditRowLabel}
-                    onGenerateRowLabel={handleGenerateRowLabel}
-                    isGeneratingRowLabel={generatingRowLabel}
-                    pendingRowLabel={pendingRowLabel}
-                    onAcceptPendingRowLabel={handleAcceptPendingRowLabel}
-                    onDiscardPendingRowLabel={handleDiscardPendingRowLabel}
                     category={generatedResults.category}
                     allowedCategories={allowedCategories}
                     onEditCategory={handleEditCategory}
@@ -207,6 +214,140 @@ export function DataOverviewPage() {
                     isFieldChanged={isDatasetFieldChanged}
                     socrataDomain={socrataDomain}
                 />
+            )}
+
+            {csvData && (
+                <div className="section">
+                    <div className="sectionTitle">What's in this Dataset</div>
+                    <div className="dataset-stats">
+                        <div className="stat-item">
+                            <span className="stat-label">Rows</span>
+                            <div style={{ display: 'flex', alignItems: 'center', minHeight: '32px' }}>
+                                <span className="stat-value">{csvData.length}</span>
+                            </div>
+                        </div>
+                        <div className="stat-item">
+                            <span className="stat-label">Columns</span>
+                            <div style={{ display: 'flex', alignItems: 'center', minHeight: '32px' }}>
+                                <span className="stat-value">{columnNames.length}</span>
+                            </div>
+                        </div>
+                        <div className="stat-item" style={{ flex: 1 }}>
+                            <span className="stat-label">
+                                Row Label
+                                <InfoTooltip
+                                    text="A short description of what distinguishes one row from another. Ideally each row is one unique observation, e.g., the number of adult fish counted at a specific site on a certain date."
+                                    width="350px"/>
+                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', minHeight: '32px', width: '100%' }}>
+                                {pendingRowLabel !== null ? (
+                                    <div className="ed-pending dataset-field-pending"
+                                         style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div className="ed-pending-block ed-pending-current">
+                                            <div className="ed-pending-label">Current</div>
+                                            <p className="ed-pending-text stat-value"
+                                               style={{ margin: 0, fontSize: '15px' }}>
+                                                {generatedResults.rowLabel ||
+                                                  <em className="ed-pending-empty">Not set</em>}
+                                            </p>
+                                        </div>
+                                        <div className="ed-pending-block ed-pending-new">
+                                            <div className="ed-pending-label">New</div>
+                                            <p className="ed-pending-text stat-value"
+                                               style={{ margin: 0, fontSize: '15px' }}>
+                                                {pendingRowLabel || (generatingRowLabel ? '' :
+                                                    <em className="ed-pending-empty">Empty</em>)}
+                                                {generatingRowLabel && <span className="ed-cursor">|</span>}
+                                            </p>
+                                        </div>
+                                        <div className="ed-pending-actions">
+                                            <button
+                                                className="ed-btn-primary"
+                                                onClick={handleAcceptPendingRowLabel}
+                                                disabled={generatingRowLabel || !handleAcceptPendingRowLabel}
+                                                title="Replace the current row label with the new one"
+                                            >
+                                                Keep new
+                                            </button>
+                                            <button
+                                                className="ed-btn-secondary"
+                                                onClick={handleDiscardPendingRowLabel}
+                                                disabled={generatingRowLabel || !handleDiscardPendingRowLabel}
+                                                title="Discard the new row label and keep the current one"
+                                            >
+                                                Discard
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : isEditingRowLabel ? (
+                                    <div className="dataset-row-label-edit" style={{ width: '100%' }}>
+                                        <input
+                                            type="text"
+                                            value={rowLabelEditValue}
+                                            onChange={(e) => setRowLabelEditValue(e.target.value)}
+                                            className="dataset-row-label-input"
+                                            placeholder="e.g. license record, traffic incident..."
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleRowLabelSave();
+                                                if (e.key === 'Escape') handleRowLabelCancel();
+                                            }}
+                                            style={{ width: '100%', maxWidth: '600px' }}
+                                        />
+                                        <button className="dataset-row-label-btn save"
+                                                onClick={handleRowLabelSave}>Save
+                                        </button>
+                                        <button className="dataset-row-label-btn cancel"
+                                                onClick={handleRowLabelCancel}>Cancel
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="dataset-row-label-display" style={{ minHeight: 'unset' }}>
+                                        <span className="stat-value">
+                                            {generatingRowLabel ? (
+                                                <span className="dataset-row-label-generating">
+                                                    {generatedResults.rowLabel || 'Generating...'}
+                                                    <span className="ed-cursor">|</span>
+                                                </span>
+                                            ) : (
+                                                generatedResults.rowLabel || <span style={{
+                                                    color: 'var(--text-tertiary)',
+                                                    fontWeight: 'normal'
+                                                }}>—</span>
+                                            )}
+                                        </span>
+                                        {!generatingRowLabel && (
+                                            <span className="dataset-row-label-actions">
+                                                <button
+                                                    className="dataset-row-label-btn edit"
+                                                    onClick={() => {
+                                                        setRowLabelEditValue(generatedResults.rowLabel);
+                                                        setIsEditingRowLabel(true);
+                                                    }}
+                                                    title="Edit row label"
+                                                >
+                                                    &#9998;
+                                                </button>
+                                                <button
+                                                    className="dataset-row-label-btn generate"
+                                                    onClick={handleGenerateRowLabel}
+                                                    title="Generate row label with AI"
+                                                >
+                                                    Generate
+                                                </button>
+                                                <ResetFieldButton
+                                                    show={isDatasetFieldChanged('rowLabel')}
+                                                    onReset={() => handleResetField('rowLabel')}
+                                                    title="Reset row label to the value loaded from the dataset"
+                                                />
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             <div className="section">

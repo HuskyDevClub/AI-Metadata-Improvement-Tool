@@ -171,7 +171,9 @@ function DatasetTitleBar() {
                                 title || <span className="layout-dataset-title-fallback">{fileName}</span>
                             )}
                         </h2>
-                        <InfoTooltip text="If someone sees just this title in search results, will they understand what the data includes? Don't use the word data, your agency name or years covered. Put location at the end in parentheses, (e.g., Library Branch Locations (Washington State))." width="400px" />
+                        <InfoTooltip
+                            text="If someone sees just this title in search results, will they understand what the data includes? Don't use the word data, your agency name or years covered. Put location at the end in parentheses, (e.g., Library Branch Locations (Washington State))."
+                            width="400px"/>
                         {!generatingDatasetTitle && (
                             <span className="layout-dataset-title-actions">
                                 <button

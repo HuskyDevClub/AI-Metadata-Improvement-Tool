@@ -208,3 +208,34 @@
     background: var(--accent-light);
     color: var(--accent);
 }
+
+.dataset-stats {
+    display: flex;
+    gap: 24px;
+    padding: 16px;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+}
