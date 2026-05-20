@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { SuggestionItem } from '../../utils/prompts';
+import { renderInlineMarkdown } from '../../utils/inlineMarkdown';
 import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
 import './EditableDescription.css';
 
@@ -168,7 +169,7 @@ export function EditableDescription({
                                     className={`ed-suggestion-text ${suggestion.edited ? 'edited' : ''}`}
                                     title="Click edit to modify"
                                 >
-                                    {suggestion.text}
+                                    {renderInlineMarkdown(suggestion.text)}
                                 </span>
                                 <button
                                     className="ed-suggestion-edit-btn"

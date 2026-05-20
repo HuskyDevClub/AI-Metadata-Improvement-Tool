@@ -140,6 +140,22 @@
     color: var(--text-tertiary);
 }
 
+.ed-suggestion-text strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.ed-suggestion-text .md-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1px 5px;
+    color: var(--text);
+    white-space: pre-wrap;
+}
+
 .ed-suggestion-edit-btn {
     background: none;
     border: none;
