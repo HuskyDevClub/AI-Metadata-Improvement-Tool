@@ -60,6 +60,13 @@ export function SettingsPage() {
                     socrataDomain={socrataDomain}
                 />
             </div>
+
+            <footer className="settings-page-footer">
+                AI Metadata Improvement Tool
+                <span className="settings-page-footer-version">
+                    Build {__BUILD_DATE__} · commit {__BUILD_COMMIT__}
+                </span>
+            </footer>
         </div>
     );
 }

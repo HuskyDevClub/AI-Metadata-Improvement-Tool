@@ -1,3 +1,19 @@
 .settings-page-section {
     margin-bottom: 24px;
 }
+
+.settings-page-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.settings-page-footer-version {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+}
