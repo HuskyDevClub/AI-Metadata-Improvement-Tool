@@ -6,6 +6,9 @@ import { useAppContext } from '../contexts/AppContext';
 import { formatColumnStats } from '../utils/columnAnalyzer';
 import './FieldOverviewPage.css';
 
+/** Set to `true` to allow users to edit the API field name. */
+const ENABLE_API_FIELD_NAME_EDIT = false;
+
 export function FieldOverviewPage() {
     const {
         currentFieldName: fieldName,
@@ -44,7 +47,8 @@ export function FieldOverviewPage() {
         return (
             <div className="field-overview-notfound">
                 <p>Field "{fieldName}" not found.</p>
-                <button onClick={() => navigate('data')} className="field-overview-back">Back to Data Overview</button>
+                <button onClick={() => navigate('data')} className="field-overview-back">← Back to Data Overview
+                </button>
             </div>
         );
     }
@@ -74,7 +78,7 @@ export function FieldOverviewPage() {
         <div className="field-overview-page">
             <div className="field-overview-nav">
                 <button onClick={() => navigate('data')} className="field-overview-back">
-                    Back to Data Overview
+                    ← Back to Data Overview
                 </button>
                 <div className="field-overview-pager">
                     <div className="field-overview-pager-group">
@@ -178,21 +182,27 @@ export function FieldOverviewPage() {
                         <label className="field-overview-identifier">
                             <span className="field-overview-identifier-label">
                                 API Field Name
-                                <ResetFieldButton
-                                    show={apiFieldNameChanged}
-                                    onReset={() => handleResetColumnField(fieldName, 'fieldName')}
-                                    title="Reset API field name to the value loaded from the dataset"
-                                />
+                                {ENABLE_API_FIELD_NAME_EDIT && (
+                                    <ResetFieldButton
+                                        show={apiFieldNameChanged}
+                                        onReset={() => handleResetColumnField(fieldName, 'fieldName')}
+                                        title="Reset API field name to the value loaded from the dataset"
+                                    />
+                                )}
                             </span>
                             <input
                                 type="text"
                                 className="field-overview-identifier-input field-overview-identifier-mono"
                                 value={apiFieldName}
-                                onChange={(e) => handleEditColumnFieldName(fieldName, e.target.value)}
-                                placeholder="lowercase_with_underscores"
+                                onChange={ENABLE_API_FIELD_NAME_EDIT ? (e) => handleEditColumnFieldName(fieldName, e.target.value) : undefined}
+                                readOnly={!ENABLE_API_FIELD_NAME_EDIT}
+                                disabled={!ENABLE_API_FIELD_NAME_EDIT}
+                                placeholder={ENABLE_API_FIELD_NAME_EDIT ? "lowercase_with_underscores" : undefined}
                             />
                             <span className="field-overview-identifier-hint">
-                                Used in SODA queries. Lowercase letters, digits, and underscores only.
+                                {ENABLE_API_FIELD_NAME_EDIT
+                                    ? "Used in SODA queries. Lowercase letters, digits, and underscores only."
+                                    : "Used in SODA queries. This field is read-only."}
                             </span>
                         </label>
                     )}

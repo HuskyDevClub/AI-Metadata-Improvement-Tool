@@ -14,14 +14,26 @@ import './Layout.css';
 function NavTab({ page, label, disabled }: {page: PageId; label: string; disabled?: boolean}) {
     const { currentPage, navigate } = useAppContext();
     const isActive = currentPage === page;
+    const isImport = page === 'import';
 
     return (
         <button
-            className={`layout-nav-link ${isActive ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
+            className={`layout-nav-link ${isImport ? 'layout-import-tab' : ''} ${isActive ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
             onClick={() => {
                 if (!disabled) navigate(page);
             }}
         >
+            {isImport && (
+                <span className="layout-import-tab-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                         strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                </span>
+            )}
             {label}
         </button>
     );
@@ -46,12 +58,22 @@ function DatasetTab({ id, fileName }: {id: string; fileName: string}) {
             }}
             title={fileName}
         >
+            <span className="layout-dataset-tab-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                     strokeLinejoin="round">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                </svg>
+            </span>
             <span className="layout-dataset-tab-name">{fileName}</span>
             <span
                 className="layout-dataset-tab-close"
                 onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm('Close this dataset?')) {
+                    if (window.confirm(`Close dataset "${fileName}"?`)) {
                         closeTab(id);
                     }
                 }}
@@ -330,6 +352,7 @@ export function Layout() {
                 </div>
                 <nav className="layout-nav">
                     <NavTab page="import" label="Import"/>
+                    {datasetTabs.length > 0 && <span className="layout-nav-divider"/>}
                     {datasetTabs.map(tab => (
                         <DatasetTab key={tab.id} id={tab.id} fileName={tab.fileName}/>
                     ))}

@@ -103,11 +103,13 @@
     border-color: var(--accent);
 }
 
+/* ─── Tab navigation bar ─── */
 .layout-nav {
     display: flex;
-    gap: 0;
+    align-items: end;
+    gap: 2px;
     margin: 0 -32px;
-    padding: 0 32px;
+    padding: 6px 32px 0;
     overflow-x: auto;
     scrollbar-width: none;
 }
@@ -116,29 +118,41 @@
     display: none;
 }
 
+/* ─── Base tab style (shared by Import + Dataset) ─── */
 .layout-nav-link {
-    padding: 10px 16px;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 16px;
     color: var(--text-secondary);
     text-decoration: none;
     font: inherit;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
+    letter-spacing: 0.01em;
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 1px 1px 0 0;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+    transition: color 0.18s, background 0.18s, border-color 0.18s, box-shadow 0.18s;
     margin-bottom: -1px;
+    white-space: nowrap;
 }
 
 .layout-nav-link:hover {
     color: var(--text);
+    background: var(--surface-tertiary);
 }
 
 .layout-nav-link.active {
     color: var(--accent);
-    border-bottom-color: var(--accent);
+    background: var(--surface);
+    border-color: var(--border);
     font-weight: 600;
+    box-shadow: 0 1px 0 var(--surface);
+    /* the 0 1px 0 covers the parent border-bottom so active tab looks "connected" to content */
 }
 
 .layout-nav-link.disabled {
@@ -148,31 +162,77 @@
 
 .layout-nav-link.disabled:hover {
     color: var(--text-secondary);
+    background: transparent;
 }
 
-/* Dataset tab styles */
+/* ─── Import tab (special styling) ─── */
+.layout-nav-link.layout-import-tab {
+    font-weight: 600;
+    letter-spacing: 0;
+    gap: 6px;
+}
+
+.layout-import-tab-icon {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition: opacity 0.18s;
+}
+
+.layout-nav-link.layout-import-tab:hover .layout-import-tab-icon,
+.layout-nav-link.layout-import-tab.active .layout-import-tab-icon {
+    opacity: 1;
+}
+
+/* ─── Divider between Import and dataset tabs ─── */
+.layout-nav-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 6px;
+    align-self: center;
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+/* ─── Dataset tab styles ─── */
 .layout-dataset-tab {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    max-width: 200px;
+    gap: 7px;
+    max-width: 220px;
+    padding-right: 10px;
+}
+
+.layout-dataset-tab-icon {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+    transition: color 0.18s;
+}
+
+.layout-dataset-tab.active .layout-dataset-tab-icon {
+    color: var(--accent);
 }
 
 .layout-dataset-tab-name {
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 0;
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
 }
 
 .layout-dataset-tab-close {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
-    font-size: 16px;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    font-size: 14px;
     line-height: 1;
     color: var(--text-tertiary);
     flex-shrink: 0;
@@ -180,12 +240,13 @@
 }
 
 .layout-dataset-tab-close:hover {
-    background: var(--surface-hover);
-    color: var(--text);
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--error);
 }
 
 .layout-dataset-tab.active .layout-dataset-tab-close:hover {
-    color: var(--accent);
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--error);
 }
 
 .layout-dataset-bar {

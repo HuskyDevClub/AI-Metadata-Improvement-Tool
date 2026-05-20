@@ -345,6 +345,27 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const [allowedTags, setAllowedTags] = useState<string[]>([]);
     const [allowedLicenses, setAllowedLicenses] = useState<SocrataLicense[]>([]);
 
+    // Use /favicon.ico if available, otherwise fall back to /vite.svg
+    useEffect(() => {
+        fetch('/favicon.ico', { method: 'HEAD' })
+            .then((res) => {
+                const link =
+                    document.querySelector<HTMLLinkElement>("link[rel='icon']") ||
+                    document.createElement('link');
+                link.rel = 'icon';
+                link.href = res.ok ? '/favicon.ico' : '/vite.svg';
+                document.head.appendChild(link);
+            })
+            .catch(() => {
+                const link =
+                    document.querySelector<HTMLLinkElement>("link[rel='icon']") ||
+                    document.createElement('link');
+                link.rel = 'icon';
+                link.href = '/vite.svg';
+                document.head.appendChild(link);
+            });
+    }, []);
+
     useEffect(() => {
         let cancelled = false;
         fetchSocrataConfig()

@@ -6,19 +6,31 @@
 }
 
 .field-overview-back {
-    background: none;
+    background: var(--accent);
     border: none;
-    padding: 0;
+    border-radius: 8px;
+    padding: 8px 16px;
     font: inherit;
-    color: var(--accent);
+    color: #fff;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    transition: color 0.15s;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .field-overview-back:hover {
-    color: var(--accent-hover);
+    background: var(--accent-hover);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    transform: translateY(-1px);
+}
+
+.field-overview-back:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 .field-overview-pager {
@@ -234,6 +246,21 @@
 
 .field-overview-identifier-input:focus {
     border-color: var(--accent, #1a73e8);
+}
+
+.field-overview-identifier-input:disabled,
+.field-overview-identifier-input[readonly] {
+    background: var(--surface-secondary, #f3f4f6);
+    color: var(--text-tertiary, #888);
+    border-color: var(--border, #e0e0e0);
+    cursor: not-allowed;
+    opacity: 0.7;
+    user-select: all;
+}
+
+.field-overview-identifier-input:disabled:focus,
+.field-overview-identifier-input[readonly]:focus {
+    border-color: var(--border, #e0e0e0);
 }
 
 .field-overview-identifier-mono {
