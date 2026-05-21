@@ -44,40 +44,54 @@ export function useOpenAI() {
                 totalTokens: 0,
             };
 
+            // SSE events arrive as `data: …` lines, but `reader.read()` chunks
+            // are not line-aligned — a single event can be split across two
+            // reads. Buffer the trailing partial line and only parse lines we
+            // know are complete.
+            let buffer = '';
+
+            const processLine = (line: string) => {
+                if (!line.startsWith('data: ')) return;
+                const data = line.slice(6);
+                if (data === '[DONE]') return;
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.type === 'content' && parsed.content) {
+                        onChunk(parsed.content);
+                    } else if (parsed.type === 'usage' && parsed.usage) {
+                        usage = {
+                            promptTokens: parsed.usage.promptTokens,
+                            completionTokens: parsed.usage.completionTokens,
+                            totalTokens: parsed.usage.totalTokens,
+                        };
+                    } else if (parsed.type === 'error') {
+                        throw new Error(parsed.error);
+                    }
+                } catch (e) {
+                    // Swallow parse errors from a garbled line, but let a real
+                    // error event (thrown above) propagate.
+                    if (e instanceof SyntaxError) return;
+                    throw e;
+                }
+            };
+
             try {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    const text = decoder.decode(value, { stream: true });
-                    const lines = text.split('\n');
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    // Whatever follows the last newline may be incomplete —
+                    // hold it back until the next read appends to it.
+                    buffer = lines.pop() ?? '';
 
                     for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const data = line.slice(6);
-                            if (data === '[DONE]') continue;
-
-                            try {
-                                const parsed = JSON.parse(data);
-                                if (parsed.type === 'content' && parsed.content) {
-                                    onChunk(parsed.content);
-                                } else if (parsed.type === 'usage' && parsed.usage) {
-                                    usage = {
-                                        promptTokens: parsed.usage.promptTokens,
-                                        completionTokens: parsed.usage.completionTokens,
-                                        totalTokens: parsed.usage.totalTokens,
-                                    };
-                                } else if (parsed.type === 'error') {
-                                    throw new Error(parsed.error);
-                                }
-                            } catch (e) {
-                                // Ignore JSON parse errors for incomplete chunks
-                                if (e instanceof SyntaxError) continue;
-                                throw e;
-                            }
-                        }
+                        processLine(line);
                     }
                 }
+                // Flush a final line that arrived without a trailing newline.
+                if (buffer) processLine(buffer);
             } catch (error) {
                 if (error instanceof Error && error.name === 'AbortError') {
                     return { usage, aborted: true };

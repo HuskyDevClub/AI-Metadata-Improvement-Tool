@@ -178,13 +178,6 @@ export function EditableDescription({
                                 >
                                     &#9998;
                                 </button>
-                                <button
-                                    className="ed-suggestion-delete"
-                                    onClick={() => onDismissSuggestions?.()}
-                                    title="Remove suggestion"
-                                >
-                                    &#10005;
-                                </button>
                             </div>
                         )}
                     </div>

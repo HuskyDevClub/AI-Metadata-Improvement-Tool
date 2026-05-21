@@ -213,7 +213,7 @@ interface AppContextType {
 
     // Handlers
     handleAnalyze: (file: File) => Promise<void>;
-    handleSocrataImport: (datasetId: string, keyId?: string, keySecret?: string) => Promise<void>;
+    handleSocrataImport: (datasetId: string) => Promise<void>;
     handleStop: () => void;
     handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => Promise<void>;
     handleRegenerateColumn: (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => Promise<void>;

@@ -15,6 +15,10 @@ export function StatusMessage({ status, isProcessing, onStop }: StatusMessagePro
     const autoHideMs = status?.autoHide ?? (status?.type === 'success' ? 3000 : undefined);
 
     useEffect(() => {
+        // A new status (or a re-fire of an identical one — same key, no
+        // remount) must restart from fully visible. The component is keyed on
+        // the status in Layout, so this only does work on a same-key re-fire.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setHidden(false);
         setFading(false);
 
