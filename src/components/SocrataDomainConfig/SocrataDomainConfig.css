@@ -49,7 +49,7 @@
 .socrata-domain-config-input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
 .socrata-domain-config-save-btn {
@@ -86,7 +86,7 @@
 }
 
 .socrata-domain-config-reset-btn:hover:not(:disabled) {
-    background: var(--surface-alt, rgba(0, 0, 0, 0.03));
+    background: var(--surface-hover);
     color: var(--text);
 }
 
@@ -115,7 +115,7 @@
     font-size: 11px;
     font-weight: 600;
     color: var(--text-secondary);
-    background: var(--surface-secondary, rgba(0, 0, 0, 0.04));
+    background: var(--surface-secondary);
     padding: 1px 5px;
     border-radius: 4px;
 }

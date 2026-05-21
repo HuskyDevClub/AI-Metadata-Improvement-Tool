@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './SocrataApiConfig.css';
+import '../shared/configPanel.css';
 
 interface SocrataApiConfigProps {
     keyId: string;
@@ -34,11 +34,11 @@ export function SocrataApiConfig({
     };
 
     return (
-        <div className="socrata-api-config-section">
-            <div className="socrata-api-config-header">
-                <div className="socrata-api-config-section-title">API Credentials</div>
+        <div className="config-section">
+            <div className="config-header">
+                <div className="config-section-title">API Credentials</div>
                 {isConfigured && !dirty && (
-                    <span className="socrata-api-config-status-badge">
+                    <span className="config-status-badge">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="20 6 9 17 4 12"></polyline>
@@ -47,8 +47,8 @@ export function SocrataApiConfig({
                     </span>
                 )}
             </div>
-            <div className="socrata-api-config-grid">
-                <div className="socrata-api-config-input-group">
+            <div className="config-grid">
+                <div className="config-input-group">
                     <label htmlFor="socrataSettingsApiKeyId">API Key ID *</label>
                     <input
                         id="socrataSettingsApiKeyId"
@@ -58,9 +58,9 @@ export function SocrataApiConfig({
                         onChange={(e) => setKeyIdInput(e.target.value)}
                     />
                 </div>
-                <div className="socrata-api-config-input-group">
+                <div className="config-input-group">
                     <label htmlFor="socrataSettingsApiKeySecret">API Key Secret {isConfigured ? '(Saved)' : '*'}</label>
-                    <div className="socrata-api-config-input-wrapper">
+                    <div className="config-input-wrapper">
                         <input
                             id="socrataSettingsApiKeySecret"
                             type={showSecret ? 'text' : 'password'}
@@ -70,7 +70,7 @@ export function SocrataApiConfig({
                         />
                         <button
                             type="button"
-                            className="socrata-api-config-reveal-btn"
+                            className="config-reveal-btn"
                             onClick={() => setShowSecret((v) => !v)}
                             disabled={!keySecretInput}
                             aria-label={showSecret ? 'Hide API key secret' : 'Show API key secret'}
@@ -94,10 +94,10 @@ export function SocrataApiConfig({
                     </div>
                 </div>
             </div>
-            <div className="socrata-api-config-actions">
+            <div className="config-actions">
                 <button
                     type="button"
-                    className="socrata-api-config-save-btn"
+                    className="config-save-btn"
                     onClick={handleSave}
                     disabled={!canSave}
                 >
@@ -105,7 +105,7 @@ export function SocrataApiConfig({
                 </button>
                 <button
                     type="button"
-                    className="socrata-api-config-clear-btn"
+                    className="config-clear-btn"
                     onClick={() => {
                         if (window.confirm('Clear saved Socrata API credentials? This will remove the API configuration from the server-side session.')) {
                             onClear();
@@ -118,10 +118,10 @@ export function SocrataApiConfig({
                     Clear
                 </button>
                 {dirty && !isSaving && (
-                    <span className="socrata-api-config-dirty-hint">Unsaved changes</span>
+                    <span className="config-dirty-hint">Unsaved changes</span>
                 )}
             </div>
-            <span className="socrata-api-config-help-text">
+            <span className="config-help-text">
                 {socrataDomain && (
                     <>Generate API keys from your {socrataDomain} profile &gt; Developer Settings.{' '}</>
                 )}

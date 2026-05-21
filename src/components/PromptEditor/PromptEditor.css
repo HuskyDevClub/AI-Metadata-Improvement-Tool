@@ -297,7 +297,7 @@
 .prompt-improve-proposal:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
 .prompt-improve-instruction:disabled {
@@ -343,8 +343,8 @@
 }
 
 .prompt-improve-generate-btn:hover:not(:disabled) {
-    background: #1d4ed8;
-    border-color: #1d4ed8;
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
 }
 
 .prompt-improve-apply-btn {
@@ -403,7 +403,7 @@
 .prompt-editor-box textarea:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
 .prompt-editor-help-text {

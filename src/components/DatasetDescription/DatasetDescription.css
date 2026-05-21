@@ -91,7 +91,7 @@
     padding: 3px 8px;
     font-size: 12px;
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--radius-sm);
     background: var(--surface-secondary);
     color: var(--text-secondary);
     cursor: pointer;
@@ -99,7 +99,7 @@
 }
 
 .dataset-row-label-btn:hover {
-    background: var(--surface-hover, #f0f0f0);
+    background: var(--surface-hover);
     color: var(--text);
 }
 
@@ -111,20 +111,20 @@
 }
 
 .dataset-row-label-btn.generate {
-    background: var(--accent-subtle, #e8f0fe);
-    color: var(--accent, #1a73e8);
-    border-color: var(--accent-border, #c6dafc);
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent-border);
 }
 
 .dataset-row-label-btn.generate:hover {
-    background: var(--accent, #1a73e8);
+    background: var(--accent);
     color: white;
 }
 
 .dataset-row-label-btn.save {
-    background: var(--accent, #1a73e8);
+    background: var(--accent);
     color: white;
-    border-color: var(--accent, #1a73e8);
+    border-color: var(--accent);
 }
 
 .dataset-row-label-btn.save:hover {
@@ -145,8 +145,8 @@
     flex: 1;
     padding: 5px 10px;
     font-size: 14px;
-    border: 1px solid var(--accent, #1a73e8);
-    border-radius: var(--radius-sm, 4px);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--text);
     outline: none;
@@ -179,7 +179,7 @@
     padding: 5px 10px;
     font-size: 14px;
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--text);
     min-width: 240px;
@@ -187,7 +187,7 @@
 
 .dataset-category-select:focus {
     outline: none;
-    border-color: var(--accent, #1a73e8);
+    border-color: var(--accent);
 }
 
 .dataset-category-warning {
@@ -195,7 +195,7 @@
     color: #b45309;
     background: #fef3c7;
     padding: 2px 8px;
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--radius-sm);
 }
 
 /* Tags */
@@ -284,9 +284,9 @@
     list-style: none;
     max-height: 220px;
     overflow-y: auto;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--border, #d0d7de);
-    border-radius: var(--radius-sm, 4px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
@@ -294,12 +294,12 @@
     padding: 6px 10px;
     font-size: 13px;
     cursor: pointer;
-    color: var(--text, #1f2328);
+    color: var(--text);
 }
 
 .dataset-tags-suggestion.active,
 .dataset-tags-suggestion:hover {
-    background: var(--accent-soft, #eef4ff);
+    background: var(--accent-light);
 }
 
 .dataset-category-unavailable {
@@ -307,7 +307,7 @@
     color: #b45309;
     background: #fef3c7;
     padding: 2px 8px;
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--radius-sm);
     margin-top: 6px;
 }
 
@@ -341,7 +341,7 @@
 }
 
 .dataset-license-input:focus {
-    border-color: var(--accent, #1a73e8);
+    border-color: var(--accent);
 }
 
 /* Pending compare blocks (reuses .ed-pending-* base styles) */

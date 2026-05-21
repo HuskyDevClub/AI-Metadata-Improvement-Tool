@@ -59,7 +59,7 @@
 
 .ed-edit-textarea:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
 .ed-edit-actions {
@@ -196,7 +196,7 @@
 
 .ed-suggestion-text-input:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
 .ed-suggestion-edit-save {
@@ -249,7 +249,7 @@
 .ed-suggestion-add-input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
 .ed-apply-suggestions-row {
@@ -419,7 +419,7 @@
 .ed-custom-instruction-input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
 .ed-regenerating {

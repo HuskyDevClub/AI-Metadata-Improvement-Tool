@@ -1,8 +1,11 @@
-.socrata-api-config-section {
+/* Shared layout for Settings credential/configuration panels.
+   Used by OpenAIConfig and SocrataApiConfig. */
+
+.config-section {
     margin-bottom: 24px;
 }
 
-.socrata-api-config-header {
+.config-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -11,16 +14,13 @@
     border-bottom: 1px solid var(--border);
 }
 
-.socrata-api-config-section-title {
+.config-section-title {
     font-size: 16px;
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 0;
-    padding-bottom: 0;
-    border-bottom: none;
 }
 
-.socrata-api-config-status-badge {
+.config-status-badge {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -32,30 +32,30 @@
     font-weight: 600;
 }
 
-.socrata-api-config-status-badge svg {
+.config-status-badge svg {
     stroke: currentColor;
 }
 
-.socrata-api-config-grid {
+.config-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 16px;
     margin-bottom: 16px;
 }
 
-.socrata-api-config-input-group {
+.config-input-group {
     display: flex;
     flex-direction: column;
 }
 
-.socrata-api-config-input-group label {
+.config-input-group label {
     font-size: 13px;
     font-weight: 500;
     color: var(--text-secondary);
     margin-bottom: 6px;
 }
 
-.socrata-api-config-input-group input {
+.config-input-group input {
     padding: 9px 12px;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -64,17 +64,17 @@
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.socrata-api-config-input-group input:focus {
+.config-input-group input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
-.socrata-api-config-input-wrapper {
+.config-input-wrapper {
     position: relative;
 }
 
-.socrata-api-config-input-wrapper input {
+.config-input-wrapper input {
     width: 100%;
     padding: 9px 38px 9px 12px;
     border: 1px solid var(--border);
@@ -85,13 +85,13 @@
     box-sizing: border-box;
 }
 
-.socrata-api-config-input-wrapper input:focus {
+.config-input-wrapper input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
-.socrata-api-config-reveal-btn {
+.config-reveal-btn {
     position: absolute;
     top: 50%;
     right: 8px;
@@ -110,30 +110,29 @@
     transition: color 0.15s, background 0.15s;
 }
 
-.socrata-api-config-reveal-btn:hover {
+.config-reveal-btn:hover {
     color: var(--text);
     background: rgba(0, 0, 0, 0.05);
 }
 
-.socrata-api-config-reveal-btn:disabled {
+.config-reveal-btn:disabled {
     opacity: 0.3;
     cursor: not-allowed;
 }
 
-.socrata-api-config-actions {
+.config-help-text {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 6px;
+}
+
+.config-actions {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 8px;
 }
 
-.socrata-api-config-dirty-hint {
-    font-size: 12px;
-    color: var(--text-tertiary);
-    font-style: italic;
-}
-
-.socrata-api-config-save-btn {
+.config-save-btn {
     padding: 8px 14px;
     border: 1px solid var(--accent);
     background: var(--accent);
@@ -145,16 +144,16 @@
     transition: opacity 0.15s;
 }
 
-.socrata-api-config-save-btn:hover:not(:disabled) {
+.config-save-btn:hover:not(:disabled) {
     opacity: 0.9;
 }
 
-.socrata-api-config-save-btn:disabled {
+.config-save-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.socrata-api-config-clear-btn {
+.config-clear-btn {
     padding: 8px 14px;
     border: 1px solid var(--border);
     background: transparent;
@@ -166,18 +165,19 @@
     transition: background 0.15s, color 0.15s;
 }
 
-.socrata-api-config-clear-btn:hover {
-    background: var(--surface-alt, rgba(0, 0, 0, 0.03));
+.config-clear-btn:hover {
+    background: var(--surface-hover);
     color: var(--text);
 }
 
-.socrata-api-config-help-text {
+.config-dirty-hint {
     font-size: 12px;
     color: var(--text-tertiary);
+    font-style: italic;
 }
 
 @media (max-width: 768px) {
-    .socrata-api-config-grid {
+    .config-grid {
         grid-template-columns: 1fr;
     }
 }
