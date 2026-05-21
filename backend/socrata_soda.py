@@ -57,8 +57,9 @@ TEXT_SAMPLE_MAX_LEN = 120
 # Bounded categorical types (checkbox/flag) saturate well below this — used
 # both as the SODA group-by limit and as the threshold for `hasMore`.
 CATEGORICAL_BOUNDED_LIMIT = 10
-# For ambiguous (plain text / unknown) columns: fetch this many distinct
-# values to decide categorical-vs-text by unique-ratio.
+# For ambiguous (plain text / unknown) columns: the distinct-count cutoff
+# below which a column is categorical regardless of unique-ratio, and the
+# number of representative values fetched via group-by. Mirrors analyzeColumn.
 TEXT_GROUPBY_LIMIT = 50
 
 # Limit concurrent SODA requests to avoid rate-limiting / 429s
@@ -537,6 +538,32 @@ async def _compute_opaque_stats(
     )
 
 
+async def _compute_count_and_distinct(
+    client: httpx.AsyncClient,
+    soda_base: str,
+    field: str,
+    headers: dict[str, str],
+) -> tuple[int, int]:
+    """Return (non-null count, distinct count) for a field in one SODA aggregate.
+
+    The distinct count is the column's *true* cardinality — unlike the length
+    of a capped group-by — so callers can compute an accurate unique-ratio.
+    """
+    esc = soda_escape(field)
+    rows = await soda_get(
+        client,
+        soda_base,
+        {"$select": f"count({esc}) as cnt, count(distinct {esc}) as ucnt"},
+        headers,
+    )
+    if not rows:
+        return 0, 0
+    cnt = int(rows[0].get("cnt") or 0)
+    if cnt == 0:
+        return 0, 0
+    return cnt, _coerce_unique_count(rows[0].get("ucnt"), cnt, field)
+
+
 async def _compute_groupby(
     client: httpx.AsyncClient,
     soda_base: str,
@@ -570,61 +597,54 @@ def _classify_from_groupby(
     groups: list[dict[str, Any]],
     field: str,
     total_rows: int,
-    threshold: int,
     non_null_count: int,
+    distinct_count: int,
 ) -> ColumnStats:
-    """Given group-by results, classify as categorical or text and build stats.
+    """Classify an ambiguous column as categorical or text from exact counts.
 
-    `threshold` is the caller's "more than this many distinct values means
-    cardinality is unbounded" cutoff. The caller should fetch `threshold + 1`
-    rows so we can tell "exactly threshold" apart from "more than threshold".
-    `has_more` is true iff we got back more than `threshold` rows.
+    `groups` (top values by frequency, from a capped group-by) supplies only
+    the representative sample/value lists. The categorical-vs-text decision
+    uses `non_null_count` and `distinct_count` — exact aggregates from the
+    caller — never `len(groups)`, which reflects just the truncated group-by
+    window and would make a high-cardinality text column look low-cardinality.
 
-    `non_null_count` is the true count of non-null values for the field (a
-    separate `count(field)` aggregate from the caller). Summing the group
-    counts here would undercount whenever `has_more` is true — the top
-    `threshold` groups don't cover the rest of the values, so nullCount would
-    blow up. Always pass the aggregate, not a partial sum.
+    Heuristic mirrors the frontend `analyzeColumn`: a low unique-ratio or a
+    small absolute distinct count means categorical; otherwise text.
     """
-    unique_count = len(groups)
     if non_null_count == 0:
         return ColumnStats(
             type="empty", stats={}, nullCount=total_rows, totalCount=total_rows
         )
 
-    # Heuristic matches analyzeColumn: unique ratio < 0.5 or low cardinality → categorical
-    unique_ratio = unique_count / non_null_count if non_null_count else 1.0
-    has_more = unique_count > threshold
-    if has_more:
-        # Cardinality at or above the fetched window — likely text unless ratio is low.
-        # Exact unique count is unknown; uniqueCount reflects what we saw.
-        if unique_ratio >= 0.5:
-            # Text column — use values from group-by (guaranteed non-null)
-            samples = [
-                _truncate_sample(str(g.get(field) or ""))
-                for g in groups[:5]
-                if g.get(field) is not None
-            ]
-            return ColumnStats(
-                type="text",
-                stats={
-                    "count": non_null_count,
-                    "uniqueCount": unique_count,
-                    "samples": samples,
-                },
-                nullCount=total_rows - non_null_count,
-                totalCount=total_rows,
-            )
+    unique_ratio = distinct_count / non_null_count
+    is_categorical = unique_ratio < 0.5 or distinct_count < TEXT_GROUPBY_LIMIT
 
-    # Categorical
+    if not is_categorical:
+        # Text column — use values from group-by (guaranteed non-null).
+        samples = [
+            _truncate_sample(str(g.get(field) or ""))
+            for g in groups[:5]
+            if g.get(field) is not None
+        ]
+        return ColumnStats(
+            type="text",
+            stats={
+                "count": non_null_count,
+                "uniqueCount": distinct_count,
+                "samples": samples,
+            },
+            nullCount=total_rows - non_null_count,
+            totalCount=total_rows,
+        )
+
     values = [_truncate_sample(str(g.get(field) or "")) for g in groups[:20]]
     return ColumnStats(
         type="categorical",
         stats={
             "count": non_null_count,
-            "uniqueCount": unique_count,
+            "uniqueCount": distinct_count,
             "values": values,
-            "hasMore": has_more or unique_count > 20,
+            "hasMore": distinct_count > 20,
         },
         nullCount=total_rows - non_null_count,
         totalCount=total_rows,
@@ -711,18 +731,15 @@ async def compute_column_stats(
             totalCount=total_rows,
         )
 
-    # Ambiguous type (plain text, html, etc.) — run group-by to decide.
-    # Fetch threshold+1 so has_more can distinguish "exactly threshold" from "more".
-    # count(field) runs in parallel: summing the truncated group counts would
-    # massively undercount non-nulls on any column with >TEXT_GROUPBY_LIMIT
-    # distinct values (which is most real-world text columns).
-    groups, non_null = await asyncio.gather(
-        _compute_groupby(
-            client, soda_base, field, headers, limit=TEXT_GROUPBY_LIMIT + 1
-        ),
-        _compute_non_null_count(client, soda_base, field, headers),
+    # Ambiguous type (plain text, html, etc.) — classify by true cardinality.
+    # The group-by supplies representative values; count + count(distinct) — a
+    # separate aggregate fetched in parallel — give the exact non-null and
+    # distinct counts. The real distinct count is essential: len(groups) is
+    # capped by the group-by limit, so a high-cardinality text column would
+    # otherwise look low-cardinality and be misclassified as categorical.
+    groups, (non_null, distinct) = await asyncio.gather(
+        _compute_groupby(client, soda_base, field, headers, limit=TEXT_GROUPBY_LIMIT),
+        _compute_count_and_distinct(client, soda_base, field, headers),
     )
-    stats = _classify_from_groupby(
-        groups, field, total_rows, TEXT_GROUPBY_LIMIT, non_null
-    )
+    stats = _classify_from_groupby(groups, field, total_rows, non_null, distinct)
     return display_name, stats

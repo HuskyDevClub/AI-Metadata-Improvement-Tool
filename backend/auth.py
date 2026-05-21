@@ -84,16 +84,6 @@ def read_session(request: Request) -> dict[str, Any]:
         return {}
 
 
-def _update_session(
-    request: Request, response: Response, updates: dict[str, Any]
-) -> dict[str, Any]:
-    """Read current session, apply updates, and write back to the cookie."""
-    session = read_session(request)
-    session.update(updates)
-    _set_session_payload(response, session)
-    return session
-
-
 def _migrate_legacy(session: dict[str, Any]) -> None:
     """Fold a legacy single-`kind` session into the oauth/api_key shape.
 
@@ -428,20 +418,15 @@ async def openai_config_save(
                 detail="API Key is required to save configuration.",
             )
 
-    _update_session(
-        request,
-        response,
-        {
-            "openai_config": {
-                "baseURL": body.baseURL.strip(),
-                "apiKey": new_api_key,
-                "model": body.model.strip(),
-                "modelConcise": (body.modelConcise or "").strip(),
-                "modelDetailed": (body.modelDetailed or "").strip(),
-                "modelSuggest": (body.modelSuggest or "").strip(),
-            }
-        },
-    )
+    session["openai_config"] = {
+        "baseURL": body.baseURL.strip(),
+        "apiKey": new_api_key,
+        "model": body.model.strip(),
+        "modelConcise": (body.modelConcise or "").strip(),
+        "modelDetailed": (body.modelDetailed or "").strip(),
+        "modelSuggest": (body.modelSuggest or "").strip(),
+    }
+    _set_session_payload(response, session)
     response.status_code = 204
     return response
 

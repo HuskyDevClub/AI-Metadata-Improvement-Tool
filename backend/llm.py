@@ -113,31 +113,30 @@ async def openai_chat_stream(
         }
 
         try:
-            client = AsyncOpenAI(
+            async with AsyncOpenAI(
                 base_url=base_url,
                 api_key=api_key,
-            )
+            ) as client:
+                stream = await client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    stream=True,
+                    stream_options={"include_usage": True},
+                )
 
-            stream = await client.chat.completions.create(
-                model=model,
-                messages=messages,
-                stream=True,
-                stream_options={"include_usage": True},
-            )
+                async for chunk in stream:
+                    # Check if the client disconnected
+                    if await http_request.is_disconnected():
+                        break
 
-            async for chunk in stream:
-                # Check if the client disconnected
-                if await http_request.is_disconnected():
-                    break
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
+                        yield f"data: {json.dumps({'type': 'content', 'content': content})}\n\n"
 
-                if chunk.choices and chunk.choices[0].delta.content:
-                    content = chunk.choices[0].delta.content
-                    yield f"data: {json.dumps({'type': 'content', 'content': content})}\n\n"
-
-                if chunk.usage:
-                    usage["promptTokens"] = chunk.usage.prompt_tokens or 0
-                    usage["completionTokens"] = chunk.usage.completion_tokens or 0
-                    usage["totalTokens"] = chunk.usage.total_tokens or 0
+                    if chunk.usage:
+                        usage["promptTokens"] = chunk.usage.prompt_tokens or 0
+                        usage["completionTokens"] = chunk.usage.completion_tokens or 0
+                        usage["totalTokens"] = chunk.usage.total_tokens or 0
 
             # Send final usage data
             yield f"data: {json.dumps({'type': 'usage', 'usage': usage})}\n\n"
