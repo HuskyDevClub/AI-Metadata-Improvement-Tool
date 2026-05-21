@@ -12,12 +12,14 @@ import {
 } from 'react';
 import { useOpenAI } from '../hooks/useOpenAI';
 import {
+    clearSocrataApiKey,
     describeSocrataType,
     fetchSocrataCategories,
     fetchSocrataConfig,
     fetchSocrataImport,
     fetchSocrataLicenses,
     fetchSocrataOAuthLoginUrl,
+    fetchSocrataRights,
     fetchSocrataSession,
     fetchSocrataTags,
     logoutSocrata,
@@ -112,6 +114,7 @@ interface SavedDatasetState {
     tokenUsage: TokenUsage;
     socrataDatasetId: string;
     socrataFieldNameMap: Record<string, string>;
+    socrataCanEdit: boolean;
     // In-flight compare-UI state. Streaming regenerations on one dataset
     // must not bleed into another tab when the user switches, so we
     // persist what would otherwise be ambient React state.
@@ -194,6 +197,9 @@ interface AppContextType {
 
     // Socrata
     socrataDatasetId: string;
+    // True when the signed-in user may edit the imported dataset (captured from
+    // the portal's `rights` at import time). Gates whether Push is shown.
+    socrataCanEdit: boolean;
     isPushingSocrata: boolean;
 
     // Socrata auth (credentials live in an HttpOnly cookie — never exposed to JS)
@@ -486,6 +492,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     // Socrata push-back state
     const [socrataDatasetId, setSocrataDatasetId] = useState('');
     const [socrataFieldNameMap, setSocrataFieldNameMap] = useState<Record<string, string>>({});
+    const [socrataCanEdit, setSocrataCanEdit] = useState(false);
     const [isPushingSocrata, setIsPushingSocrata] = useState(false);
     const [socrataOAuthUser, setSocrataOAuthUser] = useState<{
         id: string; displayName: string; email?: string;
@@ -511,7 +518,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     // Ref that always holds current per-dataset state (updated synchronously after render)
     const datasetStateRef = useRef({
         csvData, fileName, columnStats, generatedResults, initialResults, showResults,
-        importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
+        importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap, socrataCanEdit,
         pendingDatasetDescription, pendingColumnDescriptions,
         pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, pendingPeriodOfTime,
         regeneratingDataset, regeneratingColumns,
@@ -519,7 +526,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     useLayoutEffect(() => {
         datasetStateRef.current = {
             csvData, fileName, columnStats, generatedResults, initialResults, showResults,
-            importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap,
+            importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap, socrataCanEdit,
             pendingDatasetDescription, pendingColumnDescriptions,
             pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, pendingPeriodOfTime,
             regeneratingDataset, regeneratingColumns,
@@ -551,6 +558,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setTokenUsage(saved.tokenUsage);
         setSocrataDatasetId(saved.socrataDatasetId);
         setSocrataFieldNameMap(saved.socrataFieldNameMap);
+        setSocrataCanEdit(saved.socrataCanEdit);
         setIsProcessing(false);
         setGeneratingColumns(new Set());
         setRegeneratingDataset(saved.regeneratingDataset);
@@ -745,21 +753,28 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setIsSocrataOAuthAuthenticating(true);
         fetchSocrataSession()
             .then((session) => {
-                if (session.kind === 'oauth') {
-                    setSocrataOAuthUser(session.user);
-                    setSocrataApiKeyId('');
-                } else if (session.kind === 'api_key') {
-                    setSocrataApiKeyId(session.apiKeyId);
-                    setSocrataOAuthUser(null);
-                } else {
-                    setSocrataOAuthUser(null);
-                    setSocrataApiKeyId('');
-                }
+                // OAuth and API key are independent — apply both.
+                setSocrataOAuthUser(session.oauthUser);
+                setSocrataApiKeyId(session.apiKeyId);
             })
             .catch(() => {
                 // No active session — silent, this is the default state
             })
             .finally(() => setIsSocrataOAuthAuthenticating(false));
+    }, []);
+
+    // `socrataCanEdit` is captured at import time under whatever Socrata
+    // credentials were active then. When credentials later change (API key
+    // saved/cleared, OAuth sign-out) with a dataset still loaded, re-check the
+    // current identity's write access so the Push button stays honest.
+    const refreshSocrataCanEdit = useCallback(async (datasetId: string) => {
+        if (!datasetId) return;
+        const canEdit = await fetchSocrataRights(datasetId);
+        // A tab switch may have changed the active dataset while the request
+        // was in flight — only apply the result if it's still the loaded one.
+        if (datasetStateRef.current.socrataDatasetId === datasetId) {
+            setSocrataCanEdit(canEdit);
+        }
     }, []);
 
     const handleSocrataOAuthLogin = useCallback(async () => {
@@ -778,25 +793,28 @@ export function AppProvider({ children }: {children: ReactNode}) {
             try {
                 await saveSocrataApiKey(keyId, keySecret);
                 setSocrataApiKeyId(keyId);
-                // Saving an API key replaces any OAuth session on the backend.
-                setSocrataOAuthUser(null);
+                // The API key is a separate identity — any OAuth sign-in stays.
                 setStatus({ message: 'API key saved', type: 'success' });
+                // New credentials — re-check write access for any loaded dataset.
+                void refreshSocrataCanEdit(datasetStateRef.current.socrataDatasetId);
             } catch (error) {
                 const detail = error instanceof Error ? error.message : 'Unknown error';
                 setStatus({ message: `Failed to save API key: ${detail}`, type: 'error' });
             }
         },
-        [],
+        [refreshSocrataCanEdit],
     );
 
     const handleSocrataApiKeyClear = useCallback(async () => {
         try {
-            await logoutSocrata();
+            await clearSocrataApiKey();
         } catch {
             // Ignore — we still clear local state below
         }
         setSocrataApiKeyId('');
-    }, []);
+        // API key removed — re-check write access (any OAuth sign-in remains).
+        void refreshSocrataCanEdit(datasetStateRef.current.socrataDatasetId);
+    }, [refreshSocrataCanEdit]);
 
     // Switch the Socrata portal the whole app talks to. The backend persists
     // the choice in a cookie; categories/tags/licenses and the auth session are
@@ -833,16 +851,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         // (API-key sessions are domain-independent and survive the switch.)
         fetchSocrataSession()
             .then((session) => {
-                if (session.kind === 'oauth') {
-                    setSocrataOAuthUser(session.user);
-                    setSocrataApiKeyId('');
-                } else if (session.kind === 'api_key') {
-                    setSocrataApiKeyId(session.apiKeyId);
-                    setSocrataOAuthUser(null);
-                } else {
-                    setSocrataOAuthUser(null);
-                    setSocrataApiKeyId('');
-                }
+                setSocrataOAuthUser(session.oauthUser);
+                setSocrataApiKeyId(session.apiKeyId);
             })
             .catch(() => { /* leave existing session state untouched on error */
             });
@@ -855,11 +865,13 @@ export function AppProvider({ children }: {children: ReactNode}) {
             // Ignore — we still clear local state below
         }
         setSocrataOAuthUser(null);
+        // OAuth identity removed — re-check write access (any API key remains).
+        void refreshSocrataCanEdit(datasetStateRef.current.socrataDatasetId);
         setStatus({
             message: socrataDomain ? `Signed out from ${socrataDomain}` : 'Signed out',
             type: 'info',
         });
-    }, [socrataDomain]);
+    }, [socrataDomain, refreshSocrataCanEdit]);
 
     const { callOpenAIStream } = useOpenAI();
 
@@ -1196,6 +1208,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
                 setSocrataDatasetId('');
                 setSocrataFieldNameMap({});
+                setSocrataCanEdit(false);
 
                 setStatus({ message: 'Analyzing columns...', type: 'info' });
                 const columns = Object.keys(result.data[0]);
@@ -1317,6 +1330,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
             setSocrataDatasetId('');
             setSocrataFieldNameMap({});
+            setSocrataCanEdit(false);
             setIsPushingSocrata(false);
             setIsProcessing(false);
             setStatus(null);
@@ -2026,6 +2040,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setImportedRowCount(result.totalRowCount);
                 setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
                 setSocrataDatasetId(datasetId);
+                // `result.canEdit` reflects only the identity that read the
+                // dataset. A second identity (e.g. an API key) may hold write
+                // access the reader lacks, so re-check against all credentials.
+                setSocrataCanEdit(result.canEdit);
+                void refreshSocrataCanEdit(datasetId);
 
                 // Use pre-computed stats from SODA API — no client-side analyzeColumn
                 const enrichedColumnStats = { ...result.columnStats };
@@ -2101,7 +2120,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setIsProcessing(false);
             }
         },
-        [saveCurrentDataset, socrataDomain]
+        [saveCurrentDataset, socrataDomain, refreshSocrataCanEdit]
     );
 
     // Auto-import dataset from ?dataset_id=<id> query parameter on mount
@@ -2315,6 +2334,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         generatingTags,
         generatingPeriodOfTime,
         socrataDatasetId,
+        socrataCanEdit,
         isPushingSocrata,
         socrataOAuthUser,
         isSocrataOAuthAuthenticating,

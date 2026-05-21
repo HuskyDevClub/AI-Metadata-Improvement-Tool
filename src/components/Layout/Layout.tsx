@@ -305,10 +305,25 @@ export function Layout() {
         handleSocrataOAuthLogout,
         isPushingSocrata,
         socrataDatasetId,
+        socrataCanEdit,
+        socrataApiKeyId,
         handlePushToSocrata,
         datasetTabs,
         socrataDomain,
     } = useAppContext();
+
+    // Pushing metadata requires Socrata credentials — an OAuth sign-in and/or
+    // saved API keys (independent identities; either may carry write access).
+    const hasSocrataAuth = !!socrataOAuthUser || !!socrataApiKeyId;
+
+    // For a Socrata-imported dataset the Push button is always shown, but
+    // disabled with an explanation when the push cannot succeed: no
+    // credentials at all, or credentials that lack write access here.
+    const pushDisabledReason = !hasSocrataAuth
+        ? `Sign in${socrataDomain ? ` to ${socrataDomain}` : ''} or add API credentials in Settings to push metadata`
+        : !socrataCanEdit
+            ? `Your Socrata sign-in and API credentials don't have write access to this dataset${socrataDomain ? ` on ${socrataDomain}` : ''}`
+            : null;
 
     return (
         <div className="container">
@@ -366,7 +381,8 @@ export function Layout() {
                             <button
                                 className="layout-dataset-push-btn"
                                 onClick={handlePushToSocrata}
-                                disabled={isPushingSocrata}
+                                disabled={isPushingSocrata || !!pushDisabledReason}
+                                title={pushDisabledReason ?? undefined}
                             >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -31,9 +31,15 @@ from .models import (
     SocrataImportResponse,
     SocrataLicenseInfo,
     SocrataLicensesResponse,
+    SocrataRightsResponse,
     SocrataTagsResponse,
 )
-from .socrata_soda import build_socrata_auth, compute_column_stats, soda_get
+from .socrata_soda import (
+    build_auth_headers,
+    compute_column_stats,
+    socrata_credentials,
+    soda_get,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +107,22 @@ async def set_socrata_config(
     return SocrataConfigResponse(domain=domain, defaultDomain=SOCRATA_DOMAIN)
 
 
+def _compute_can_edit(metadata: Any) -> bool:
+    """Whether the requesting identity may write to a Socrata view.
+
+    `rights` is a per-identity signal on the view metadata: an anonymous or
+    read-only viewer gets just ["read"], while an owner or collaborator also
+    gets "write"/"update_view". Because the metadata fetch carries the user's
+    auth headers, this reflects *that* user's access to the dataset.
+    """
+    if not isinstance(metadata, dict):
+        return False
+    raw_rights = metadata.get("rights")
+    return isinstance(raw_rights, list) and any(
+        r in ("write", "update_view") for r in raw_rights
+    )
+
+
 @router.post("/import", response_model=SocrataImportResponse)
 async def socrata_import(
     request: SocrataImportRequest, http_request: Request
@@ -112,25 +134,55 @@ async def socrata_import(
     domain = resolve_socrata_domain(http_request)
     base_url = socrata_base_url(domain)
     session = read_session(http_request)
-    headers = build_socrata_auth(session)
 
     metadata_url = f"{base_url}/api/views/{dataset_id}.json"
     soda_base = f"{base_url}/resource/{dataset_id}.json"
 
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
-            # Phase 1: metadata + row count + sample rows (parallel)
-            metadata_resp, count_rows, sample_rows = await asyncio.gather(
-                client.get(metadata_url, headers=headers),
-                soda_get(client, soda_base, {"$select": "count(*) as total"}, headers),
-                soda_get(client, soda_base, {"$limit": "10"}, headers),
-            )
-
-            if metadata_resp.status_code != 200:
-                raise HTTPException(
-                    status_code=metadata_resp.status_code,
-                    detail=f"Failed to fetch dataset metadata: {metadata_resp.reason_phrase}",
+            # Phase 1: metadata + row count + sample rows (parallel). Try each
+            # identity in turn — OAuth, then the API key, then anonymous — so a
+            # dataset readable by only one of them still imports. The headers
+            # of whichever identity can read it are reused for the stats phase.
+            headers = build_auth_headers(None)
+            metadata_resp: httpx.Response | None = None
+            count_rows: Any = []
+            sample_rows: Any = []
+            last_meta: Any = None
+            for credential in [*socrata_credentials(session), None]:
+                headers = build_auth_headers(credential)
+                results = await asyncio.gather(
+                    client.get(metadata_url, headers=headers),
+                    soda_get(
+                        client, soda_base, {"$select": "count(*) as total"}, headers
+                    ),
+                    soda_get(client, soda_base, {"$limit": "10"}, headers),
+                    return_exceptions=True,
                 )
+                last_meta = results[0]
+                if (
+                    isinstance(last_meta, httpx.Response)
+                    and last_meta.status_code == 200
+                ):
+                    metadata_resp, count_rows, sample_rows = results
+                    break
+
+            if metadata_resp is None:
+                if isinstance(last_meta, httpx.Response):
+                    raise HTTPException(
+                        status_code=last_meta.status_code,
+                        detail=f"Failed to fetch dataset metadata: {last_meta.reason_phrase}",
+                    )
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Failed to reach {domain} to fetch dataset metadata.",
+                )
+            # Metadata read OK, but the SODA data calls share the same auth and
+            # may still have failed (e.g. a restricted data table) — surface
+            # that as a hard error, as a non-parallel fetch would have.
+            for sub_result in (count_rows, sample_rows):
+                if isinstance(sub_result, BaseException):
+                    raise sub_result
 
             metadata = metadata_resp.json()
             dataset_name = metadata.get("name") or dataset_id
@@ -154,6 +206,11 @@ async def socrata_import(
 
             license_id = metadata.get("licenseId") or ""
             attribution = metadata.get("attribution") or ""
+
+            # Per-user write signal — gates whether the UI offers a metadata
+            # push-back. Captured here at import time; the UI re-checks it via
+            # the /rights endpoint when credentials change. See _compute_can_edit.
+            can_edit = _compute_can_edit(metadata)
 
             contact_email = nested_metadata.get("contactEmail") or ""
 
@@ -243,6 +300,7 @@ async def socrata_import(
                 postingFrequency=posting_frequency,
                 columns=columns,
                 columnStats=column_stats,
+                canEdit=can_edit,
             )
 
     except HTTPException:
@@ -252,6 +310,46 @@ async def socrata_import(
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch from {domain}: {str(e)}"
         )
+
+
+@router.get("/rights/{dataset_id}", response_model=SocrataRightsResponse)
+async def socrata_rights(
+    dataset_id: str, http_request: Request
+) -> SocrataRightsResponse:
+    """Re-check whether the current credentials may edit a dataset.
+
+    `canEdit` is captured once at import time, but credentials can change
+    afterward (sign-in/out, API-key swap) with the dataset still loaded. The
+    UI calls this on every credential change so the Push button reflects who
+    is authenticated *now*, not whoever imported the dataset.
+
+    `canEdit` is true if *any* configured identity (OAuth or API key) may
+    write — the /export endpoint picks whichever one that is. Fails closed:
+    any error or non-200 from the portal yields canEdit=False, so an
+    unverifiable identity is never offered the push. The /export endpoint
+    remains the actual authorization boundary regardless.
+    """
+    dataset_id = dataset_id.strip()
+    if not dataset_id:
+        raise HTTPException(status_code=400, detail="Dataset ID is required")
+
+    domain = resolve_socrata_domain(http_request)
+    session = read_session(http_request)
+    credentials = socrata_credentials(session)
+    metadata_url = f"{socrata_base_url(domain)}/api/views/{dataset_id}.json"
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for credential in credentials:
+                resp = await client.get(
+                    metadata_url, headers=build_auth_headers(credential)
+                )
+                if resp.status_code == 200 and _compute_can_edit(resp.json()):
+                    return SocrataRightsResponse(canEdit=True)
+        return SocrataRightsResponse(canEdit=False)
+    except Exception as e:
+        logger.warning("Socrata rights check failed for %s: %s", dataset_id, e)
+        return SocrataRightsResponse(canEdit=False)
 
 
 @router.post(
@@ -268,30 +366,53 @@ async def socrata_export(
     dataset_id = request.datasetId.strip()
     domain = resolve_socrata_domain(http_request)
     session = read_session(http_request)
+    credentials = socrata_credentials(session)
 
-    # Write operations require authentication — OAuth or API key
-    if not session or session.get("kind") not in ("oauth", "api_key"):
+    # Write operations require authentication — OAuth and/or an API key.
+    if not credentials:
         raise HTTPException(
             status_code=401,
             detail=f"Authentication required to update metadata on {domain}. "
-            "Please sign in with OAuth or save an API key.",
+            "Please sign in or save an API key.",
         )
-
-    headers = build_socrata_auth(session)
-    headers["Content-Type"] = "application/json"
 
     metadata_url = f"{socrata_base_url(domain)}/api/views/{dataset_id}.json"
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
-            # 1. Fetch current metadata to get column IDs
-            meta_resp = await client.get(metadata_url, headers=headers)
-            if meta_resp.status_code != 200:
+            # 1. Fetch current metadata, picking the identity that may write.
+            # The metadata GET carries `rights`, so one read per identity both
+            # fetches the column IDs and proves write access. OAuth is tried
+            # first (socrata_credentials ordering); the API key is the fallback.
+            headers: dict[str, str] | None = None
+            current_metadata: dict[str, Any] = {}
+            last_resp: httpx.Response | None = None
+            saw_ok = False
+            for credential in credentials:
+                cred_headers = build_auth_headers(credential)
+                last_resp = await client.get(metadata_url, headers=cred_headers)
+                if last_resp.status_code == 200:
+                    saw_ok = True
+                    meta_json = last_resp.json()
+                    if _compute_can_edit(meta_json):
+                        headers = cred_headers
+                        current_metadata = meta_json
+                        break
+
+            if headers is None:
+                # Dataset was readable but not writable by any identity.
+                if saw_ok or last_resp is None:
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Your Socrata sign-in and API credentials do "
+                        f"not have write access to this dataset on {domain}.",
+                    )
+                # Never got a clean read — surface the portal's HTTP error.
                 raise HTTPException(
-                    status_code=meta_resp.status_code,
-                    detail=f"Failed to fetch current metadata: {meta_resp.reason_phrase}",
+                    status_code=last_resp.status_code,
+                    detail=f"Failed to fetch current metadata: {last_resp.reason_phrase}",
                 )
-            current_metadata = meta_resp.json()
+            headers["Content-Type"] = "application/json"
 
             # 2. Build update payload — merge into existing metadata to avoid overwriting
             update_payload: dict[str, Any] = {}

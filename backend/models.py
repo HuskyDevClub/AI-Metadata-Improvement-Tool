@@ -82,6 +82,19 @@ class SocrataImportResponse(BaseModel):
     postingFrequency: str = ""
     columns: list[SocrataColumnMetadata]
     columnStats: dict[str, ColumnStats]
+    # True when the authenticated identity may edit this dataset (i.e. owns it
+    # or is a collaborator). Drives whether the UI offers a metadata push-back.
+    canEdit: bool = False
+
+
+class SocrataRightsResponse(BaseModel):
+    """Whether the current identity may edit a given dataset.
+
+    Lets the UI refresh the import-time `canEdit` after a credential change
+    (sign-in/out, API-key swap) without re-importing the whole dataset.
+    """
+
+    canEdit: bool = False
 
 
 # ============================================================================
@@ -213,13 +226,12 @@ class SocrataApiKeyRequest(BaseModel):
 
 
 class SocrataSessionResponse(BaseModel):
-    """State of the current Socrata auth session.
+    """Current Socrata auth: the OAuth identity and/or saved API key.
 
-    The `kind` field is null when no session is active. The API key secret is
-    never returned — only the id, for display purposes.
+    OAuth and API key are independent — either, both, or neither may be
+    present. The API key secret is never returned, only its id for display.
     """
 
-    kind: Literal["oauth", "api_key"] | None = None
     user: SocrataOAuthUserInfo | None = None
     apiKeyId: str | None = None
 

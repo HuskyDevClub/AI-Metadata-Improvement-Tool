@@ -415,7 +415,7 @@ a.layout-dataset-subtitle-value:hover .layout-dataset-subtitle-external {
     transition: background 0.15s;
 }
 
-.layout-dataset-push-btn:hover {
+.layout-dataset-push-btn:hover:not(:disabled) {
     background: #0052a3;
 }
 

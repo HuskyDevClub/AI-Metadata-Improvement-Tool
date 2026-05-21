@@ -36,9 +36,7 @@ export function SocrataApiConfig({
     return (
         <div className="socrata-api-config-section">
             <div className="socrata-api-config-header">
-                <div className="socrata-api-config-section-title">
-                    {socrataDomain ? `${socrataDomain} API Credentials` : 'API Credentials'}
-                </div>
+                <div className="socrata-api-config-section-title">API Credentials</div>
                 {isConfigured && !dirty && (
                     <span className="socrata-api-config-status-badge">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"

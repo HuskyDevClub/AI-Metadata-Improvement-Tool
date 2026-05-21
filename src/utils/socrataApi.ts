@@ -49,6 +49,8 @@ interface SocrataImportResult {
     postingFrequency: string;
     columns: SocrataColumnMeta[];
     columnStats: Record<string, ColumnInfo>;
+    /** True when the signed-in user may edit (push metadata back to) this dataset. */
+    canEdit: boolean;
 }
 
 interface SocrataExportResult {
@@ -123,7 +125,28 @@ export async function fetchSocrataImport(datasetId: string): Promise<SocrataImpo
         postingFrequency: result.postingFrequency || '',
         columns: result.columns,
         columnStats: result.columnStats,
+        canEdit: Boolean(result.canEdit),
     };
+}
+
+/**
+ * Re-check whether the current identity may edit (push metadata back to) a
+ * dataset. The `canEdit` from import reflects whatever credentials were active
+ * then; call this after a sign-in/out or API-key change so the Push button
+ * tracks the current identity. Fails closed (returns false) on any error.
+ */
+export async function fetchSocrataRights(datasetId: string): Promise<boolean> {
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/api/socrata/rights/${encodeURIComponent(datasetId)}`,
+            { credentials: 'include' },
+        );
+        if (!response.ok) return false;
+        const result = await response.json();
+        return Boolean(result.canEdit);
+    } catch {
+        return false;
+    }
 }
 
 export interface SocrataConfig {
@@ -196,24 +219,27 @@ export async function fetchSocrataOAuthLoginUrl(): Promise<string> {
     return result.authUrl;
 }
 
-type SocrataSession =
-    | {kind: 'oauth'; user: {id: string; displayName: string; email?: string}}
-    | {kind: 'api_key'; apiKeyId: string}
-    | {kind: null};
+/**
+ * Current Socrata auth. The OAuth sign-in and the saved API key are
+ * independent identities — either, both, or neither may be present.
+ */
+export interface SocrataSession {
+    /** OAuth identity, or null when not signed in. */
+    oauthUser: {id: string; displayName: string; email?: string} | null;
+    /** Saved API key id (never the secret); '' when no key is saved. */
+    apiKeyId: string;
+}
 
 export async function fetchSocrataSession(): Promise<SocrataSession> {
     const response = await fetch(`${API_BASE_URL}/api/auth/socrata/session`, {
         credentials: 'include',
     });
-    if (!response.ok) return { kind: null };
+    if (!response.ok) return { oauthUser: null, apiKeyId: '' };
     const data = await response.json();
-    if (data?.kind === 'oauth' && data.user) {
-        return { kind: 'oauth', user: data.user };
-    }
-    if (data?.kind === 'api_key' && data.apiKeyId) {
-        return { kind: 'api_key', apiKeyId: data.apiKeyId };
-    }
-    return { kind: null };
+    return {
+        oauthUser: data?.user ?? null,
+        apiKeyId: typeof data?.apiKeyId === 'string' ? data.apiKeyId : '',
+    };
 }
 
 export async function saveSocrataApiKey(apiKeyId: string, apiKeySecret: string): Promise<void> {
@@ -229,9 +255,19 @@ export async function saveSocrataApiKey(apiKeyId: string, apiKeySecret: string):
     await assertResponseOk(response, 'Failed to save API key');
 }
 
+/** Sign out of the OAuth session. Leaves any saved API key intact. */
 export async function logoutSocrata(): Promise<void> {
     await fetch(`${API_BASE_URL}/api/auth/socrata/logout`, {
         method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'include',
+    });
+}
+
+/** Remove the saved API key. Leaves any OAuth session intact. */
+export async function clearSocrataApiKey(): Promise<void> {
+    await fetch(`${API_BASE_URL}/api/auth/socrata/api-key`, {
+        method: 'DELETE',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'include',
     });
