@@ -70,12 +70,55 @@ def _truncate_sample(value: str, max_len: int = TEXT_SAMPLE_MAX_LEN) -> str:
     return value if len(value) <= max_len else value[: max_len - 3] + "..."
 
 
-def build_socrata_auth(session: dict[str, Any]) -> dict[str, str]:
-    """Build auth headers from an encrypted session payload.
+def socrata_credentials(session: dict[str, Any]) -> list[dict[str, Any]]:
+    """Usable Socrata credentials in the session, OAuth first then API key.
 
-    `session` is the decrypted cookie payload (OAuth or API key).
-    Falls back to X-App-Token-only auth (read-only, public datasets) when no
-    valid auth keys are present.
+    The OAuth sign-in and the saved API key are independent identities that may
+    belong to different people; either, both, or neither may be present. The
+    order matters: callers that want a single "preferred" identity take the
+    head, and write paths try each in turn (OAuth, then API key as a fallback).
+
+    Also accepts the legacy single-`kind` session shape, for cookies issued
+    before OAuth and API key could coexist.
+    """
+    creds: list[dict[str, Any]] = []
+
+    oauth = session.get("oauth")
+    if isinstance(oauth, dict) and oauth.get("token"):
+        creds.append({"kind": "oauth", "token": oauth["token"]})
+
+    api_key = session.get("api_key")
+    if isinstance(api_key, dict) and api_key.get("id") and api_key.get("secret"):
+        creds.append(
+            {
+                "kind": "api_key",
+                "id": api_key["id"],
+                "secret": api_key["secret"],
+            }
+        )
+
+    # Legacy shape: {"kind": "oauth"|"api_key", "token"|"id"+"secret": ...}.
+    if not creds:
+        legacy_kind = session.get("kind")
+        if legacy_kind == "oauth" and session.get("token"):
+            creds.append({"kind": "oauth", "token": session["token"]})
+        elif legacy_kind == "api_key" and session.get("id") and session.get("secret"):
+            creds.append(
+                {
+                    "kind": "api_key",
+                    "id": session["id"],
+                    "secret": session["secret"],
+                }
+            )
+
+    return creds
+
+
+def build_auth_headers(credential: dict[str, Any] | None) -> dict[str, str]:
+    """Build Socrata request headers for one credential (or app-token-only).
+
+    Passing ``None`` yields anonymous, X-App-Token-only headers — read access
+    to public datasets, no write access.
     """
     if not SOCRATA_APP_TOKEN:
         raise HTTPException(
@@ -89,14 +132,13 @@ def build_socrata_auth(session: dict[str, Any]) -> dict[str, str]:
         "X-App-Source": "AI-Metadata-Improvement-Tool",
     }
 
-    kind = session.get("kind")
-    if kind == "oauth" and session.get("token"):
-        headers["Authorization"] = f"OAuth {session['token']}"
-    elif kind == "api_key" and session.get("id") and session.get("secret"):
-        credentials = base64.b64encode(
-            f"{session['id']}:{session['secret']}".encode()
-        ).decode()
-        headers["Authorization"] = f"Basic {credentials}"
+    if credential:
+        kind = credential.get("kind")
+        if kind == "oauth" and credential.get("token"):
+            headers["Authorization"] = f"OAuth {credential['token']}"
+        elif kind == "api_key" and credential.get("id") and credential.get("secret"):
+            raw = f"{credential['id']}:{credential['secret']}".encode()
+            headers["Authorization"] = f"Basic {base64.b64encode(raw).decode()}"
 
     return headers
 

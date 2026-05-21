@@ -35,6 +35,7 @@ from .models import (
     SocrataOAuthUserInfo,
     SocrataSessionResponse,
 )
+from .socrata_soda import socrata_credentials
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,23 @@ def _update_session(
     session.update(updates)
     _set_session_payload(response, session)
     return session
+
+
+def _migrate_legacy(session: dict[str, Any]) -> None:
+    """Fold a legacy single-`kind` session into the oauth/api_key shape.
+
+    Cookies issued before OAuth and the API key could coexist stored one
+    `kind` plus top-level token/id/secret. Moving them into sub-objects lets a
+    newly added credential sit alongside the old one instead of evicting it.
+    """
+    kind = session.pop("kind", None)
+    token = session.pop("token", None)
+    key_id = session.pop("id", None)
+    secret = session.pop("secret", None)
+    if kind == "oauth" and token and "oauth" not in session:
+        session["oauth"] = {"token": token}
+    elif kind == "api_key" and key_id and secret and "api_key" not in session:
+        session["api_key"] = {"id": key_id, "secret": secret}
 
 
 def _build_oauth_authorize_url(domain: str, is_retry: bool = False) -> str:
@@ -228,9 +246,14 @@ async def socrata_oauth_callback(
                 return RedirectResponse(url=f"{base}/#oauth_error=no_access_token")
 
             # Success: set encrypted HttpOnly cookie, redirect to frontend home.
-            # The frontend calls /api/auth/socrata/session on load to discover the session.
+            # The frontend calls /api/auth/socrata/session on load to discover
+            # the session. A saved API key is left untouched — independent
+            # identity — so OAuth and API key can coexist.
             redirect = RedirectResponse(url=base or "/")
-            _update_session(request, redirect, {"kind": "oauth", "token": access_token})
+            session = read_session(request)
+            _migrate_legacy(session)
+            session["oauth"] = {"token": access_token}
+            _set_session_payload(redirect, session)
             return redirect
 
     except Exception:
@@ -240,40 +263,40 @@ async def socrata_oauth_callback(
 
 @router.get("/socrata/session", response_model=SocrataSessionResponse)
 async def socrata_session(request: Request) -> SocrataSessionResponse:
-    """Return the state of the current auth session (OAuth or API key)."""
-    session = read_session(request)
-    kind = session.get("kind")
+    """Return the current Socrata auth: the OAuth identity and/or API key.
 
-    if kind == "oauth":
-        token = session.get("token") or ""
-        if not token:
-            return SocrataSessionResponse(kind=None)
+    OAuth and API key are independent — either, both, or neither may be set.
+    """
+    session = read_session(request)
+    creds = socrata_credentials(session)
+    oauth_cred = next((c for c in creds if c["kind"] == "oauth"), None)
+    api_cred = next((c for c in creds if c["kind"] == "api_key"), None)
+
+    user: SocrataOAuthUserInfo | None = None
+    if oauth_cred:
         domain = resolve_socrata_domain(request)
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(
                     f"{socrata_base_url(domain)}/api/users/current.json",
-                    headers={"Authorization": f"OAuth {token}"},
+                    headers={"Authorization": f"OAuth {oauth_cred['token']}"},
                 )
-                if resp.status_code != 200:
-                    return SocrataSessionResponse(kind=None)
-                user_data = resp.json()
-                return SocrataSessionResponse(
-                    kind="oauth",
-                    user=SocrataOAuthUserInfo(
+                if resp.status_code == 200:
+                    user_data = resp.json()
+                    user = SocrataOAuthUserInfo(
                         id=user_data.get("id", ""),
                         displayName=user_data.get("displayName", ""),
                         email=user_data.get("email"),
-                    ),
-                )
+                    )
+                # A non-200 means the token is stale; report no OAuth identity.
+                # The cookie self-heals on the next sign-in or logout.
         except Exception:
             logger.exception("Session OAuth lookup failed")
-            return SocrataSessionResponse(kind=None)
 
-    if kind == "api_key":
-        return SocrataSessionResponse(kind="api_key", apiKeyId=session.get("id", ""))
-
-    return SocrataSessionResponse(kind=None)
+    return SocrataSessionResponse(
+        user=user,
+        apiKeyId=api_cred["id"] if api_cred else None,
+    )
 
 
 @router.put(
@@ -286,7 +309,8 @@ async def socrata_api_key_save(
 ) -> Response:
     """Store a Socrata API key (id + secret) in the encrypted session cookie.
 
-    Replaces any existing OAuth or API key session.
+    Replaces any previously saved API key. Any OAuth session is left intact —
+    the API key is a separate identity that can coexist with a sign-in.
     """
     key_id = body.apiKeyId.strip()
     key_secret = body.apiKeySecret.strip()
@@ -294,9 +318,28 @@ async def socrata_api_key_save(
         raise HTTPException(
             status_code=400, detail="Both apiKeyId and apiKeySecret are required."
         )
-    _update_session(
-        request, response, {"kind": "api_key", "id": key_id, "secret": key_secret}
-    )
+    session = read_session(request)
+    _migrate_legacy(session)
+    session["api_key"] = {"id": key_id, "secret": key_secret}
+    _set_session_payload(response, session)
+    response.status_code = 204
+    return response
+
+
+@router.delete(
+    "/socrata/api-key",
+    status_code=204,
+    dependencies=[Depends(require_xhr_header)],
+)
+async def socrata_api_key_clear(request: Request, response: Response) -> Response:
+    """Remove the saved Socrata API key. Leaves any OAuth session intact."""
+    session = read_session(request)
+    _migrate_legacy(session)
+    session.pop("api_key", None)
+    if session:
+        _set_session_payload(response, session)
+    else:
+        response.delete_cookie(SESSION_COOKIE_NAME, path="/")
     response.status_code = 204
     return response
 
@@ -307,31 +350,33 @@ async def socrata_api_key_save(
     dependencies=[Depends(require_xhr_header)],
 )
 async def socrata_logout(request: Request, response: Response) -> Response:
-    """Clear the Socrata auth from the session cookie. For OAuth sessions, also revoke upstream."""
-    session = read_session(request)
-    if session.get("kind") == "oauth" and SOCRATA_APP_TOKEN and SOCRATA_SECRET_TOKEN:
-        token = session.get("token")
-        if token:
-            try:
-                domain = resolve_socrata_domain(request)
-                async with httpx.AsyncClient(timeout=10.0) as client:
-                    await client.post(
-                        f"{socrata_base_url(domain)}/oauth/revoke_token",
-                        data={
-                            "access_token": token,
-                            "client_id": SOCRATA_APP_TOKEN,
-                            "client_secret": SOCRATA_SECRET_TOKEN,
-                        },
-                    )
-            except Exception:
-                # Revoke is best-effort — the cookie is still invalidated below.
-                logger.exception("Upstream token revoke failed")
+    """Sign out of the Socrata OAuth session (revokes the token upstream).
 
-    # Only clear Socrata-related keys, keep OpenAI config
-    session.pop("kind", None)
-    session.pop("token", None)
-    session.pop("id", None)
-    session.pop("secret", None)
+    Leaves any saved API key intact — it is a separate identity, cleared on
+    its own via DELETE /socrata/api-key.
+    """
+    session = read_session(request)
+    _migrate_legacy(session)
+    oauth = session.get("oauth")
+    token = oauth.get("token") if isinstance(oauth, dict) else None
+    if token and SOCRATA_APP_TOKEN and SOCRATA_SECRET_TOKEN:
+        try:
+            domain = resolve_socrata_domain(request)
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                await client.post(
+                    f"{socrata_base_url(domain)}/oauth/revoke_token",
+                    data={
+                        "access_token": token,
+                        "client_id": SOCRATA_APP_TOKEN,
+                        "client_secret": SOCRATA_SECRET_TOKEN,
+                    },
+                )
+        except Exception:
+            # Revoke is best-effort — the cookie is still invalidated below.
+            logger.exception("Upstream token revoke failed")
+
+    # Clear only the OAuth identity; keep the API key and OpenAI config.
+    session.pop("oauth", None)
     if session:
         _set_session_payload(response, session)
     else:
