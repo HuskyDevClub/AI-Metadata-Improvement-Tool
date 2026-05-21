@@ -144,7 +144,7 @@ async def socrata_import(
             # identity in turn — OAuth, then the API key, then anonymous — so a
             # dataset readable by only one of them still imports. The headers
             # of whichever identity can read it are reused for the stats phase.
-            headers = build_auth_headers(None)
+            headers: dict[str, str] = {}  # set per-credential in the loop below
             metadata_resp: httpx.Response | None = None
             count_rows: Any = []
             sample_rows: Any = []
