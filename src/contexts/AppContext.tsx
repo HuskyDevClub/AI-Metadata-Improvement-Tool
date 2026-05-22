@@ -244,12 +244,14 @@ interface AppContextType {
     handleToggleDatasetSuggestion: (id: string) => void;
     handleEditDatasetSuggestion: (id: string, text: string) => void;
     handleAddDatasetSuggestion: (text: string) => void;
+    handleDeleteDatasetSuggestion: (id: string) => void;
     handleApplyDatasetSuggestions: (sourceText?: string) => Promise<void>;
     handleSuggestColumnImprovement: (columnName: string, sourceText?: string) => Promise<void>;
     handleDismissColumnSuggestions: (columnName: string) => void;
     handleToggleColumnSuggestion: (columnName: string, id: string) => void;
     handleEditColumnSuggestion: (columnName: string, id: string, text: string) => void;
     handleAddColumnSuggestion: (columnName: string, text: string) => void;
+    handleDeleteColumnSuggestion: (columnName: string, id: string) => void;
     handleApplyColumnSuggestions: (columnName: string, sourceText?: string) => Promise<void>;
     handleEditDatasetDescription: (newDescription: string) => void;
     handleEditColumnDescription: (columnName: string, newDescription: string) => void;
@@ -1539,6 +1541,10 @@ export function AppProvider({ children }: {children: ReactNode}) {
         ]);
     }, []);
 
+    const handleDeleteDatasetSuggestion = useCallback((id: string) => {
+        setDatasetSuggestions((prev) => prev.filter((s) => s.id !== id));
+    }, []);
+
     const handleApplyDatasetSuggestions = useCallback(async (sourceText?: string) => {
         const baseDesc = sourceText ?? generatedResults.datasetDescription;
         if (!baseDesc || !csvData) return;
@@ -1641,6 +1647,13 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 ...(prev[columnName] || []),
                 { id: `${Date.now()}-${Math.random()}`, text, selected: true, edited: false },
             ],
+        }));
+    }, []);
+
+    const handleDeleteColumnSuggestion = useCallback((columnName: string, id: string) => {
+        setColumnSuggestions((prev) => ({
+            ...prev,
+            [columnName]: (prev[columnName] || []).filter((s) => s.id !== id),
         }));
     }, []);
 
@@ -2415,12 +2428,14 @@ export function AppProvider({ children }: {children: ReactNode}) {
         handleToggleDatasetSuggestion,
         handleEditDatasetSuggestion,
         handleAddDatasetSuggestion,
+        handleDeleteDatasetSuggestion,
         handleApplyDatasetSuggestions,
         handleSuggestColumnImprovement,
         handleDismissColumnSuggestions,
         handleToggleColumnSuggestion,
         handleEditColumnSuggestion,
         handleAddColumnSuggestion,
+        handleDeleteColumnSuggestion,
         handleApplyColumnSuggestions,
         handleEditDatasetDescription,
         handleEditColumnDescription,

@@ -31,6 +31,7 @@ export function FieldOverviewPage() {
         handleToggleColumnSuggestion,
         handleEditColumnSuggestion,
         handleAddColumnSuggestion,
+        handleDeleteColumnSuggestion,
         handleApplyColumnSuggestions,
         pendingColumnDescriptions,
         handleAcceptPendingColumn,
@@ -227,6 +228,7 @@ export function FieldOverviewPage() {
                     onToggleSuggestion={(id) => handleToggleColumnSuggestion(fieldName, id)}
                     onEditSuggestion={(id, text) => handleEditColumnSuggestion(fieldName, id, text)}
                     onAddSuggestion={(text) => handleAddColumnSuggestion(fieldName, text)}
+                    onDeleteSuggestion={(id) => handleDeleteColumnSuggestion(fieldName, id)}
                     onApplySuggestions={(sourceText) => handleApplyColumnSuggestions(fieldName, sourceText)}
                     pendingDescription={
                         Object.prototype.hasOwnProperty.call(pendingColumnDescriptions, fieldName)

@@ -45,6 +45,7 @@ interface DatasetDescriptionProps {
     onToggleSuggestion: (id: string) => void;
     onEditSuggestion: (id: string, text: string) => void;
     onAddSuggestion: (text: string) => void;
+    onDeleteSuggestion: (id: string) => void;
     onApplySuggestions: (sourceText?: string) => void;
     pendingDescription?: string | null;
     onAcceptPending?: () => void;
@@ -99,6 +100,7 @@ export function DatasetDescription({
                                        onToggleSuggestion,
                                        onEditSuggestion,
                                        onAddSuggestion,
+                                       onDeleteSuggestion,
                                        onApplySuggestions,
                                        pendingDescription = null,
                                        onAcceptPending,
@@ -232,6 +234,7 @@ export function DatasetDescription({
                     onToggleSuggestion={onToggleSuggestion}
                     onEditSuggestion={onEditSuggestion}
                     onAddSuggestion={onAddSuggestion}
+                    onDeleteSuggestion={onDeleteSuggestion}
                     onApplySuggestions={onApplySuggestions}
                     pendingDescription={pendingDescription}
                     onAcceptPending={onAcceptPending}

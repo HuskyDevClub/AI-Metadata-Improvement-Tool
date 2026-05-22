@@ -20,6 +20,7 @@ interface ColumnCardProps {
     onToggleSuggestion: (id: string) => void;
     onEditSuggestion: (id: string, text: string) => void;
     onAddSuggestion: (text: string) => void;
+    onDeleteSuggestion: (id: string) => void;
     onApplySuggestions: (sourceText?: string) => void;
     pendingDescription?: string | null;
     onAcceptPending?: () => void;
@@ -43,6 +44,7 @@ export function ColumnCard({
                                onToggleSuggestion,
                                onEditSuggestion,
                                onAddSuggestion,
+                               onDeleteSuggestion,
                                onApplySuggestions,
                                pendingDescription = null,
                                onAcceptPending,
@@ -75,6 +77,7 @@ export function ColumnCard({
                 onToggleSuggestion={onToggleSuggestion}
                 onEditSuggestion={onEditSuggestion}
                 onAddSuggestion={onAddSuggestion}
+                onDeleteSuggestion={onDeleteSuggestion}
                 onApplySuggestions={onApplySuggestions}
                 pendingDescription={pendingDescription}
                 onAcceptPending={onAcceptPending}

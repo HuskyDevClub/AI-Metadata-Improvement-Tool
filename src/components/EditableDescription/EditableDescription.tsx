@@ -20,6 +20,7 @@ interface EditableDescriptionProps {
     onToggleSuggestion?: (id: string) => void;
     onEditSuggestion?: (id: string, text: string) => void;
     onAddSuggestion?: (text: string) => void;
+    onDeleteSuggestion?: (id: string) => void;
     onApplySuggestions?: (sourceText?: string) => void;
     pendingDescription?: string | null;
     onAcceptPending?: () => void;
@@ -44,6 +45,7 @@ export function EditableDescription({
                                         onToggleSuggestion,
                                         onEditSuggestion,
                                         onAddSuggestion,
+                                        onDeleteSuggestion,
                                         onApplySuggestions,
                                         pendingDescription = null,
                                         onAcceptPending,
@@ -178,6 +180,16 @@ export function EditableDescription({
                                 >
                                     &#9998;
                                 </button>
+                                {onDeleteSuggestion && (
+                                    <button
+                                        className="ed-suggestion-delete-btn"
+                                        onClick={() => onDeleteSuggestion(suggestion.id)}
+                                        title="Delete suggestion"
+                                        aria-label="Delete suggestion"
+                                    >
+                                        &#128465;
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>

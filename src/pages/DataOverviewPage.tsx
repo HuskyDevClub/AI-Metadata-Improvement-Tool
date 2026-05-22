@@ -26,6 +26,7 @@ export function DataOverviewPage() {
         handleToggleDatasetSuggestion,
         handleEditDatasetSuggestion,
         handleAddDatasetSuggestion,
+        handleDeleteDatasetSuggestion,
         handleApplyDatasetSuggestions,
         pendingDatasetDescription,
         handleAcceptPendingDataset,
@@ -173,6 +174,7 @@ export function DataOverviewPage() {
                     onToggleSuggestion={handleToggleDatasetSuggestion}
                     onEditSuggestion={handleEditDatasetSuggestion}
                     onAddSuggestion={handleAddDatasetSuggestion}
+                    onDeleteSuggestion={handleDeleteDatasetSuggestion}
                     onApplySuggestions={handleApplyDatasetSuggestions}
                     pendingDescription={pendingDatasetDescription}
                     onAcceptPending={handleAcceptPendingDataset}

@@ -176,6 +176,26 @@
     color: var(--accent);
 }
 
+.ed-suggestion-delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 4px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+}
+
+.ed-suggestion-item:hover .ed-suggestion-delete-btn {
+    opacity: 1;
+}
+
+.ed-suggestion-delete-btn:hover {
+    color: #ef4444;
+}
+
 .ed-suggestion-edit-mode {
     display: flex;
     align-items: center;
