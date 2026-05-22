@@ -59,11 +59,6 @@
     background: var(--accent-hover);
 }
 
-.import-form-submit:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
 .import-form-hint {
     font-size: 12px;
     color: var(--text-tertiary);
@@ -82,13 +77,13 @@
 }
 
 .import-form-detected-id code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: 12px;
     font-weight: 600;
     color: var(--accent);
     background: var(--accent-light);
     padding: 2px 7px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
 }
 
 /* API key toggle */
@@ -120,7 +115,7 @@
     color: var(--success);
     background: var(--success-bg);
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     margin-left: 2px;
 }
 
@@ -164,17 +159,6 @@
 
 .import-form-credentials .import-form-group:last-of-type {
     margin-bottom: 0;
-}
-
-.import-form-link-btn {
-    font-size: 13px;
-    color: var(--accent);
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-decoration: underline;
-    padding: 0;
-    margin-top: 4px;
 }
 
 .import-form-remember {
@@ -243,11 +227,6 @@
     color: var(--accent);
 }
 
-.import-csv-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
 /* Processing indicator */
 .import-processing {
     display: flex;
@@ -258,15 +237,6 @@
     padding: 16px;
     color: var(--text-secondary);
     font-size: 14px;
-}
-
-.import-processing-spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
 }
 
 /* Success state */

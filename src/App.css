@@ -19,7 +19,7 @@
     margin-bottom: 32px;
 }
 
-.sectionTitle {
+.section-title {
     font-size: 16px;
     font-weight: 600;
     color: var(--text);
@@ -65,14 +65,5 @@
 .tokenTotal {
     font-weight: 600;
     color: var(--text);
-}
-
-.tokenCost {
-    font-weight: 600;
-    color: var(--success);
-    background: var(--success-bg);
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-    font-size: 12px;
 }
 

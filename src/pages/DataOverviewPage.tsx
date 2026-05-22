@@ -218,7 +218,7 @@ export function DataOverviewPage() {
 
             {csvData && (
                 <div className="section">
-                    <div className="sectionTitle">What's in this Dataset</div>
+                    <div className="section-title">What's in this Dataset</div>
                     <div className="dataset-stats">
                         <div className="stat-item">
                             <span className="stat-label">Rows</span>
@@ -242,19 +242,17 @@ export function DataOverviewPage() {
                             <div style={{ display: 'flex', alignItems: 'center', minHeight: '32px', width: '100%' }}>
                                 {pendingRowLabel !== null ? (
                                     <div className="ed-pending dataset-field-pending"
-                                         style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                         style={{ width: '100%' }}>
                                         <div className="ed-pending-block ed-pending-current">
                                             <div className="ed-pending-label">Current</div>
-                                            <p className="ed-pending-text stat-value"
-                                               style={{ margin: 0, fontSize: '15px' }}>
+                                            <p className="ed-pending-text">
                                                 {generatedResults.rowLabel ||
                                                   <em className="ed-pending-empty">Not set</em>}
                                             </p>
                                         </div>
                                         <div className="ed-pending-block ed-pending-new">
                                             <div className="ed-pending-label">New</div>
-                                            <p className="ed-pending-text stat-value"
-                                               style={{ margin: 0, fontSize: '15px' }}>
+                                            <p className="ed-pending-text">
                                                 {pendingRowLabel || (generatingRowLabel ? '' :
                                                     <em className="ed-pending-empty">Empty</em>)}
                                                 {generatingRowLabel && <span className="ed-cursor">|</span>}
@@ -351,7 +349,7 @@ export function DataOverviewPage() {
             )}
 
             <div className="section">
-                <div className="sectionTitle">
+                <div className="section-title">
                     Fields ({columnNames.length}
                     {searchQuery.trim() && ` · ${filteredColumnNames.length} shown`})
                 </div>

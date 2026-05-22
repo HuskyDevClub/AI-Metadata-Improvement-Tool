@@ -295,7 +295,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
 
     return (
         <div className="prompt-editor-section">
-            <div className="prompt-editor-section-title">
+            <div className="section-title">
                 Customize AI Prompts (Optional)
             </div>
             <div className="prompt-editor-content">

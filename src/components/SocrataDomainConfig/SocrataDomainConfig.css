@@ -21,7 +21,7 @@
     padding: 3px 8px;
     background-color: var(--accent-light);
     color: var(--accent);
-    border-radius: 12px;
+    border-radius: var(--radius-pill);
     font-size: 11px;
     font-weight: 600;
 }
@@ -68,11 +68,6 @@
     opacity: 0.9;
 }
 
-.socrata-domain-config-save-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
 .socrata-domain-config-reset-btn {
     padding: 8px 14px;
     border: 1px solid var(--border);
@@ -88,11 +83,6 @@
 .socrata-domain-config-reset-btn:hover:not(:disabled) {
     background: var(--surface-hover);
     color: var(--text);
-}
-
-.socrata-domain-config-reset-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .socrata-domain-config-dirty-hint {
@@ -111,11 +101,11 @@
 }
 
 .socrata-domain-config-help-text code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 600;
     color: var(--text-secondary);
     background: var(--surface-secondary);
     padding: 1px 5px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
 }

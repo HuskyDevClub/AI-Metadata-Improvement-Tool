@@ -228,7 +228,7 @@ export function EditableDescription({
         <div className="ed-regenerate-controls">
             {isRegenerating ? (
                 <span className="ed-regenerating">
-                    <span className="ed-spinner"></span> Regenerating...
+                    <span className="spinner"></span> Regenerating...
                 </span>
             ) : (
                 <>
@@ -260,7 +260,7 @@ export function EditableDescription({
                             : 'Get AI suggestions to improve the current description'}
                     >{isSuggesting ? (
                         <>
-                            <span className="ed-spinner"></span> Analyzing...
+                            <span className="spinner"></span> Analyzing...
                         </>
                     ) : suggestLabel}
                     </button>

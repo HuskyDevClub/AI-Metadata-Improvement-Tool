@@ -19,11 +19,6 @@
     color: var(--accent);
 }
 
-.reset-field-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
 .reset-field-btn svg {
     flex-shrink: 0;
 }

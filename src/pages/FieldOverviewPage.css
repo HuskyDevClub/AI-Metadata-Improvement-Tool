@@ -109,8 +109,7 @@
 }
 
 .field-overview-stats-title,
-.field-overview-samples-title,
-.field-overview-desc-title {
+.field-overview-samples-title {
     font-size: 14px;
     font-weight: 600;
     color: var(--text);
@@ -264,7 +263,7 @@
 }
 
 .field-overview-identifier-mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: 13px;
 }
 

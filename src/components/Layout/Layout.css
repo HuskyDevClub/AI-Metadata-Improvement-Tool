@@ -45,7 +45,7 @@
 .layout-oauth-signout {
     background: none;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     padding: 4px 10px;
     font-size: 12px;
     color: var(--text-secondary);
@@ -61,7 +61,7 @@
 .layout-oauth-btn {
     background: var(--accent);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     padding: 6px 12px;
     font-size: 13px;
     font-weight: 500;
@@ -74,11 +74,6 @@
     opacity: 0.85;
 }
 
-.layout-oauth-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
 .layout-settings-btn {
     display: flex;
     align-items: center;
@@ -87,7 +82,7 @@
     height: 32px;
     background: none;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     color: var(--text-secondary);
     cursor: pointer;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
@@ -231,7 +226,7 @@
     justify-content: center;
     width: 18px;
     height: 18px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     font-size: 14px;
     line-height: 1;
     color: var(--text-tertiary);
@@ -320,12 +315,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 0;
-}
-
-.layout-dataset-subtitle-icon {
-    display: inline-flex;
-    flex-shrink: 0;
-    color: var(--text-tertiary);
 }
 
 .layout-dataset-subtitle-label {
@@ -424,29 +413,6 @@ a.layout-dataset-subtitle-value:hover .layout-dataset-subtitle-external {
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
-}
-
-.layout-dataset-close-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-}
-
-.layout-dataset-close-btn:hover {
-    background: var(--surface-hover);
-    color: var(--text);
-}
-
-.layout-dataset-push-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .layout-dataset-title-btn {

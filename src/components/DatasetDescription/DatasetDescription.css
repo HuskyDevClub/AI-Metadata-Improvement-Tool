@@ -2,15 +2,6 @@
     margin-bottom: 32px;
 }
 
-.dataset-desc-section-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-}
-
 .dataset-desc-box {
     background: var(--surface-secondary);
     border: 1px solid var(--border);
@@ -22,12 +13,6 @@
     color: var(--text);
     margin-bottom: 10px;
     font-size: 16px;
-}
-
-.dataset-desc-meta {
-    margin-top: 10px;
-    font-size: 13px;
-    color: var(--text-tertiary);
 }
 
 .dataset-desc-tip {
@@ -44,32 +29,11 @@
     border-top: 1px solid var(--border);
 }
 
-.dataset-row-label-title {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
-}
-
-.dataset-row-label-hint {
-    display: block;
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
-    opacity: 0.85;
-}
-
 .dataset-row-label-display {
     display: flex;
     align-items: center;
     gap: 8px;
     min-height: 32px;
-}
-
-.dataset-row-label-value {
-    font-size: 14px;
-    color: var(--text);
 }
 
 .dataset-row-label-empty {
@@ -227,7 +191,7 @@
     gap: 6px;
     padding: 3px 4px 3px 10px;
     font-size: 13px;
-    border-radius: 12px;
+    border-radius: var(--radius-pill);
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text);

@@ -277,7 +277,7 @@ export function ImportPage() {
 
             {isProcessing && (
                 <div className="import-processing">
-                    <div className="import-processing-spinner"/>
+                    <div className="spinner spinner-lg"/>
                     <span>Loading data...</span>
                 </div>
             )}

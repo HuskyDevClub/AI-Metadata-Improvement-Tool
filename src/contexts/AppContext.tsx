@@ -1209,6 +1209,26 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setSocrataDatasetId('');
                 setSocrataFieldNameMap({});
                 setSocrataCanEdit(false);
+                setGeneratingColumns(new Set());
+                setRegeneratingDataset(false);
+                setRegeneratingColumns(new Set());
+                setSuggestingDataset(false);
+                setDatasetSuggestions([]);
+                setSuggestingColumns(new Set());
+                setColumnSuggestions({});
+                setPendingDatasetDescription(null);
+                setPendingColumnDescriptions({});
+                setPendingDatasetTitle(null);
+                setPendingRowLabel(null);
+                setPendingCategory(null);
+                setPendingTags(null);
+                setPendingPeriodOfTime(null);
+                setIsGeneratingEmpty(false);
+                setGeneratingRowLabel(false);
+                setGeneratingDatasetTitle(false);
+                setGeneratingCategory(false);
+                setGeneratingTags(false);
+                setGeneratingPeriodOfTime(false);
 
                 setStatus({ message: 'Analyzing columns...', type: 'info' });
                 const columns = Object.keys(result.data[0]);
@@ -2034,12 +2054,32 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 activeDatasetIdRef.current = newId;
                 setActiveDatasetId(newId);
 
-                // Store sample rows (sufficient for display & AI prompts)
+                // Set new dataset state
                 setCsvData(result.sampleRows);
                 setFileName(result.fileName);
                 setImportedRowCount(result.totalRowCount);
                 setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
                 setSocrataDatasetId(datasetId);
+                setGeneratingColumns(new Set());
+                setRegeneratingDataset(false);
+                setRegeneratingColumns(new Set());
+                setSuggestingDataset(false);
+                setDatasetSuggestions([]);
+                setSuggestingColumns(new Set());
+                setColumnSuggestions({});
+                setPendingDatasetDescription(null);
+                setPendingColumnDescriptions({});
+                setPendingDatasetTitle(null);
+                setPendingRowLabel(null);
+                setPendingCategory(null);
+                setPendingTags(null);
+                setPendingPeriodOfTime(null);
+                setIsGeneratingEmpty(false);
+                setGeneratingRowLabel(false);
+                setGeneratingDatasetTitle(false);
+                setGeneratingCategory(false);
+                setGeneratingTags(false);
+                setGeneratingPeriodOfTime(false);
                 // `result.canEdit` reflects only the identity that read the
                 // dataset. A second identity (e.g. an API key) may hold write
                 // access the reader lacks, so re-check against all credentials.

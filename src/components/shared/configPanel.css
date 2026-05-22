@@ -27,7 +27,7 @@
     padding: 4px 8px;
     background-color: rgba(34, 197, 94, 0.1);
     color: #16a34a;
-    border-radius: 12px;
+    border-radius: var(--radius-pill);
     font-size: 12px;
     font-weight: 600;
 }
@@ -55,8 +55,8 @@
     margin-bottom: 6px;
 }
 
-.config-input-group input {
-    padding: 9px 12px;
+.config-input-group input,
+.config-input-wrapper input {
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     font-size: 14px;
@@ -64,10 +64,8 @@
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.config-input-group input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: var(--focus-ring);
+.config-input-group input {
+    padding: 9px 12px;
 }
 
 .config-input-wrapper {
@@ -77,14 +75,10 @@
 .config-input-wrapper input {
     width: 100%;
     padding: 9px 38px 9px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    color: var(--text);
-    transition: border-color 0.15s, box-shadow 0.15s;
     box-sizing: border-box;
 }
 
+.config-input-group input:focus,
 .config-input-wrapper input:focus {
     outline: none;
     border-color: var(--accent);
@@ -146,11 +140,6 @@
 
 .config-save-btn:hover:not(:disabled) {
     opacity: 0.9;
-}
-
-.config-save-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .config-clear-btn {
