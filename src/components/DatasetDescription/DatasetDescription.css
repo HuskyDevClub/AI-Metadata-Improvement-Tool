@@ -261,7 +261,7 @@
     border-color: var(--accent);
 }
 
-/* Pending compare blocks (reuses .ed-pending-* base styles) */
+/* Pending compare blocks (DiffView wrapper) */
 .dataset-field-pending {
     margin-top: 6px;
 }

@@ -80,33 +80,38 @@ export function ImportPage() {
         const parsedId = extractDatasetId(datasetId) ?? datasetId.trim();
         const parsedDomain = extractDomain(datasetId);
 
-        // A pasted URL from a different portal switches the tool to that
-        // portal (and refreshes its catalog data) before importing.
-        if (parsedDomain && parsedDomain !== socrataDomain) {
-            await handleSocrataDomainSave(parsedDomain);
-        }
-
-        const trimmedKeyId = apiKeyIdInput.trim();
-        const trimmedKeySecret = apiKeySecretInput.trim();
-        const hasNewCredentials = !!(trimmedKeyId && trimmedKeySecret);
-
-        // Auth lives in an HttpOnly cookie, so the key must be saved to the
-        // cookie before import can use it. When "Remember" is off we clear
-        // the cookie after the import completes, making it effectively single-use.
-        if (hasNewCredentials) {
-            await handleSocrataApiKeySave(trimmedKeyId, trimmedKeySecret);
-        } else if (!rememberKey && socrataApiKeyId) {
-            await handleSocrataApiKeyClear();
-        }
-
         try {
-            await handleSocrataImport(parsedId);
-        } finally {
-            if (hasNewCredentials && !rememberKey) {
-                await handleSocrataApiKeyClear();
-                setApiKeyIdInput('');
-                setApiKeySecretInput('');
+            // A pasted URL from a different portal switches the tool to that
+            // portal (and refreshes its catalog data) before importing.
+            if (parsedDomain && parsedDomain !== socrataDomain) {
+                await handleSocrataDomainSave(parsedDomain);
             }
+
+            const trimmedKeyId = apiKeyIdInput.trim();
+            const trimmedKeySecret = apiKeySecretInput.trim();
+            const hasNewCredentials = !!(trimmedKeyId && trimmedKeySecret);
+
+            // Auth lives in an HttpOnly cookie, so the key must be saved to the
+            // cookie before import can use it. When "Remember" is off we clear
+            // the cookie after the import completes, making it effectively single-use.
+            if (hasNewCredentials) {
+                await handleSocrataApiKeySave(trimmedKeyId, trimmedKeySecret);
+            } else if (!rememberKey && socrataApiKeyId) {
+                await handleSocrataApiKeyClear();
+            }
+
+            try {
+                await handleSocrataImport(parsedId);
+            } finally {
+                if (hasNewCredentials && !rememberKey) {
+                    await handleSocrataApiKeyClear();
+                    setApiKeyIdInput('');
+                    setApiKeySecretInput('');
+                }
+            }
+        } catch (error) {
+            console.error("Failed to submit Socrata dataset:", error);
+            // Error is naturally handled by AppContext handlers propagating to Status state
         }
     };
 
@@ -189,7 +194,7 @@ export function ImportPage() {
                     {detectedDomain && <> from <code>{detectedDomain}</code></>}
                 </span>
             )}
-            {!isUrlInput && domainSwitch && (
+            {domainSwitch && (
                 <span className="import-form-detected-id">
                     Will switch portal to <code>{domainSwitch}</code>
                 </span>

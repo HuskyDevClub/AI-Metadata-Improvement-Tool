@@ -27,6 +27,7 @@ export function useOpenAI() {
                     apiKey: config.apiKey,
                     mode,
                 }),
+                credentials: 'include',
                 signal: abortSignal,
             });
 
@@ -93,6 +94,9 @@ export function useOpenAI() {
                 // Flush a final line that arrived without a trailing newline.
                 if (buffer) processLine(buffer);
             } catch (error) {
+                reader.cancel().catch(() => {
+                });
+                reader.releaseLock();
                 if (error instanceof Error && error.name === 'AbortError') {
                     return { usage, aborted: true };
                 }

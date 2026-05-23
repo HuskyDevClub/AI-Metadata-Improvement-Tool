@@ -31,8 +31,8 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
         numericValues.sort((a, b) => a - b);
         const stats: NumericStats = {
             count: numericValues.length,
-            min: Math.min(...numericValues),
-            max: Math.max(...numericValues),
+            min: numericValues[0],
+            max: numericValues[numericValues.length - 1],
             mean: numericValues.reduce((a, b) => a + b, 0) / numericValues.length,
             q1: numericValues[Math.floor(numericValues.length * 0.25)],
             median: numericValues[Math.floor(numericValues.length * 0.5)],

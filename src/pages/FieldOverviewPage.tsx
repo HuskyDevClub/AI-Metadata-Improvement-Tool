@@ -148,7 +148,8 @@ export function FieldOverviewPage() {
                     <div className="field-overview-samples-list">
                         {csvData.slice(0, 8).map((row, i) => (
                             <span key={i} className="field-overview-sample-item">
-                                {row[fieldName] || <em className="field-overview-null">null</em>}
+                                {(row[fieldName] !== null && row[fieldName] !== undefined && row[fieldName] !== '') ? row[fieldName] :
+                                    <em className="field-overview-null">null</em>}
                             </span>
                         ))}
                     </div>

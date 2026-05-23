@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { OpenAIConfig, PromptTemplates } from '../../types';
 import { useOpenAI } from '../../hooks/useOpenAI';
 import {
@@ -185,13 +185,13 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
     const abortRef = useRef<AbortController | null>(null);
     const { callOpenAIStream } = useOpenAI();
 
-    const cancelReset = () => setResetTarget(null);
-    const confirmReset = () => {
+    const cancelReset = useCallback(() => setResetTarget(null), []);
+    const confirmReset = useCallback(() => {
         if (resetTarget) {
             onChange({ ...templates, [resetTarget]: DEFAULTS[resetTarget] });
             setResetTarget(null);
         }
-    };
+    }, [resetTarget, templates, onChange]);
 
     useEffect(() => {
         if (!resetTarget) return;
@@ -201,9 +201,9 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    });
+    }, [resetTarget, cancelReset, confirmReset]);
 
-    const closeAi = () => {
+    const closeAi = useCallback(() => {
         if (abortRef.current) {
             abortRef.current.abort();
             abortRef.current = null;
@@ -213,7 +213,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
         setAiOutput('');
         setIsGenerating(false);
         setAiError(null);
-    };
+    }, []);
 
     const openAi = (key: keyof PromptTemplates) => {
         setAiTarget(key);
@@ -284,7 +284,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    });
+    }, [aiTarget, isGenerating, closeAi]);
 
     const targetLabel = resetTarget
         ? PROMPT_FIELDS.find((f) => f.key === resetTarget)?.label

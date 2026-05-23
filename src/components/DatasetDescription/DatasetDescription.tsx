@@ -4,6 +4,7 @@ import type { SocrataLicense } from '../../types';
 import { EditableDescription } from '../EditableDescription/EditableDescription';
 import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
 import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
+import { DiffView } from '../shared/DiffView';
 import './DatasetDescription.css';
 
 type DatasetFieldKey =
@@ -253,40 +254,17 @@ export function DatasetDescription({
                                 width="300px"/>
                         </span>
                         {pendingCategory !== null ? (
-                            <div className="ed-pending dataset-field-pending">
-                                <div className="ed-pending-block ed-pending-current">
-                                    <div className="ed-pending-label">Current</div>
-                                    <p className="ed-pending-text">
-                                        {category || <em className="ed-pending-empty">Not set</em>}
-                                    </p>
-                                </div>
-                                <div className="ed-pending-block ed-pending-new">
-                                    <div className="ed-pending-label">New</div>
-                                    <p className="ed-pending-text">
-                                        {pendingCategory || (isGeneratingCategory ? '' :
-                                            <em className="ed-pending-empty">Empty</em>)}
-                                        {isGeneratingCategory && <span className="ed-cursor">|</span>}
-                                    </p>
-                                </div>
-                                <div className="ed-pending-actions">
-                                    <button
-                                        className="btn btn-primary btn-md"
-                                        onClick={onAcceptPendingCategory}
-                                        disabled={isGeneratingCategory || !onAcceptPendingCategory}
-                                        title="Replace the current category with the new one"
-                                    >
-                                        Keep new
-                                    </button>
-                                    <button
-                                        className="btn btn-secondary btn-md"
-                                        onClick={onDiscardPendingCategory}
-                                        disabled={isGeneratingCategory || !onDiscardPendingCategory}
-                                        title="Discard the new category and keep the current one"
-                                    >
-                                        Discard
-                                    </button>
-                                </div>
-                            </div>
+                            <DiffView
+                                currentValue={category}
+                                newLabel="New"
+                                newValue={pendingCategory}
+                                isGenerating={isGeneratingCategory}
+                                onAccept={onAcceptPendingCategory!}
+                                onDiscard={onDiscardPendingCategory!}
+                                className="dataset-field-pending"
+                                acceptTooltip="Replace the current category with the new one"
+                                discardTooltip="Discard the new category and keep the current one"
+                            />
                         ) : (
                             <>
                                 <div className="dataset-category-display">
@@ -346,12 +324,11 @@ export function DatasetDescription({
                                     width="400px"/>
                             </span>
                         </div>
-                        <div className="ed-pending dataset-field-pending">
-                            <div className="ed-pending-block ed-pending-current">
-                                <div className="ed-pending-label">Current</div>
+                        <DiffView
+                            currentValue={
                                 <div className="dataset-tags-chips dataset-tags-chips-pending">
                                     {tags.length === 0 ? (
-                                        <em className="ed-pending-empty">No tags</em>
+                                        <em className="diff-view-empty">No tags</em>
                                     ) : (
                                         tags.map((tag) => {
                                             const removed = !pendingTags.some((t) => t.toLowerCase() === tag.toLowerCase());
@@ -366,12 +343,11 @@ export function DatasetDescription({
                                         })
                                     )}
                                 </div>
-                            </div>
-                            <div className="ed-pending-block ed-pending-new">
-                                <div className="ed-pending-label">New</div>
+                            }
+                            newValue={
                                 <div className="dataset-tags-chips dataset-tags-chips-pending">
                                     {pendingTags.length === 0 && !isGeneratingTags ? (
-                                        <em className="ed-pending-empty">Empty</em>
+                                        <em className="diff-view-empty">Empty</em>
                                     ) : (
                                         pendingTags.map((tag) => {
                                             const added = !tags.some((t) => t.toLowerCase() === tag.toLowerCase());
@@ -385,28 +361,15 @@ export function DatasetDescription({
                                             );
                                         })
                                     )}
-                                    {isGeneratingTags && <span className="ed-cursor">|</span>}
                                 </div>
-                            </div>
-                            <div className="ed-pending-actions">
-                                <button
-                                    className="btn btn-primary btn-md"
-                                    onClick={onAcceptPendingTags}
-                                    disabled={isGeneratingTags || !onAcceptPendingTags}
-                                    title="Replace the current tags with the new ones"
-                                >
-                                    Keep new
-                                </button>
-                                <button
-                                    className="btn btn-secondary btn-md"
-                                    onClick={onDiscardPendingTags}
-                                    disabled={isGeneratingTags || !onDiscardPendingTags}
-                                    title="Discard the new tags and keep the current ones"
-                                >
-                                    Discard
-                                </button>
-                            </div>
-                        </div>
+                            }
+                            isGenerating={isGeneratingTags}
+                            onAccept={onAcceptPendingTags!}
+                            onDiscard={onDiscardPendingTags!}
+                            className="dataset-field-pending"
+                            acceptTooltip="Replace the current tags with the new ones"
+                            discardTooltip="Discard the new tags and keep the current ones"
+                        />
                     </div>
                 )}
 
@@ -600,40 +563,16 @@ export function DatasetDescription({
                                         text="Earliest-to-most-recent dates covered by the data itself. You may use &quot;the present&quot; for the most recent date, if the data is kept current."
                                         width="300px"/>
                                 </label>
-                                <div className="ed-pending dataset-field-pending dataset-temporal-pending">
-                                    <div className="ed-pending-block ed-pending-current">
-                                        <div className="ed-pending-label">Current</div>
-                                        <p className="ed-pending-text">
-                                            {periodOfTime || <em className="ed-pending-empty">Not set</em>}
-                                        </p>
-                                    </div>
-                                    <div className="ed-pending-block ed-pending-new">
-                                        <div className="ed-pending-label">New</div>
-                                        <p className="ed-pending-text">
-                                            {pendingPeriodOfTime || (isGeneratingPeriodOfTime ? '' :
-                                                <em className="ed-pending-empty">Empty</em>)}
-                                            {isGeneratingPeriodOfTime && <span className="ed-cursor">|</span>}
-                                        </p>
-                                    </div>
-                                    <div className="ed-pending-actions">
-                                        <button
-                                            className="btn btn-primary btn-md"
-                                            onClick={onAcceptPendingPeriodOfTime}
-                                            disabled={isGeneratingPeriodOfTime || !onAcceptPendingPeriodOfTime}
-                                            title="Replace the current Period of Time with the new one"
-                                        >
-                                            Keep new
-                                        </button>
-                                        <button
-                                            className="btn btn-secondary btn-md"
-                                            onClick={onDiscardPendingPeriodOfTime}
-                                            disabled={isGeneratingPeriodOfTime || !onDiscardPendingPeriodOfTime}
-                                            title="Discard the new Period of Time and keep the current one"
-                                        >
-                                            Discard
-                                        </button>
-                                    </div>
-                                </div>
+                                <DiffView
+                                    currentValue={periodOfTime}
+                                    newValue={pendingPeriodOfTime}
+                                    isGenerating={isGeneratingPeriodOfTime}
+                                    onAccept={onAcceptPendingPeriodOfTime!}
+                                    onDiscard={onDiscardPendingPeriodOfTime!}
+                                    className="dataset-field-pending dataset-temporal-pending"
+                                    acceptTooltip="Replace the current Period of Time with the new one"
+                                    discardTooltip="Discard the new Period of Time and keep the current one"
+                                />
                             </div>
                         )}
                         {onEditPeriodOfTime && pendingPeriodOfTime === null && (

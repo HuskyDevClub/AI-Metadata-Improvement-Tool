@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { PageId } from '../../contexts/AppContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { FloatingActions } from '../FloatingActions/FloatingActions';
@@ -8,6 +8,7 @@ import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
 import { ImportPage } from '../../pages/ImportPage';
 import { DataOverviewPage } from '../../pages/DataOverviewPage';
 import { FieldOverviewPage } from '../../pages/FieldOverviewPage';
+import { DiffView } from '../shared/DiffView';
 import { SettingsPage } from '../../pages/SettingsPage';
 import './Layout.css';
 
@@ -107,6 +108,13 @@ function DatasetTitleBar() {
     const [editValue, setEditValue] = useState(title);
     const hasPending = pendingDatasetTitle !== null;
 
+    useEffect(() => {
+        if (!isEditing) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setEditValue(title);
+        }
+    }, [title, isEditing]);
+
     const save = () => {
         handleEditDatasetTitle(editValue.trim());
         setIsEditing(false);
@@ -123,40 +131,19 @@ function DatasetTitleBar() {
     if (hasPending) {
         return (
             <div className="layout-dataset-title-group">
-                <div className="layout-dataset-title-pending ed-pending">
-                    <div className="ed-pending-block ed-pending-current">
-                        <div className="ed-pending-label">Current title</div>
-                        <p className="ed-pending-text">
-                            {title || <em className="ed-pending-empty">No title</em>}
-                        </p>
-                    </div>
-                    <div className="ed-pending-block ed-pending-new">
-                        <div className="ed-pending-label">New title</div>
-                        <p className="ed-pending-text">
-                            {pendingDatasetTitle || (generatingDatasetTitle ? '' :
-                                <em className="ed-pending-empty">Empty</em>)}
-                            {generatingDatasetTitle && <span className="ed-cursor">|</span>}
-                        </p>
-                    </div>
-                    <div className="ed-pending-actions">
-                        <button
-                            className="btn btn-primary btn-md"
-                            onClick={handleAcceptPendingDatasetTitle}
-                            disabled={generatingDatasetTitle}
-                            title="Replace the current title with the new one"
-                        >
-                            Keep new
-                        </button>
-                        <button
-                            className="btn btn-secondary btn-md"
-                            onClick={handleDiscardPendingDatasetTitle}
-                            disabled={generatingDatasetTitle}
-                            title="Discard the new title and keep the current one"
-                        >
-                            Discard
-                        </button>
-                    </div>
-                </div>
+                <DiffView
+                    currentLabel="Current title"
+                    currentValue={title}
+                    currentEmptyState={<em className="diff-view-empty">No title</em>}
+                    newLabel="New title"
+                    newValue={pendingDatasetTitle}
+                    isGenerating={generatingDatasetTitle}
+                    onAccept={handleAcceptPendingDatasetTitle}
+                    onDiscard={handleDiscardPendingDatasetTitle}
+                    className="layout-dataset-title-pending"
+                    acceptTooltip="Replace the current title with the new one"
+                    discardTooltip="Discard the new title and keep the current one"
+                />
             </div>
         );
     }

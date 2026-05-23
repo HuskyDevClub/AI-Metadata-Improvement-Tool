@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { SuggestionItem } from '../../utils/prompts';
 import { renderInlineMarkdown } from '../../utils/inlineMarkdown';
 import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
+import { DiffView } from '../shared/DiffView';
 import './EditableDescription.css';
 
 interface EditableDescriptionProps {
@@ -59,6 +60,13 @@ export function EditableDescription({
     const [newSuggestionText, setNewSuggestionText] = useState('');
     const [editingSuggestionId, setEditingSuggestionId] = useState<string | null>(null);
     const [editingSuggestionText, setEditingSuggestionText] = useState('');
+
+    useEffect(() => {
+        if (!isEditing) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setEditValue(description);
+        }
+    }, [description, isEditing]);
 
     const handleSave = () => {
         onEdit(editValue);
@@ -324,40 +332,16 @@ export function EditableDescription({
                 </div>
             ) : hasPending ? (
                 <>
-                    <div className="ed-pending">
-                        <div className="ed-pending-block ed-pending-current">
-                            <div className="ed-pending-label">Current</div>
-                            <p className="ed-pending-text">
-                                {description || <em className="ed-pending-empty">No description</em>}
-                            </p>
-                        </div>
-                        <div className="ed-pending-block ed-pending-new">
-                            <div className="ed-pending-label">New</div>
-                            <p className="ed-pending-text">
-                                {pendingDescription || (isRegenerating ? '' :
-                                    <em className="ed-pending-empty">Empty</em>)}
-                                {isRegenerating && <span className="ed-cursor">|</span>}
-                            </p>
-                        </div>
-                        <div className="ed-pending-actions">
-                            <button
-                                className="btn btn-primary btn-md"
-                                onClick={onAcceptPending}
-                                disabled={isRegenerating || !onAcceptPending}
-                                title="Replace the current description with the new one"
-                            >
-                                Keep new
-                            </button>
-                            <button
-                                className="btn btn-secondary btn-md"
-                                onClick={onDiscardPending}
-                                disabled={isRegenerating || !onDiscardPending}
-                                title="Discard the new description and keep the current one"
-                            >
-                                Discard
-                            </button>
-                        </div>
-                    </div>
+                    <DiffView
+                        currentValue={description}
+                        currentEmptyState={<em className="diff-view-empty">No description</em>}
+                        newValue={pendingDescription}
+                        isGenerating={isRegenerating}
+                        onAccept={onAcceptPending!}
+                        onDiscard={onDiscardPending!}
+                        acceptTooltip="Replace the current description with the new one"
+                        discardTooltip="Discard the new description and keep the current one"
+                    />
                     {suggestionsPanel}
                     {regenerateControls}
                 </>

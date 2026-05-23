@@ -80,14 +80,14 @@ function parseSuggestions(text: string): SuggestionItem[] {
         // If no bullet points found, split by sentences as fallback
         const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 10);
         return sentences.map((s, i) => ({
-            id: `suggestion-${i}-${Date.now()}`,
+            id: `suggestion-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             text: s.trim(),
             selected: true,
             edited: false,
         }));
     }
     return lines.map((line, i) => ({
-        id: `suggestion-${i}-${Date.now()}`,
+        id: `suggestion-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         text: line.replace(/^\s*[-*•]\s+/, '').trim(),
         selected: true,
         edited: false,
@@ -1004,7 +1004,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     ...prev,
                     datasetDescription: fullContent,
                 }));
-            }, abortSignal, mode);
+            }, abortSignal || (abortControllerRef.current = new AbortController()).signal, mode);
             addTokenUsage(result.usage);
             return { content: fullContent, aborted: result.aborted };
         },
@@ -1030,7 +1030,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     ...prev,
                     columnDescriptions: { ...prev.columnDescriptions, [columnName]: fullContent },
                 }));
-            }, abortSignal, mode);
+            }, abortSignal || (abortControllerRef.current = new AbortController()).signal, mode);
             addTokenUsage(result.usage);
             return { content: fullContent, aborted: result.aborted };
         },
@@ -1050,7 +1050,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 onPartial(fullContent.trim());
-            });
+            }, (abortControllerRef.current = new AbortController()).signal);
             addTokenUsage(result.usage);
             return { content: fullContent.trim() };
         },
@@ -1070,7 +1070,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 onPartial(fullContent.trim().replace(/^["']|["']$/g, ''));
-            });
+            }, (abortControllerRef.current = new AbortController()).signal);
             addTokenUsage(result.usage);
             return { content: fullContent.trim().replace(/^["']|["']$/g, '') };
         },
@@ -1117,7 +1117,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-            });
+            }, (abortControllerRef.current = new AbortController()).signal);
             addTokenUsage(result.usage);
             const matched = parseCategoryIndex(fullContent, allowedCategories);
             if (!matched) {
@@ -1169,7 +1169,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 onPartial(parseTagsFromResponse(fullContent));
-            });
+            }, (abortControllerRef.current = new AbortController()).signal);
             addTokenUsage(result.usage);
             const finalTags = parseTagsFromResponse(fullContent);
             onPartial(finalTags);
@@ -1264,6 +1264,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 // Add tab
                 setDatasetTabs(prev => [...prev, { id: newId, fileName: result.fileName }]);
                 lastDatasetPageRef.current = { page: 'data', fieldName: null };
+                setCurrentPage('data');
 
                 setStatus({ message: 'CSV loaded successfully.', type: 'success', autoHide: 3000 });
             } catch (error) {
@@ -1392,7 +1393,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                         fullContent += chunk;
                         setPendingDatasetDescriptionForDataset(regenDatasetId, fullContent);
                     },
-                    undefined, mode,
+                    (abortControllerRef.current = new AbortController()).signal, mode
                 );
                 addTokenUsage(result.usage);
                 setStatus({
@@ -1435,7 +1436,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                         fullContent += chunk;
                         setPendingColumnDescriptionForDataset(regenDatasetId, columnName, fullContent);
                     },
-                    undefined, mode,
+                    (abortControllerRef.current = new AbortController()).signal, mode
                 );
                 addTokenUsage(result.usage);
                 setStatus({
@@ -1505,7 +1506,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 setDatasetSuggestions(parseSuggestions(fullContent));
-            }, undefined, 'suggest');
+            }, (abortControllerRef.current = new AbortController()).signal, 'suggest');
             addTokenUsage(result.usage);
             setStatus({ message: 'Suggestions ready for dataset description.', type: 'success' });
         } catch (error) {
@@ -1572,7 +1573,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 setPendingDatasetDescriptionForDataset(regenDatasetId, fullContent);
-            });
+            }, (abortControllerRef.current = new AbortController()).signal);
             addTokenUsage(result.usage);
             setStatus({
                 message: 'New description ready — review and keep or discard.',
@@ -1600,7 +1601,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 setColumnSuggestions((prev) => ({ ...prev, [columnName]: parseSuggestions(fullContent) }));
-            }, undefined, 'suggest');
+            }, (abortControllerRef.current = new AbortController()).signal, 'suggest');
             addTokenUsage(result.usage);
             setStatus({ message: `Suggestions ready for column "${columnName}".`, type: 'success' });
         } catch (error) {
@@ -1686,7 +1687,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 setPendingColumnDescriptionForDataset(regenDatasetId, columnName, fullContent);
-            });
+            }, (abortControllerRef.current = new AbortController()).signal);
             addTokenUsage(result.usage);
             setStatus({
                 message: `New "${columnName}" description ready — review and keep or discard.`,
@@ -1987,7 +1988,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
                 onPartial(fullContent.trim().replace(/^["']|["']$/g, ''));
-            });
+            }, (abortControllerRef.current = new AbortController()).signal);
             addTokenUsage(result.usage);
             const cleaned = fullContent.trim().replace(/^["']|["']$/g, '');
             onPartial(cleaned);
@@ -2160,6 +2161,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 // Add tab
                 setDatasetTabs(prev => [...prev, { id: newId, fileName: result.fileName }]);
                 lastDatasetPageRef.current = { page: 'data', fieldName: null };
+                setCurrentPage('data');
 
                 setStatus({
                     message: `Imported "${result.datasetName}" with ${columns.length} columns (${result.totalRowCount.toLocaleString()} rows). Existing descriptions pre-populated — edit or improve with AI.`,

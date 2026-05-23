@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DatasetDescription } from '../components/DatasetDescription/DatasetDescription';
 import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
 import { ResetFieldButton } from '../components/ResetFieldButton/ResetFieldButton';
 import { InfoTooltip } from '../components/InfoTooltip/InfoTooltip';
+import { DiffView } from '../components/shared/DiffView';
 import { useAppContext } from '../contexts/AppContext';
 import './DataOverviewPage.css';
 
@@ -97,6 +98,12 @@ export function DataOverviewPage() {
     const [isEditingRowLabel, setIsEditingRowLabel] = useState(false);
     const [rowLabelEditValue, setRowLabelEditValue] = useState(generatedResults.rowLabel || '');
 
+    useEffect(() => {
+        if (!isEditingRowLabel) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setRowLabelEditValue(generatedResults.rowLabel || '');
+        }
+    }, [generatedResults.rowLabel, isEditingRowLabel]);
     const handleRowLabelSave = () => {
         handleEditRowLabel?.(rowLabelEditValue);
         setIsEditingRowLabel(false);
@@ -243,41 +250,17 @@ export function DataOverviewPage() {
                             </span>
                             <div style={{ display: 'flex', alignItems: 'center', minHeight: '32px', width: '100%' }}>
                                 {pendingRowLabel !== null ? (
-                                    <div className="ed-pending dataset-field-pending"
-                                         style={{ width: '100%' }}>
-                                        <div className="ed-pending-block ed-pending-current">
-                                            <div className="ed-pending-label">Current</div>
-                                            <p className="ed-pending-text">
-                                                {generatedResults.rowLabel ||
-                                                  <em className="ed-pending-empty">Not set</em>}
-                                            </p>
-                                        </div>
-                                        <div className="ed-pending-block ed-pending-new">
-                                            <div className="ed-pending-label">New</div>
-                                            <p className="ed-pending-text">
-                                                {pendingRowLabel || (generatingRowLabel ? '' :
-                                                    <em className="ed-pending-empty">Empty</em>)}
-                                                {generatingRowLabel && <span className="ed-cursor">|</span>}
-                                            </p>
-                                        </div>
-                                        <div className="ed-pending-actions">
-                                            <button
-                                                className="btn btn-primary btn-md"
-                                                onClick={handleAcceptPendingRowLabel}
-                                                disabled={generatingRowLabel || !handleAcceptPendingRowLabel}
-                                                title="Replace the current row label with the new one"
-                                            >
-                                                Keep new
-                                            </button>
-                                            <button
-                                                className="btn btn-secondary btn-md"
-                                                onClick={handleDiscardPendingRowLabel}
-                                                disabled={generatingRowLabel || !handleDiscardPendingRowLabel}
-                                                title="Discard the new row label and keep the current one"
-                                            >
-                                                Discard
-                                            </button>
-                                        </div>
+                                    <div style={{ width: '100%' }}>
+                                        <DiffView
+                                            currentValue={generatedResults.rowLabel}
+                                            newValue={pendingRowLabel}
+                                            isGenerating={generatingRowLabel}
+                                            onAccept={handleAcceptPendingRowLabel}
+                                            onDiscard={handleDiscardPendingRowLabel}
+                                            className="dataset-field-pending"
+                                            acceptTooltip="Replace the current row label with the new one"
+                                            discardTooltip="Discard the new row label and keep the current one"
+                                        />
                                     </div>
                                 ) : isEditingRowLabel ? (
                                     <div className="dataset-row-label-edit" style={{ width: '100%' }}>
