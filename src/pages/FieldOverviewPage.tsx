@@ -4,6 +4,7 @@ import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
 import { ResetFieldButton } from '../components/ResetFieldButton/ResetFieldButton';
 import { useAppContext } from '../contexts/AppContext';
 import { formatColumnStats } from '../utils/columnAnalyzer';
+import type { CategoricalStats, TextStats } from '../types';
 import './FieldOverviewPage.css';
 
 /** Set to `true` to allow users to edit the API field name. */
@@ -142,19 +143,48 @@ export function FieldOverviewPage() {
                 )}
             </div>
 
-            {csvData && (
-                <div className="field-overview-samples">
-                    <div className="field-overview-samples-title">Sample Values</div>
-                    <div className="field-overview-samples-list">
-                        {csvData.slice(0, 8).map((row, i) => (
-                            <span key={i} className="field-overview-sample-item">
-                                {(row[fieldName] !== null && row[fieldName] !== undefined && row[fieldName] !== '') ? row[fieldName] :
-                                    <em className="field-overview-null">null</em>}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            )}
+            {(() => {
+                // Prefer the backend's de-duplicated top values for categorical/text
+                // columns — raw csvData rows are sequential, so a categorical
+                // column would otherwise repeat the same 1–3 values.
+                let distinctSamples: string[] | null = null;
+                if (info.type === 'categorical') {
+                    distinctSamples = (info.stats as CategoricalStats).values;
+                } else if (info.type === 'text') {
+                    distinctSamples = (info.stats as TextStats).samples;
+                }
+
+                if (distinctSamples && distinctSamples.length > 0) {
+                    return (
+                        <div className="field-overview-samples">
+                            <div className="field-overview-samples-title">Sample Values</div>
+                            <div className="field-overview-samples-list">
+                                {distinctSamples.slice(0, 8).map((value, i) => (
+                                    <span key={i} className="field-overview-sample-item">{value}</span>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (csvData) {
+                    return (
+                        <div className="field-overview-samples">
+                            <div className="field-overview-samples-title">Sample Values</div>
+                            <div className="field-overview-samples-list">
+                                {csvData.slice(0, 8).map((row, i) => (
+                                    <span key={i} className="field-overview-sample-item">
+                                        {(row[fieldName] !== null && row[fieldName] !== undefined && row[fieldName] !== '') ? row[fieldName] :
+                                            <em className="field-overview-null">null</em>}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                }
+
+                return null;
+            })()}
 
             <div className="field-overview-identifiers">
                 <div className="field-overview-identifiers-title">Field Identifiers</div>

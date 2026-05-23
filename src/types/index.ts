@@ -26,6 +26,9 @@ export interface CategoricalStats {
     count: number;
     uniqueCount: number;
     values: string[];
+    // Parallel to `values`: frequency of each (non-null) value. Optional
+    // because older payloads / paths may not populate it.
+    valueCounts?: number[];
     hasMore: boolean;
 }
 

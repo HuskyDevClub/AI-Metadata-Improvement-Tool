@@ -3,6 +3,10 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    /* Neutral fallback so any type without a specific color rule (e.g.
+       checkbox, flag, url, money) still renders as a chip, not bare text. */
+    background: var(--surface-tertiary);
+    color: var(--text-secondary);
 }
 
 .data-type-badge-small {
@@ -22,7 +26,10 @@
     color: #2563eb;
 }
 
-.data-type-badge-categorical {
+/* Doubled selector raises specificity so this wins over any originalType
+   class that's also applied (e.g. `data-type-badge-text` for a Socrata text
+   column the tool reclassified as categorical). */
+.data-type-badge.data-type-badge-categorical {
     background: #f5f3ff;
     color: #7c3aed;
 }

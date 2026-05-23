@@ -42,15 +42,23 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
     }
 
     // Check if categorical
-    const uniqueValues = [...new Set(nonNullValues)];
+    const counts = new Map<string, number>();
+    for (const v of nonNullValues) {
+        counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    const uniqueValues = [...counts.keys()];
     const uniqueRatio = uniqueValues.length / nonNullValues.length;
 
     if (uniqueRatio < 0.5 || uniqueValues.length < 50) {
-        // Categorical column
+        // Categorical column — sort by frequency desc so `values[0..n]` is
+        // actually the top-n (mirrors the Socrata backend's group-by order).
+        const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+        const top = sorted.slice(0, 20);
         const stats: CategoricalStats = {
             count: nonNullValues.length,
             uniqueCount: uniqueValues.length,
-            values: uniqueValues.slice(0, 20),
+            values: top.map(([v]) => v),
+            valueCounts: top.map(([, c]) => c),
             hasMore: uniqueValues.length > 20,
         };
         return { type: 'categorical', stats, nullCount, totalCount };
@@ -71,7 +79,14 @@ export function formatColumnStats(info: ColumnInfo): string {
         return `Min: ${stats.min.toFixed(2)} | Max: ${stats.max.toFixed(2)} | Avg: ${stats.mean.toFixed(2)} | Median: ${stats.median.toFixed(2)}`;
     } else if (info.type === 'categorical') {
         const stats = info.stats as CategoricalStats;
-        return `${stats.uniqueCount} unique values | Top: ${stats.values.slice(0, 3).join(', ')}`;
+        const top = stats.values.slice(0, 5).map((v, i) => {
+            const cnt = stats.valueCounts?.[i];
+            if (cnt === undefined || stats.count === 0) return v;
+            const pct = (cnt / stats.count) * 100;
+            const rounded = pct >= 10 ? pct.toFixed(0) : pct.toFixed(1);
+            return `${v} (${rounded}%)`;
+        });
+        return `${stats.uniqueCount} unique values | Top: ${top.join(', ')}`;
     } else if (info.type === 'text') {
         const stats = info.stats as TextStats;
         return `${stats.uniqueCount} unique values | ${stats.count} non-empty entries`;
