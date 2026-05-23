@@ -21,7 +21,7 @@ export function FloatingActions() {
     return (
         <div className="floating-actions">
             <button
-                className="floating-actions-btn floating-actions-btn--top"
+                className="btn btn-secondary btn-md floating-actions-btn"
                 onClick={scrollToTop}
                 title="Scroll to top"
             >

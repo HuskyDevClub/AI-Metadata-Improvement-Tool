@@ -262,7 +262,7 @@ export function DataOverviewPage() {
                                         </div>
                                         <div className="ed-pending-actions">
                                             <button
-                                                className="ed-btn-primary"
+                                                className="btn btn-primary btn-md"
                                                 onClick={handleAcceptPendingRowLabel}
                                                 disabled={generatingRowLabel || !handleAcceptPendingRowLabel}
                                                 title="Replace the current row label with the new one"
@@ -270,7 +270,7 @@ export function DataOverviewPage() {
                                                 Keep new
                                             </button>
                                             <button
-                                                className="ed-btn-secondary"
+                                                className="btn btn-secondary btn-md"
                                                 onClick={handleDiscardPendingRowLabel}
                                                 disabled={generatingRowLabel || !handleDiscardPendingRowLabel}
                                                 title="Discard the new row label and keep the current one"
@@ -294,10 +294,10 @@ export function DataOverviewPage() {
                                             }}
                                             style={{ width: '100%', maxWidth: '600px' }}
                                         />
-                                        <button className="dataset-row-label-btn save"
+                                        <button className="btn btn-primary btn-md"
                                                 onClick={handleRowLabelSave}>Save
                                         </button>
-                                        <button className="dataset-row-label-btn cancel"
+                                        <button className="btn btn-ghost btn-md"
                                                 onClick={handleRowLabelCancel}>Cancel
                                         </button>
                                     </div>
@@ -319,7 +319,7 @@ export function DataOverviewPage() {
                                         {!generatingRowLabel && (
                                             <span className="dataset-row-label-actions">
                                                 <button
-                                                    className="dataset-row-label-btn edit"
+                                                    className="btn btn-ghost btn-md"
                                                     onClick={() => {
                                                         setRowLabelEditValue(generatedResults.rowLabel);
                                                         setIsEditingRowLabel(true);
@@ -329,7 +329,7 @@ export function DataOverviewPage() {
                                                     &#9998;
                                                 </button>
                                                 <button
-                                                    className="dataset-row-label-btn generate"
+                                                    className="btn btn-primary btn-md"
                                                     onClick={handleGenerateRowLabel}
                                                     title="Generate row label with AI"
                                                 >
@@ -359,14 +359,25 @@ export function DataOverviewPage() {
                 <div className="field-table-controls">
                     <div className="field-table-select-group">
                         <span className="field-table-select-label">Select:</span>
-                        <button className="field-table-select-btn" onClick={selectAll}>All</button>
-                        <button className="field-table-select-btn" onClick={selectNone}>None</button>
-                        <button className="field-table-select-btn" onClick={selectEmpty}>
+                        <button className="btn btn-secondary btn-md" onClick={selectAll}>All</button>
+                        <button className="btn btn-secondary btn-md" onClick={selectNone}>None</button>
+                        <button className="btn btn-secondary btn-md" onClick={selectEmpty}>
                             Empty ({emptyColumns.length})
                         </button>
-                        <button className="field-table-select-btn" onClick={selectNonEmpty}>
+                        <button className="btn btn-secondary btn-md" onClick={selectNonEmpty}>
                             Non-empty ({nonEmptyColumns.length})
                         </button>
+                        {selectedColumns.size > 0 && (
+                            <button
+                                className="btn btn-primary btn-md"
+                                onClick={handleGenerateSelected}
+                                disabled={isGeneratingEmpty || isProcessing}
+                            >
+                                {isGeneratingEmpty
+                                    ? 'Generating...'
+                                    : `Generate for ${selectedColumns.size} selected`}
+                            </button>
+                        )}
                     </div>
                     <input
                         type="search"
@@ -375,17 +386,6 @@ export function DataOverviewPage() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                    {selectedColumns.size > 0 && (
-                        <button
-                            className="field-table-generate-btn"
-                            onClick={handleGenerateSelected}
-                            disabled={isGeneratingEmpty || isProcessing}
-                        >
-                            {isGeneratingEmpty
-                                ? 'Generating...'
-                                : `Generate for ${selectedColumns.size} selected`}
-                        </button>
-                    )}
                 </div>
 
                 <div className="field-table-wrapper">

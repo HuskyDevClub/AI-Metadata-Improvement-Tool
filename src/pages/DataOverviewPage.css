@@ -19,22 +19,6 @@
     font-weight: 500;
 }
 
-.field-table-select-btn {
-    padding: 4px 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--surface);
-    color: var(--text-secondary);
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.field-table-select-btn:hover {
-    background: var(--surface-secondary);
-    border-color: var(--accent);
-    color: var(--accent);
-}
 
 .field-table-search {
     flex: 1 1 240px;
@@ -54,21 +38,6 @@
     box-shadow: 0 0 0 2px var(--accent-light);
 }
 
-.field-table-generate-btn {
-    padding: 7px 16px;
-    border: none;
-    border-radius: var(--radius-sm);
-    background: var(--accent);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-
-.field-table-generate-btn:hover:not(:disabled) {
-    background: var(--accent-hover);
-}
 
 .field-table-wrapper {
     border: 1px solid var(--border);

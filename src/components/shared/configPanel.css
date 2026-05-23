@@ -126,38 +126,6 @@
     gap: 12px;
 }
 
-.config-save-btn {
-    padding: 8px 14px;
-    border: 1px solid var(--accent);
-    background: var(--accent);
-    color: #fff;
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.15s;
-}
-
-.config-save-btn:hover:not(:disabled) {
-    opacity: 0.9;
-}
-
-.config-clear-btn {
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-secondary);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-}
-
-.config-clear-btn:hover {
-    background: var(--surface-hover);
-    color: var(--text);
-}
 
 .config-dirty-hint {
     font-size: 12px;

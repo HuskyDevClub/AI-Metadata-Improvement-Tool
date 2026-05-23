@@ -39,7 +39,7 @@ export function StatusMessage({ status, isProcessing, onStop }: StatusMessagePro
             <span className="status-message-text">{status.message}</span>
             {isProcessing && onStop && (
                 <div className="status-message-actions">
-                    <button className="status-btn status-btn-stop" onClick={onStop}>
+                    <button className="btn btn-danger btn-md" onClick={onStop}>
                         Stop
                     </button>
                 </div>

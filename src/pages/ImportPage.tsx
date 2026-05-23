@@ -176,7 +176,7 @@ export function ImportPage() {
                     }}
                 />
                 <button
-                    className="import-form-submit"
+                    className="btn btn-primary btn-lg"
                     onClick={handleSocrataSubmit}
                     disabled={!datasetId.trim() || isProcessing}
                 >
@@ -291,7 +291,7 @@ export function ImportPage() {
                     </svg>
                     <span>Data is loaded.</span>
                     <button
-                        className="import-page-goto-btn"
+                        className="btn btn-success btn-md import-page-goto-btn"
                         onClick={() => navigate('data')}
                     >
                         Go to Data Overview

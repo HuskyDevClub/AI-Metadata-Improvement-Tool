@@ -97,7 +97,7 @@ export function SocrataApiConfig({
             <div className="config-actions">
                 <button
                     type="button"
-                    className="config-save-btn"
+                    className="btn btn-primary btn-md"
                     onClick={handleSave}
                     disabled={!canSave}
                 >
@@ -105,7 +105,7 @@ export function SocrataApiConfig({
                 </button>
                 <button
                     type="button"
-                    className="config-clear-btn"
+                    className="btn btn-secondary btn-md"
                     onClick={() => {
                         if (window.confirm('Clear saved Socrata API credentials? This will remove the API configuration from the server-side session.')) {
                             onClear();

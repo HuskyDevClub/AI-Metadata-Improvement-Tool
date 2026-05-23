@@ -48,7 +48,8 @@ export function FieldOverviewPage() {
         return (
             <div className="field-overview-notfound">
                 <p>Field "{fieldName}" not found.</p>
-                <button onClick={() => navigate('data')} className="field-overview-back">← Back to Data Overview
+                <button onClick={() => navigate('data')} className="btn btn-primary btn-md field-overview-back">← Back
+                    to Data Overview
                 </button>
             </div>
         );
@@ -78,18 +79,18 @@ export function FieldOverviewPage() {
     return (
         <div className="field-overview-page">
             <div className="field-overview-nav">
-                <button onClick={() => navigate('data')} className="field-overview-back">
+                <button onClick={() => navigate('data')} className="btn btn-primary btn-md field-overview-back">
                     ← Back to Data Overview
                 </button>
                 <div className="field-overview-pager">
                     <div className="field-overview-pager-group">
                         {prevField && <span className="field-overview-pager-label" title={prevField}>{prevField}</span>}
                         {prevField ? (
-                            <button onClick={() => navigate('field', prevField)} className="field-overview-pager-btn">
+                            <button onClick={() => navigate('field', prevField)} className="btn btn-secondary btn-md">
                                 Prev
                             </button>
                         ) : (
-                            <span className="field-overview-pager-btn disabled">Prev</span>
+                            <button disabled className="btn btn-secondary btn-md">Prev</button>
                         )}
                     </div>
                     <span className="field-overview-pager-info">
@@ -97,11 +98,11 @@ export function FieldOverviewPage() {
                     </span>
                     <div className="field-overview-pager-group">
                         {nextField ? (
-                            <button onClick={() => navigate('field', nextField)} className="field-overview-pager-btn">
+                            <button onClick={() => navigate('field', nextField)} className="btn btn-secondary btn-md">
                                 Next
                             </button>
                         ) : (
-                            <span className="field-overview-pager-btn disabled">Next</span>
+                            <button disabled className="btn btn-secondary btn-md">Next</button>
                         )}
                         {nextField && <span className="field-overview-pager-label" title={nextField}>{nextField}</span>}
                     </div>

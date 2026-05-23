@@ -208,7 +208,7 @@ export function EditableDescription({
                             }}
                         />
                         <button
-                            className="ed-btn-regenerate"
+                            className="btn btn-secondary btn-md"
                             onClick={handleAddSuggestion}
                             disabled={!newSuggestionText.trim()}
                             title="Add suggestion"
@@ -221,7 +221,7 @@ export function EditableDescription({
                 {!isSuggesting && suggestions.length > 0 && (
                     <div className="ed-apply-suggestions-row">
                         <button
-                            className="ed-btn-primary ed-btn-apply"
+                            className="btn btn-primary btn-md ed-btn-apply"
                             onClick={() => onApplySuggestions?.(refineSource)}
                             disabled={isBusy || suggestions.filter(s => s.selected).length === 0}
                             title={refineSource
@@ -245,26 +245,27 @@ export function EditableDescription({
             ) : (
                 <>
                     <span className="ed-label">{refineSource ? 'Refine new:' : 'Regenerate:'}</span>
-                    <button className="ed-btn-regenerate" onClick={() => onRegenerate('', undefined, refineSource)}
+                    <button className="btn btn-secondary btn-md"
+                            onClick={() => onRegenerate('', undefined, refineSource)}
                             disabled={isBusy}
                             title={refineSource ? 'Rephrase the new draft' : 'Regenerate'}>Again
                     </button>
                     <button
-                        className="ed-btn-regenerate concise"
+                        className="btn btn-secondary btn-md ed-btn-concise"
                         onClick={() => onRegenerate('concise', undefined, refineSource)}
                         disabled={isBusy}
                         title={refineSource ? 'Make the new draft more concise' : 'Make more concise'}
                     >Concise
                     </button>
                     <button
-                        className="ed-btn-regenerate detailed"
+                        className="btn btn-secondary btn-md ed-btn-detailed"
                         onClick={() => onRegenerate('detailed', undefined, refineSource)}
                         disabled={isBusy}
                         title={refineSource ? 'Make the new draft more detailed' : 'Make more detailed'}
                     >Detailed
                     </button>
                     <button
-                        className="ed-btn-regenerate suggest"
+                        className="btn btn-secondary btn-md ed-btn-suggest"
                         onClick={() => onSuggestImprovement(refineSource)}
                         disabled={isBusy}
                         title={refineSource
@@ -284,7 +285,7 @@ export function EditableDescription({
                             className="ed-custom-instruction-input"
                             placeholder="Custom..."
                         />
-                        <button className="ed-btn-regenerate" onClick={handleCustomApply}
+                        <button className="btn btn-secondary btn-md" onClick={handleCustomApply}
                                 disabled={isBusy}
                                 title="Apply">Apply
                         </button>
@@ -313,10 +314,10 @@ export function EditableDescription({
                         className="ed-edit-textarea"
                     />
                     <div className="ed-edit-actions">
-                        <button className="ed-btn-primary" onClick={handleSave}>
+                        <button className="btn btn-primary btn-md" onClick={handleSave}>
                             Save
                         </button>
-                        <button className="ed-btn-secondary" onClick={handleCancel}>
+                        <button className="btn btn-secondary btn-md" onClick={handleCancel}>
                             Cancel
                         </button>
                     </div>
@@ -340,7 +341,7 @@ export function EditableDescription({
                         </div>
                         <div className="ed-pending-actions">
                             <button
-                                className="ed-btn-primary"
+                                className="btn btn-primary btn-md"
                                 onClick={onAcceptPending}
                                 disabled={isRegenerating || !onAcceptPending}
                                 title="Replace the current description with the new one"
@@ -348,7 +349,7 @@ export function EditableDescription({
                                 Keep new
                             </button>
                             <button
-                                className="ed-btn-secondary"
+                                className="btn btn-secondary btn-md"
                                 onClick={onDiscardPending}
                                 disabled={isRegenerating || !onDiscardPending}
                                 title="Discard the new description and keep the current one"

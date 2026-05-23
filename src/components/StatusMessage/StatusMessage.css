@@ -24,24 +24,6 @@
     flex-shrink: 0;
 }
 
-.status-btn {
-    padding: 6px 16px;
-    border-radius: var(--radius-sm);
-    border: none;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-
-.status-btn-stop {
-    background: var(--error);
-    color: white;
-}
-
-.status-btn-stop:hover {
-    background: #b91c1c;
-}
 
 .status-message-info {
     background: var(--info-bg);

@@ -140,7 +140,7 @@ function DatasetTitleBar() {
                     </div>
                     <div className="ed-pending-actions">
                         <button
-                            className="ed-btn-primary"
+                            className="btn btn-primary btn-md"
                             onClick={handleAcceptPendingDatasetTitle}
                             disabled={generatingDatasetTitle}
                             title="Replace the current title with the new one"
@@ -148,7 +148,7 @@ function DatasetTitleBar() {
                             Keep new
                         </button>
                         <button
-                            className="ed-btn-secondary"
+                            className="btn btn-secondary btn-md"
                             onClick={handleDiscardPendingDatasetTitle}
                             disabled={generatingDatasetTitle}
                             title="Discard the new title and keep the current one"
@@ -178,8 +178,8 @@ function DatasetTitleBar() {
                                 if (e.key === 'Escape') cancel();
                             }}
                         />
-                        <button className="layout-dataset-title-btn save" onClick={save}>Save</button>
-                        <button className="layout-dataset-title-btn cancel" onClick={cancel}>Cancel</button>
+                        <button className="btn btn-primary btn-md" onClick={save}>Save</button>
+                        <button className="btn btn-ghost btn-md" onClick={cancel}>Cancel</button>
                     </div>
                 ) : (
                     <>
@@ -199,7 +199,7 @@ function DatasetTitleBar() {
                         {!generatingDatasetTitle && (
                             <span className="layout-dataset-title-actions">
                                 <button
-                                    className="layout-dataset-title-btn edit"
+                                    className="btn btn-ghost btn-md"
                                     onClick={() => {
                                         setEditValue(title);
                                         setIsEditing(true);
@@ -215,7 +215,7 @@ function DatasetTitleBar() {
                                     </svg>
                                 </button>
                                 <button
-                                    className="layout-dataset-title-btn generate"
+                                    className="btn btn-primary btn-md"
                                     onClick={handleGenerateDatasetTitle}
                                     title="Generate title with AI"
                                 >
@@ -336,14 +336,15 @@ export function Layout() {
                     {socrataOAuthUser ? (
                         <span className="layout-oauth-status">
                             Signed in as <strong>{socrataOAuthUser.displayName}</strong>
-                            <button type="button" className="layout-oauth-signout" onClick={handleSocrataOAuthLogout}>
+                            <button type="button" className="btn btn-secondary btn-md"
+                                    onClick={handleSocrataOAuthLogout}>
                                 Sign out
                             </button>
                         </span>
                     ) : (
                         <button
                             type="button"
-                            className="layout-oauth-btn"
+                            className="btn btn-primary btn-md"
                             onClick={handleSocrataOAuthLogin}
                             disabled={isSocrataOAuthAuthenticating}
                         >
@@ -379,7 +380,7 @@ export function Layout() {
                     <div className="layout-dataset-bar-actions">
                         {socrataDatasetId && (
                             <button
-                                className="layout-dataset-push-btn"
+                                className="btn btn-primary btn-md layout-dataset-push-btn"
                                 onClick={handlePushToSocrata}
                                 disabled={isPushingSocrata || !!pushDisabledReason}
                                 title={pushDisabledReason ?? undefined}

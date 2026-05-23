@@ -52,38 +52,6 @@
     box-shadow: var(--focus-ring);
 }
 
-.socrata-domain-config-save-btn {
-    padding: 8px 14px;
-    border: 1px solid var(--accent);
-    background: var(--accent);
-    color: #fff;
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.15s;
-}
-
-.socrata-domain-config-save-btn:hover:not(:disabled) {
-    opacity: 0.9;
-}
-
-.socrata-domain-config-reset-btn {
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-secondary);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-}
-
-.socrata-domain-config-reset-btn:hover:not(:disabled) {
-    background: var(--surface-hover);
-    color: var(--text);
-}
 
 .socrata-domain-config-dirty-hint {
     display: block;

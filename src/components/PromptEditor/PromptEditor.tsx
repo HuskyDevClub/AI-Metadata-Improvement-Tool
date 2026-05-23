@@ -308,7 +308,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                                 <h4>{label} <InfoIcon description={info?.description}/></h4>
                                 <div className="prompt-editor-box-actions">
                                     <button
-                                        className="prompt-improve-btn"
+                                        className="btn btn-secondary btn-md"
                                         onClick={() => openAi(key)}
                                         title="Ask AI about this prompt or request an improved version"
                                     >
@@ -316,7 +316,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                                     </button>
                                     {isModified && (
                                         <button
-                                            className="prompt-reset-btn"
+                                            className="btn btn-secondary btn-md"
                                             onClick={() => setResetTarget(key)}
                                             title="Reset to default"
                                         >
@@ -357,14 +357,14 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                         <div className="prompt-reset-modal-actions">
                             <button
                                 type="button"
-                                className="prompt-reset-modal-btn prompt-reset-modal-btn-cancel"
+                                className="btn btn-ghost btn-md"
                                 onClick={cancelReset}
                             >
                                 Cancel
                             </button>
                             <button
                                 type="button"
-                                className="prompt-reset-modal-btn prompt-reset-modal-btn-confirm"
+                                className="btn btn-danger btn-md"
                                 onClick={confirmReset}
                                 autoFocus
                             >
@@ -475,7 +475,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                         <div className="prompt-reset-modal-actions">
                             <button
                                 type="button"
-                                className="prompt-reset-modal-btn prompt-reset-modal-btn-cancel"
+                                className="btn btn-ghost btn-md"
                                 onClick={closeAi}
                                 disabled={isGenerating}
                             >
@@ -484,7 +484,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                             {isGenerating ? (
                                 <button
                                     type="button"
-                                    className="prompt-reset-modal-btn prompt-improve-stop-btn"
+                                    className="btn btn-secondary btn-md"
                                     onClick={stopAi}
                                 >
                                     Stop
@@ -492,7 +492,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                             ) : (
                                 <button
                                     type="button"
-                                    className="prompt-reset-modal-btn prompt-improve-generate-btn"
+                                    className="btn btn-primary btn-md"
                                     onClick={runAi}
                                     disabled={!aiInput.trim()}
                                 >
@@ -504,7 +504,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                             {aiMode === 'improve' && (
                                 <button
                                     type="button"
-                                    className="prompt-reset-modal-btn prompt-improve-apply-btn"
+                                    className="btn btn-success btn-md"
                                     onClick={applyProposal}
                                     disabled={!aiOutput.trim() || isGenerating}
                                 >

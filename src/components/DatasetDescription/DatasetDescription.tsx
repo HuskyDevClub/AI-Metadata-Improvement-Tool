@@ -270,7 +270,7 @@ export function DatasetDescription({
                                 </div>
                                 <div className="ed-pending-actions">
                                     <button
-                                        className="ed-btn-primary"
+                                        className="btn btn-primary btn-md"
                                         onClick={onAcceptPendingCategory}
                                         disabled={isGeneratingCategory || !onAcceptPendingCategory}
                                         title="Replace the current category with the new one"
@@ -278,7 +278,7 @@ export function DatasetDescription({
                                         Keep new
                                     </button>
                                     <button
-                                        className="ed-btn-secondary"
+                                        className="btn btn-secondary btn-md"
                                         onClick={onDiscardPendingCategory}
                                         disabled={isGeneratingCategory || !onDiscardPendingCategory}
                                         title="Discard the new category and keep the current one"
@@ -312,7 +312,7 @@ export function DatasetDescription({
                                         </span>
                                     )}
                                     <button
-                                        className="dataset-row-label-btn generate"
+                                        className="btn btn-primary btn-md"
                                         onClick={onGenerateCategory}
                                         disabled={isGeneratingCategory || categoriesUnavailable}
                                         title={`Pick a category with AI (from the portal's list${socrataDomain ? ` on ${socrataDomain}` : ''} only)`}
@@ -390,7 +390,7 @@ export function DatasetDescription({
                             </div>
                             <div className="ed-pending-actions">
                                 <button
-                                    className="ed-btn-primary"
+                                    className="btn btn-primary btn-md"
                                     onClick={onAcceptPendingTags}
                                     disabled={isGeneratingTags || !onAcceptPendingTags}
                                     title="Replace the current tags with the new ones"
@@ -398,7 +398,7 @@ export function DatasetDescription({
                                     Keep new
                                 </button>
                                 <button
-                                    className="ed-btn-secondary"
+                                    className="btn btn-secondary btn-md"
                                     onClick={onDiscardPendingTags}
                                     disabled={isGeneratingTags || !onDiscardPendingTags}
                                     title="Discard the new tags and keep the current ones"
@@ -420,7 +420,7 @@ export function DatasetDescription({
                                     width="400px"/>
                             </span>
                             <button
-                                className="dataset-row-label-btn generate"
+                                className="btn btn-primary btn-md"
                                 onClick={onGenerateTags}
                                 disabled={isGeneratingTags}
                                 title="Generate tags with AI"
@@ -532,7 +532,7 @@ export function DatasetDescription({
                             </div>
                             <button
                                 type="button"
-                                className="dataset-row-label-btn save"
+                                className="btn btn-primary btn-md"
                                 onClick={() => commitNewTag()}
                                 disabled={!newTagInput.trim() || isGeneratingTags}
                             >
@@ -617,7 +617,7 @@ export function DatasetDescription({
                                     </div>
                                     <div className="ed-pending-actions">
                                         <button
-                                            className="ed-btn-primary"
+                                            className="btn btn-primary btn-md"
                                             onClick={onAcceptPendingPeriodOfTime}
                                             disabled={isGeneratingPeriodOfTime || !onAcceptPendingPeriodOfTime}
                                             title="Replace the current Period of Time with the new one"
@@ -625,7 +625,7 @@ export function DatasetDescription({
                                             Keep new
                                         </button>
                                         <button
-                                            className="ed-btn-secondary"
+                                            className="btn btn-secondary btn-md"
                                             onClick={onDiscardPendingPeriodOfTime}
                                             disabled={isGeneratingPeriodOfTime || !onDiscardPendingPeriodOfTime}
                                             title="Discard the new Period of Time and keep the current one"
@@ -654,7 +654,7 @@ export function DatasetDescription({
                                 />
                                 {onGeneratePeriodOfTime && (
                                     <button
-                                        className="dataset-row-label-btn generate"
+                                        className="btn btn-primary btn-md"
                                         onClick={onGeneratePeriodOfTime}
                                         disabled={isGeneratingPeriodOfTime}
                                         title="Generate Period of Time with AI"

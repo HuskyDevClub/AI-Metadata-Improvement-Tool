@@ -42,22 +42,6 @@
     box-shadow: var(--focus-ring);
 }
 
-.import-form-submit {
-    padding: 10px 22px;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    background: var(--accent);
-    color: white;
-    transition: background 0.15s;
-    white-space: nowrap;
-}
-
-.import-form-submit:hover:not(:disabled) {
-    background: var(--accent-hover);
-}
 
 .import-form-hint {
     font-size: 12px;
@@ -256,17 +240,4 @@
 
 .import-page-goto-btn {
     margin-left: auto;
-    padding: 6px 16px;
-    border: none;
-    border-radius: var(--radius-sm);
-    background: var(--success);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-
-.import-page-goto-btn:hover {
-    background: #047857;
 }

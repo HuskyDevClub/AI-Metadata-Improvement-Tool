@@ -51,53 +51,6 @@
     gap: 4px;
 }
 
-.dataset-row-label-btn {
-    padding: 3px 8px;
-    font-size: 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--surface-secondary);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.dataset-row-label-btn:hover {
-    background: var(--surface-hover);
-    color: var(--text);
-}
-
-.dataset-row-label-btn.edit {
-    padding: 3px 6px;
-    border: none;
-    background: transparent;
-    font-size: 14px;
-}
-
-.dataset-row-label-btn.generate {
-    background: var(--accent-light);
-    color: var(--accent);
-    border-color: var(--accent-border);
-}
-
-.dataset-row-label-btn.generate:hover {
-    background: var(--accent);
-    color: white;
-}
-
-.dataset-row-label-btn.save {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-}
-
-.dataset-row-label-btn.save:hover {
-    opacity: 0.9;
-}
-
-.dataset-row-label-btn.cancel {
-    background: transparent;
-}
 
 .dataset-row-label-edit {
     display: flex;

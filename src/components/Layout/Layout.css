@@ -42,37 +42,6 @@
     gap: 8px;
 }
 
-.layout-oauth-signout {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 4px 10px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-}
-
-.layout-oauth-signout:hover {
-    background: var(--surface-hover);
-    color: var(--text);
-}
-
-.layout-oauth-btn {
-    background: var(--accent);
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 6px 12px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #fff;
-    cursor: pointer;
-    transition: opacity 0.15s;
-}
-
-.layout-oauth-btn:hover {
-    opacity: 0.85;
-}
 
 .layout-settings-btn {
     display: flex;
@@ -388,20 +357,9 @@ a.layout-dataset-subtitle-value:hover .layout-dataset-subtitle-external {
 }
 
 .layout-dataset-push-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
     background: #0066cc;
     color: white;
-    padding: 6px 16px;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
     flex-shrink: 0;
-    transition: background 0.15s;
 }
 
 .layout-dataset-push-btn:hover:not(:disabled) {
@@ -415,66 +373,3 @@ a.layout-dataset-subtitle-value:hover .layout-dataset-subtitle-external {
     flex-shrink: 0;
 }
 
-.layout-dataset-title-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 5px 10px;
-    font-size: 12px;
-    font-weight: 500;
-    font-family: inherit;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--surface);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
-    white-space: nowrap;
-}
-
-.layout-dataset-title-btn:hover {
-    background: var(--surface-secondary);
-    border-color: var(--text-tertiary);
-    color: var(--text);
-}
-
-.layout-dataset-title-btn.edit {
-    padding: 4px 6px;
-    border: 1px solid transparent;
-    background: transparent;
-    color: var(--text-tertiary);
-}
-
-.layout-dataset-title-btn.edit:hover {
-    background: var(--surface-secondary);
-    border-color: var(--border);
-    color: var(--accent);
-}
-
-.layout-dataset-title-btn.generate {
-    background: var(--accent-light);
-    color: var(--accent);
-    border-color: var(--accent-border);
-}
-
-.layout-dataset-title-btn.generate:hover {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-}
-
-.layout-dataset-title-btn.save {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
-}
-
-.layout-dataset-title-btn.save:hover {
-    background: var(--accent-hover);
-    border-color: var(--accent-hover);
-    color: #fff;
-}
-
-.layout-dataset-title-btn.cancel {
-    background: transparent;
-}

@@ -188,7 +188,7 @@ export function OpenAIConfig({
             <div className="config-actions">
                 <button
                     type="button"
-                    className="config-save-btn"
+                    className="btn btn-primary btn-md"
                     onClick={handleSave}
                     disabled={!canSave}
                 >
@@ -197,7 +197,7 @@ export function OpenAIConfig({
                 {onClear && (
                     <button
                         type="button"
-                        className="config-clear-btn"
+                        className="btn btn-secondary btn-md"
                         onClick={() => {
                             if (window.confirm('Clear saved API configuration? This will remove the configuration from the server-side session.')) {
                                 onClear();

@@ -67,34 +67,6 @@
     gap: 10px;
 }
 
-.ed-btn-primary,
-.ed-btn-secondary {
-    padding: 8px 16px;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-
-.ed-btn-primary {
-    background: var(--accent);
-    color: white;
-}
-
-.ed-btn-primary:hover {
-    background: var(--accent-hover);
-}
-
-.ed-btn-secondary {
-    background: var(--surface-tertiary);
-    color: var(--text-secondary);
-}
-
-.ed-btn-secondary:hover {
-    background: var(--border);
-}
 
 /* ── Suggestion items ── */
 
@@ -363,53 +335,32 @@
     font-weight: 600;
 }
 
-.ed-btn-regenerate {
-    background: var(--surface);
-    color: var(--text-secondary);
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 500;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: all 0.15s;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.ed-btn-regenerate:hover {
-    background: var(--surface-secondary);
-    border-color: var(--accent);
-    color: var(--accent);
-}
-
-.ed-btn-regenerate.concise {
+.btn.ed-btn-concise {
     color: #0891b2;
     border-color: #cffafe;
 }
 
-.ed-btn-regenerate.concise:hover {
+.btn.ed-btn-concise:hover {
     background: #ecfeff;
     border-color: #0891b2;
 }
 
-.ed-btn-regenerate.detailed {
+.btn.ed-btn-detailed {
     color: #059669;
     border-color: #a7f3d0;
 }
 
-.ed-btn-regenerate.detailed:hover {
+.btn.ed-btn-detailed:hover {
     background: #ecfdf5;
     border-color: #059669;
 }
 
-.ed-btn-regenerate.suggest {
+.btn.ed-btn-suggest {
     color: #d97706;
     border-color: #fde68a;
 }
 
-.ed-btn-regenerate.suggest:hover {
+.btn.ed-btn-suggest:hover {
     background: #fffbeb;
     border-color: #d97706;
 }
@@ -458,20 +409,12 @@
     gap: 8px;
 }
 
-.ed-compact .ed-btn-primary,
-.ed-compact .ed-btn-secondary {
-    padding: 6px 14px;
-}
 
 .ed-compact .ed-regenerate-controls {
     gap: 6px;
     margin-top: 12px;
 }
 
-.ed-compact .ed-btn-regenerate {
-    padding: 4px 10px;
-    font-size: 11px;
-}
 
 .ed-compact .ed-custom-instruction-wrapper {
     gap: 4px;
@@ -574,8 +517,4 @@
     font-size: 12px;
 }
 
-.ed-compact .ed-pending-actions .ed-btn-primary,
-.ed-compact .ed-pending-actions .ed-btn-secondary {
-    padding: 4px 10px;
-    font-size: 12px;
-}
+

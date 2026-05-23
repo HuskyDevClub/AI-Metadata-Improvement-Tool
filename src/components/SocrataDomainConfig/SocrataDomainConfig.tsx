@@ -79,7 +79,7 @@ export function SocrataDomainConfig({
                 />
                 <button
                     type="button"
-                    className="socrata-domain-config-save-btn"
+                    className="btn btn-primary btn-md"
                     onClick={handleSave}
                     disabled={!canSave}
                 >
@@ -88,7 +88,7 @@ export function SocrataDomainConfig({
                 {isOverridden && (
                     <button
                         type="button"
-                        className="socrata-domain-config-reset-btn"
+                        className="btn btn-secondary btn-md"
                         onClick={handleReset}
                         disabled={isSaving}
                     >
