@@ -637,13 +637,16 @@ def _classify_from_groupby(
             totalCount=total_rows,
         )
 
-    values = [_truncate_sample(str(g.get(field) or "")) for g in groups[:20]]
+    top = groups[:20]
+    values = [_truncate_sample(str(g.get(field) or "")) for g in top]
+    value_counts = [int(g.get("cnt") or 0) for g in top]
     return ColumnStats(
         type="categorical",
         stats={
             "count": non_null_count,
             "uniqueCount": distinct_count,
             "values": values,
+            "valueCounts": value_counts,
             "hasMore": distinct_count > 20,
         },
         nullCount=total_rows - non_null_count,
@@ -718,6 +721,7 @@ async def compute_column_stats(
         has_more = len(groups) > CATEGORICAL_BOUNDED_LIMIT
         groups = groups[:CATEGORICAL_BOUNDED_LIMIT]
         values = [_truncate_sample(str(g.get(field) or "")) for g in groups]
+        value_counts = [int(g.get("cnt") or 0) for g in groups]
         unique_count = len(groups)
         return display_name, ColumnStats(
             type="categorical",
@@ -725,6 +729,7 @@ async def compute_column_stats(
                 "count": non_null,
                 "uniqueCount": unique_count,
                 "values": values,
+                "valueCounts": value_counts,
                 "hasMore": has_more,
             },
             nullCount=total_rows - non_null,
