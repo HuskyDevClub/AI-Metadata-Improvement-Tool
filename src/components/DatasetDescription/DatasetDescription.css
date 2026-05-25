@@ -245,6 +245,14 @@
     margin-top: 8px;
 }
 
+.dataset-period-row {
+    align-items: flex-start;
+}
+
+.dataset-period-row > .dataset-license-label {
+    padding-top: 5px;
+}
+
 .dataset-license-label {
     min-width: 140px;
     font-size: 13px;

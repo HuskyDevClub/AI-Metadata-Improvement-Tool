@@ -38,6 +38,7 @@ import {
     getSampleValues
 } from '../utils/columnAnalyzer';
 import { handleRegenerationError } from '../utils/stateHelpers';
+import { parsePeriodOfTimeResponse } from '../utils/periodOfTime';
 import {
     appendPromptModifiers,
     buildColumnImprovementPrompt,
@@ -1987,12 +1988,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                onPartial(fullContent.trim().replace(/^["']|["']$/g, ''));
             }, (abortControllerRef.current = new AbortController()).signal);
             addTokenUsage(result.usage);
-            const cleaned = fullContent.trim().replace(/^["']|["']$/g, '');
-            onPartial(cleaned);
-            return { content: cleaned };
+            const display = parsePeriodOfTimeResponse(fullContent);
+            onPartial(display);
+            return { content: display };
         },
         [openaiConfig, promptTemplates.systemPrompt, buildPeriodOfTimePrompt, callOpenAIStream, addTokenUsage]
     );

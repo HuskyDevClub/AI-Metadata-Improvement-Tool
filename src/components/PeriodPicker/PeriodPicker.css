@@ -1,0 +1,139 @@
+.period-picker-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.period-picker-mode-toggle {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    align-self: flex-start;
+}
+
+.period-picker-mode-btn {
+    padding: 3px 10px;
+    font-size: 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.period-picker-mode-btn:hover:not(.is-active):not(:disabled) {
+    color: var(--text);
+}
+
+.period-picker-mode-btn.is-active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.period-picker-mode-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.period-picker-custom-input {
+    padding: 6px 10px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    max-width: 480px;
+}
+
+.period-picker-custom-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.period-picker {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.period-picker-side {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.period-picker-side-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+}
+
+.period-picker-controls {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.period-picker-select {
+    padding: 5px 8px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+}
+
+.period-picker-select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.period-picker-select:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: var(--surface-secondary);
+}
+
+.period-picker-select-year {
+    min-width: 80px;
+}
+
+.period-picker-select-month {
+    min-width: 140px;
+}
+
+.period-picker-select-day {
+    min-width: 110px;
+}
+
+.period-picker-end {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.period-picker-present {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-end;
+    padding-bottom: 5px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.period-picker-present input {
+    margin: 0;
+    cursor: pointer;
+}

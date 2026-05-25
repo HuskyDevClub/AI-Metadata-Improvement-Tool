@@ -185,15 +185,32 @@ export const DEFAULT_PERIOD_OF_TIME_PROMPT = `Determine the Period of Time cover
 
 ${DATASET_CONTEXT_BLOCK}
 
-Rules:
-- Write a short plain-language sentence (typically 10-25 words).
-- If the data contains dated records, describe the span in human terms (e.g. "January 2020 through December 2023", "fiscal years 2018-2024", "as of March 31, 2026").
-- If the data is a point-in-time snapshot, say so (e.g. "Current employees as of the publication date.").
-- If no time scope can be inferred from the columns or sample values, respond with: "Time period not specified in the data."
-- Do NOT guess specific dates that are not supported by the sample data.
-- Do NOT include update cadence — that belongs in Posting Frequency.
+Output format:
+Return ONLY a single JSON object on one line with two keys, "start" and "end". No prose, no code fences, no labels.
 
-Return ONLY the Period of Time text — no quotes, no labels, no leading phrases like "Period of Time:".`;
+Precision: only the YEAR is required. Month and day are optional — include them ONLY when the sample data clearly and unambiguously supports that precision. When in doubt, return less precision rather than guessing.
+
+Allowed values for "start":
+- "YYYY" (year only, e.g. "2013") — preferred default; use this when the data spans full calendar years, or when month/day are unclear, inconsistent, or only partially populated
+- "YYYY-MM" (year and month) — use only when every dated record cleanly aligns to a known month, AND the start month is not just "January by default"
+- "YYYY-MM-DD" (year, month, and day) — use only when the data has a clear, specific start date (e.g. a single launch date, a defined fiscal period boundary)
+
+Allowed values for "end":
+- Any of the formats above (same precision rules), OR
+- "present" — use this if the dataset is kept current and includes recent records
+
+Rules:
+- Default to year-only ("YYYY") unless the data gives strong evidence for finer precision. It is better to under-report precision than to invent a specific month or day.
+- Do NOT promote year-level data to month- or day-level just because the data type is a date — for example, if records are timestamped 2020-01-01, 2021-01-01, 2022-01-01, those are yearly snapshots; return "2020" and "2022", not "2020-01-01" and "2022-01-01".
+- Do NOT guess dates that are not supported by the sample data.
+- Do NOT include update cadence — that belongs in Posting Frequency.
+- If no time scope can be inferred at all, return {"start": "", "end": ""}.
+
+Example outputs:
+{"start": "2013", "end": "present"}
+{"start": "2018", "end": "2024"}
+{"start": "2020-01", "end": "2023-12"}
+{"start": "2026-03-31", "end": "2026-03-31"}`;
 
 export const DEFAULT_DATASET_SUGGESTION_PROMPT = `You are a metadata quality reviewer for a government open data portal. Analyze the following dataset description and provide specific, actionable suggestions to improve it.
 

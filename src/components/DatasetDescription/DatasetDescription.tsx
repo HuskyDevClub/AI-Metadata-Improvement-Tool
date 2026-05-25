@@ -5,6 +5,7 @@ import { EditableDescription } from '../EditableDescription/EditableDescription'
 import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
 import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
 import { DiffView } from '../shared/DiffView';
+import { PeriodPicker } from '../PeriodPicker/PeriodPicker';
 import './DatasetDescription.css';
 
 type DatasetFieldKey =
@@ -576,19 +577,16 @@ export function DatasetDescription({
                             </div>
                         )}
                         {onEditPeriodOfTime && pendingPeriodOfTime === null && (
-                            <div className="dataset-license-row">
+                            <div className="dataset-license-row dataset-period-row">
                                 <label className="dataset-license-label">
                                     Period of Time
                                     <InfoTooltip
-                                        text="Earliest-to-most-recent dates covered by the data itself. You may use &quot;the present&quot; for the most recent date, if the data is kept current."
+                                        text="Earliest-to-most-recent dates covered by the data itself. Check &quot;to present&quot; if the data is kept current."
                                         width="300px"/>
                                 </label>
-                                <input
-                                    type="text"
-                                    className="dataset-row-label-input dataset-license-input"
-                                    placeholder="e.g. January 2020 through December 2023"
+                                <PeriodPicker
                                     value={periodOfTime}
-                                    onChange={(e) => onEditPeriodOfTime(e.target.value)}
+                                    onChange={onEditPeriodOfTime}
                                     disabled={isGeneratingPeriodOfTime}
                                 />
                                 {onGeneratePeriodOfTime && (
