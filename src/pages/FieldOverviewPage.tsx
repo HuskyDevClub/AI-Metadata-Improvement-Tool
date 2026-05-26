@@ -70,7 +70,11 @@ export function FieldOverviewPage() {
     const apiFieldNameChanged = !!initialResults && apiFieldName !== initialApiFieldName;
     const prevField = currentIndex > 0 ? columnNames[currentIndex - 1] : null;
     const nextField = currentIndex < columnNames.length - 1 ? columnNames[currentIndex + 1] : null;
-    const statsText = formatColumnStats(info);
+    // FieldOverview shows distinct values as percentage-tagged pills below,
+    // so suppress the redundant `Top: ...` portion that ColumnCard relies on.
+    const statsText = info.type === 'categorical'
+        ? `${(info.stats as CategoricalStats).uniqueCount} unique values | ${(info.stats as CategoricalStats).count} non-empty entries`
+        : formatColumnStats(info);
     const nullPercent = info.totalCount > 0
         ? ((info.nullCount / info.totalCount) * 100).toFixed(1)
         : '0.0';
@@ -149,8 +153,13 @@ export function FieldOverviewPage() {
                 // columns — raw csvData rows are sequential, so a categorical
                 // column would otherwise repeat the same 1–3 values.
                 let distinctSamples: string[] | null = null;
+                let sampleCounts: number[] | null = null;
+                let sampleTotal = 0;
                 if (info.type === 'categorical') {
-                    distinctSamples = (info.stats as CategoricalStats).values;
+                    const cstats = info.stats as CategoricalStats;
+                    distinctSamples = cstats.values;
+                    sampleCounts = cstats.valueCounts ?? null;
+                    sampleTotal = cstats.count;
                 } else if (info.type === 'text') {
                     distinctSamples = (info.stats as TextStats).samples;
                 }
@@ -160,9 +169,22 @@ export function FieldOverviewPage() {
                         <div className="field-overview-samples">
                             <div className="field-overview-samples-title">Sample Values</div>
                             <div className="field-overview-samples-list">
-                                {distinctSamples.slice(0, 8).map((value, i) => (
-                                    <span key={i} className="field-overview-sample-item">{value}</span>
-                                ))}
+                                {distinctSamples.slice(0, 8).map((value, i) => {
+                                    const cnt = sampleCounts?.[i];
+                                    let pctLabel: string | null = null;
+                                    if (cnt !== undefined && sampleTotal > 0) {
+                                        const pct = (cnt / sampleTotal) * 100;
+                                        pctLabel = pct >= 10 ? `${pct.toFixed(0)}%` : `${pct.toFixed(1)}%`;
+                                    }
+                                    return (
+                                        <span key={i} className="field-overview-sample-item">
+                                            <span className="field-overview-sample-value">{value}</span>
+                                            {pctLabel && (
+                                                <span className="field-overview-sample-pct">{pctLabel}</span>
+                                            )}
+                                        </span>
+                                    );
+                                })}
                             </div>
                         </div>
                     );

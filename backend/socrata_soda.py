@@ -342,19 +342,27 @@ async def _compute_sampled_text_stats(
     total_rows: int,
     headers: dict[str, str],
 ) -> ColumnStats:
-    """For flat near-unique text types (email, phone): count, distinct, samples."""
+    """For flat near-unique text types (email, phone): count, distinct, samples.
+
+    Empty strings are folded into the null count — SoQL would otherwise treat
+    them as a distinct non-null value and surface a blank sample.
+    """
     esc = soda_escape(field)
+    non_empty = f"{esc} IS NOT NULL AND {esc} <> ''"
     agg_rows, sample_rows = await asyncio.gather(
         soda_get(
             client,
             soda_base,
-            {"$select": f"count({esc}) as cnt, count(distinct {esc}) as ucnt"},
+            {
+                "$select": f"count({esc}) as cnt, count(distinct {esc}) as ucnt",
+                "$where": f"{esc} <> ''",
+            },
             headers,
         ),
         soda_get(
             client,
             soda_base,
-            {"$select": esc, "$where": f"{esc} IS NOT NULL", "$limit": "5"},
+            {"$select": esc, "$where": non_empty, "$limit": "5"},
             headers,
         ),
     )
@@ -543,19 +551,23 @@ async def _compute_count_and_distinct(
     soda_base: str,
     field: str,
     headers: dict[str, str],
+    extra_where: str = "",
 ) -> tuple[int, int]:
     """Return (non-null count, distinct count) for a field in one SODA aggregate.
 
     The distinct count is the column's *true* cardinality — unlike the length
     of a capped group-by — so callers can compute an accurate unique-ratio.
+
+    `extra_where` lets text-like callers exclude empty strings (which SoQL
+    treats as distinct from NULL) so they collapse into the null count.
     """
     esc = soda_escape(field)
-    rows = await soda_get(
-        client,
-        soda_base,
-        {"$select": f"count({esc}) as cnt, count(distinct {esc}) as ucnt"},
-        headers,
-    )
+    params: dict[str, str] = {
+        "$select": f"count({esc}) as cnt, count(distinct {esc}) as ucnt"
+    }
+    if extra_where:
+        params["$where"] = extra_where
+    rows = await soda_get(client, soda_base, params, headers)
     if not rows:
         return 0, 0
     cnt = int(rows[0].get("cnt") or 0)
@@ -570,6 +582,7 @@ async def _compute_groupby(
     field: str,
     headers: dict[str, str],
     limit: int,
+    extra_where: str = "",
 ) -> list[dict[str, Any]]:
     """Run a group-by query for a column. Returns up to `limit` groups sorted by count desc.
 
@@ -577,8 +590,15 @@ async def _compute_groupby(
     the caller is trying to decide (bounded categorical vs ambiguous text),
     and a one-size default would silently mismatch the caller's has_more
     threshold.
+
+    `extra_where` is AND-ed with the IS NOT NULL filter — text-like callers
+    use it to drop empty-string groups that SoQL otherwise treats as a
+    distinct value.
     """
     esc = soda_escape(field)
+    where = f"{esc} IS NOT NULL"
+    if extra_where:
+        where = f"{where} AND {extra_where}"
     return await soda_get(
         client,
         soda_base,
@@ -587,7 +607,7 @@ async def _compute_groupby(
             "$group": esc,
             "$order": "cnt DESC",
             "$limit": str(limit),
-            "$where": f"{esc} IS NOT NULL",
+            "$where": where,
         },
         headers,
     )
@@ -742,9 +762,27 @@ async def compute_column_stats(
     # distinct counts. The real distinct count is essential: len(groups) is
     # capped by the group-by limit, so a high-cardinality text column would
     # otherwise look low-cardinality and be misclassified as categorical.
+    # Empty strings are treated as missing: SoQL counts them as non-null and
+    # groups them as a distinct value, so without this filter blank cells
+    # surface as a blank pill in Sample Values.
+    esc = soda_escape(field)
+    empty_filter = f"{esc} <> ''"
     groups, (non_null, distinct) = await asyncio.gather(
-        _compute_groupby(client, soda_base, field, headers, limit=TEXT_GROUPBY_LIMIT),
-        _compute_count_and_distinct(client, soda_base, field, headers),
+        _compute_groupby(
+            client,
+            soda_base,
+            field,
+            headers,
+            limit=TEXT_GROUPBY_LIMIT,
+            extra_where=empty_filter,
+        ),
+        _compute_count_and_distinct(
+            client,
+            soda_base,
+            field,
+            headers,
+            extra_where=empty_filter,
+        ),
     )
     stats = _classify_from_groupby(groups, field, total_rows, non_null, distinct)
     return display_name, stats

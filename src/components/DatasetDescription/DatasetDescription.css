@@ -260,7 +260,7 @@
 }
 
 .dataset-period-row > .period-picker-wrap {
-    flex: 0 0 auto;
+    flex: 0 0 360px;
 }
 
 .dataset-license-label {

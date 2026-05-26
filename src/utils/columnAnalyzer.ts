@@ -73,6 +73,19 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
     return { type: 'text', stats, nullCount, totalCount };
 }
 
+function formatTemporalForDisplay(value: string): string {
+    // Socrata temporal values arrive as ISO-like strings (e.g.
+    // "1995-01-04T00:00:00.000"). Render them as "Jan 4, 1995" for the UI;
+    // fall back to the raw string if it doesn't parse.
+    const datePart = value.split('T')[0];
+    const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return value;
+    const [, y, m, d] = match;
+    const dt = new Date(Number(y), Number(m) - 1, Number(d));
+    if (isNaN(dt.getTime())) return value;
+    return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 export function formatColumnStats(info: ColumnInfo): string {
     if (info.type === 'numeric') {
         const stats = info.stats as NumericStats;
@@ -92,7 +105,7 @@ export function formatColumnStats(info: ColumnInfo): string {
         return `${stats.uniqueCount} unique values | ${stats.count} non-empty entries`;
     } else if (info.type === 'temporal') {
         const stats = info.stats as TemporalStats;
-        return `Range: ${stats.min} to ${stats.max} | ${stats.count} non-empty entries`;
+        return `Range: ${formatTemporalForDisplay(stats.min)} – ${formatTemporalForDisplay(stats.max)} | ${stats.count} non-empty entries`;
     } else if (info.type === 'geospatial') {
         const stats = info.stats as GeospatialStats;
         return `${stats.count} ${stats.geometryType} geometries`;
@@ -109,7 +122,14 @@ export function getColumnStatsText(info: ColumnInfo): string {
         return `This is a numeric column with values ranging from ${stats.min.toFixed(2)} to ${stats.max.toFixed(2)}. Average: ${stats.mean.toFixed(2)}, Median: ${stats.median.toFixed(2)}, Q1: ${stats.q1.toFixed(2)}, Q3: ${stats.q3.toFixed(2)}.`;
     } else if (info.type === 'categorical') {
         const stats = info.stats as CategoricalStats;
-        return `This is a categorical column with ${stats.uniqueCount} unique values: ${stats.values.join(', ')}${stats.hasMore ? ', and more' : ''}.`;
+        const labeled = stats.values.map((v, i) => {
+            const cnt = stats.valueCounts?.[i];
+            if (cnt === undefined || stats.count === 0) return v;
+            const pct = (cnt / stats.count) * 100;
+            const rounded = pct >= 10 ? pct.toFixed(0) : pct.toFixed(1);
+            return `${v} (${rounded}%)`;
+        });
+        return `This is a categorical column with ${stats.uniqueCount} unique values: ${labeled.join(', ')}${stats.hasMore ? ', and more' : ''}.`;
     } else if (info.type === 'text') {
         const stats = info.stats as TextStats;
         return `This is a text column with ${stats.uniqueCount} unique values. Sample values: ${stats.samples.slice(0, 3).join(', ')}.`;
