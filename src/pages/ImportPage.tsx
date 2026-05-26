@@ -37,7 +37,6 @@ export function ImportPage() {
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
         socrataDomain,
-        handleSocrataDomainSave,
     } = useAppContext();
 
     const [dragging, setDragging] = useState(false);
@@ -78,15 +77,8 @@ export function ImportPage() {
         if (!datasetId.trim()) return;
 
         const parsedId = extractDatasetId(datasetId) ?? datasetId.trim();
-        const parsedDomain = extractDomain(datasetId);
 
         try {
-            // A pasted URL from a different portal switches the tool to that
-            // portal (and refreshes its catalog data) before importing.
-            if (parsedDomain && parsedDomain !== socrataDomain) {
-                await handleSocrataDomainSave(parsedDomain);
-            }
-
             const trimmedKeyId = apiKeyIdInput.trim();
             const trimmedKeySecret = apiKeySecretInput.trim();
             const hasNewCredentials = !!(trimmedKeyId && trimmedKeySecret);
@@ -150,16 +142,12 @@ export function ImportPage() {
         }
     }, [handleAnalyze]);
 
-    // When the input is a URL (not a bare ID), surface the ID — and any
-    // different portal — we extracted, so the user can confirm before import.
+    // When the input is a URL (not a bare ID), surface the ID we extracted
+    // so the user can confirm before import.
     const trimmedDatasetInput = datasetId.trim();
     const detectedId = extractDatasetId(trimmedDatasetInput);
     const detectedDomain = extractDomain(trimmedDatasetInput);
     const isUrlInput = detectedId !== null && trimmedDatasetInput.toLowerCase() !== detectedId;
-    const domainSwitch =
-        detectedDomain && socrataDomain && detectedDomain !== socrataDomain
-            ? detectedDomain
-            : null;
 
     return (
         <div className="import-page">
@@ -192,11 +180,6 @@ export function ImportPage() {
                 <span className="import-form-detected-id">
                     Will import dataset <code>{detectedId}</code>
                     {detectedDomain && <> from <code>{detectedDomain}</code></>}
-                </span>
-            )}
-            {domainSwitch && (
-                <span className="import-form-detected-id">
-                    Will switch portal to <code>{domainSwitch}</code>
                 </span>
             )}
             <span className="import-form-hint">
