@@ -10,6 +10,8 @@ interface FieldHistoryButtonProps {
     title?: string;
     formatValue?: (value: string | string[]) => ReactNode;
     disabled?: boolean;
+    /** Render the trigger even when only the seeded 'original' revision exists. */
+    alwaysShow?: boolean;
 }
 
 const SOURCE_LABEL: Record<FieldRevisionSource, string> = {
@@ -47,6 +49,7 @@ export function FieldHistoryButton({
                                        title,
                                        formatValue = defaultFormat,
                                        disabled = false,
+                                       alwaysShow = false,
                                    }: FieldHistoryButtonProps) {
     const [open, setOpen] = useState(false);
     // Freeze the reference timestamp when the popover opens — calling Date.now()
@@ -68,6 +71,17 @@ export function FieldHistoryButton({
         }
         return null;
     }, [ordered, currentValue]);
+
+    // Source of the current content drives the trigger label. If the user is
+    // mid-edit and the value matches no revision yet, fall back to the most
+    // recent revision's source.
+    const currentSource: FieldRevisionSource = useMemo(() => {
+        if (currentRevisionId) {
+            const match = ordered.find((r) => r.id === currentRevisionId);
+            if (match) return match.source;
+        }
+        return ordered[0]?.source ?? 'original';
+    }, [ordered, currentRevisionId]);
 
     const handleToggle = () => {
         setReferenceNow(Date.now());
@@ -91,7 +105,7 @@ export function FieldHistoryButton({
         };
     }, [open]);
 
-    if (!hasHistory) return null;
+    if (!hasHistory && !alwaysShow) return null;
 
     const tooltip = title
         ? `${title} — ${revisions.length} revisions`
@@ -101,14 +115,14 @@ export function FieldHistoryButton({
         <span className="fh-wrap" ref={wrapperRef}>
             <button
                 type="button"
-                className={`fh-dot ${open ? 'fh-dot-open' : ''}`}
+                className={`fh-trigger fh-trigger-${currentSource} ${open ? 'fh-trigger-open' : ''}`}
                 onClick={handleToggle}
                 title={tooltip}
                 aria-label={tooltip}
                 aria-expanded={open}
                 disabled={disabled}
             >
-                <span className="fh-dot-inner"/>
+                {SOURCE_LABEL[currentSource]}
             </button>
             {open && (
                 <div className="fh-popover" role="dialog">

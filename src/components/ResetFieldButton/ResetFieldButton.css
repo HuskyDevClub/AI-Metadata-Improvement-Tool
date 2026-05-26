@@ -2,13 +2,13 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 8px;
+    padding: 7px 10px;
     background: transparent;
     border: 1px solid var(--text-tertiary);
     border-radius: var(--radius-sm);
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
 }

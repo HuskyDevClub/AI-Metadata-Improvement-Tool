@@ -170,6 +170,10 @@
     color: var(--accent);
 }
 
+.field-source-cell .fh-wrap {
+    margin-left: 0;
+}
+
 .dataset-stats {
     display: flex;
     gap: 24px;

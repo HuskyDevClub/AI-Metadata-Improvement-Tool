@@ -130,6 +130,12 @@
     gap: 8px;
 }
 
+.dataset-tags-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .dataset-tags-chips {
     display: flex;
     flex-wrap: wrap;
@@ -251,6 +257,10 @@
 
 .dataset-period-row > .dataset-license-label {
     padding-top: 5px;
+}
+
+.dataset-period-row > .period-picker-wrap {
+    flex: 0 0 auto;
 }
 
 .dataset-license-label {

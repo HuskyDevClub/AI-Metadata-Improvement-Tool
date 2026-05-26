@@ -4,13 +4,14 @@ import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
 import { ResetFieldButton } from '../components/ResetFieldButton/ResetFieldButton';
 import { InfoTooltip } from '../components/InfoTooltip/InfoTooltip';
 import { DiffView } from '../components/shared/DiffView';
-import { DatasetFieldHistory } from '../components/FieldHistoryButton/ConnectedFieldHistory';
+import { ColumnFieldHistory, DatasetFieldHistory } from '../components/FieldHistoryButton/ConnectedFieldHistory';
 import { useAppContext } from '../contexts/AppContext';
 import './DataOverviewPage.css';
 
 export function DataOverviewPage() {
     const {
         csvData,
+        importedRowCount,
         columnStats,
         generatedResults,
         initialResults,
@@ -233,7 +234,15 @@ export function DataOverviewPage() {
                         <div className="stat-item">
                             <span className="stat-label">Rows</span>
                             <div style={{ display: 'flex', alignItems: 'center', minHeight: '32px' }}>
-                                <span className="stat-value">{csvData.length}</span>
+                                <span
+                                    className="stat-value"
+                                    title={(importedRowCount > 0 ? importedRowCount : csvData.length).toLocaleString()}
+                                >
+                                    {new Intl.NumberFormat('en-US', {
+                                        notation: 'compact',
+                                        maximumFractionDigits: 1,
+                                    }).format(importedRowCount > 0 ? importedRowCount : csvData.length)}
+                                </span>
                             </div>
                         </div>
                         <div className="stat-item">
@@ -389,6 +398,7 @@ export function DataOverviewPage() {
                             </th>
                             <th>Column Name</th>
                             <th>Description</th>
+                            <th>Source</th>
                             <th>API Field Name</th>
                             <th>Data Type</th>
                             <th>Status</th>
@@ -397,7 +407,7 @@ export function DataOverviewPage() {
                         <tbody>
                         {filteredColumnNames.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="field-table-empty">
+                                <td colSpan={7} className="field-table-empty">
                                     No fields match "{searchQuery}".
                                 </td>
                             </tr>
@@ -448,6 +458,18 @@ export function DataOverviewPage() {
                                         ) : (
                                             desc ? truncate(desc, 120) :
                                                 <span className="field-no-desc">No description</span>
+                                        )}
+                                    </td>
+                                    <td className="field-source-cell">
+                                        {hasDesc ? (
+                                            <ColumnFieldHistory
+                                                columnName={name}
+                                                kind="description"
+                                                title="Description"
+                                                alwaysShow
+                                            />
+                                        ) : (
+                                            <span className="field-no-desc">—</span>
                                         )}
                                     </td>
                                     <td>

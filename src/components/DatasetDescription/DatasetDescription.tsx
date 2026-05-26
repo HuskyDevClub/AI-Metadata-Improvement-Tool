@@ -388,20 +388,22 @@ export function DatasetDescription({
                                     width="400px"/>
                                 <DatasetFieldHistory field="tags" title="Tags"/>
                             </span>
-                            <button
-                                className="btn btn-primary btn-md"
-                                onClick={onGenerateTags}
-                                disabled={isGeneratingTags}
-                                title="Generate tags with AI"
-                            >
-                                {isGeneratingTags ? 'Generating...' : 'Generate'}
-                            </button>
-                            <ResetFieldButton
-                                show={canReset('tags')}
-                                onReset={resetHandler('tags')}
-                                disabled={isGeneratingTags}
-                                title="Reset tags to the values loaded from the dataset"
-                            />
+                            <div className="dataset-tags-actions">
+                                <button
+                                    className="btn btn-primary btn-md"
+                                    onClick={onGenerateTags}
+                                    disabled={isGeneratingTags}
+                                    title="Generate tags with AI"
+                                >
+                                    {isGeneratingTags ? 'Generating...' : 'Generate'}
+                                </button>
+                                <ResetFieldButton
+                                    show={canReset('tags')}
+                                    onReset={resetHandler('tags')}
+                                    disabled={isGeneratingTags}
+                                    title="Reset tags to the values loaded from the dataset"
+                                />
+                            </div>
                         </div>
                         <div className="dataset-tags-chips">
                             {tags.length === 0 && !isGeneratingTags && (

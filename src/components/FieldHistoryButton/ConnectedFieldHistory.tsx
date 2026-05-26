@@ -45,6 +45,7 @@ interface ColumnFieldHistoryProps {
     title?: string;
     formatValue?: (value: string | string[]) => ReactNode;
     disabled?: boolean;
+    alwaysShow?: boolean;
 }
 
 export function ColumnFieldHistory({
@@ -53,6 +54,7 @@ export function ColumnFieldHistory({
                                        title,
                                        formatValue,
                                        disabled,
+                                       alwaysShow,
                                    }: ColumnFieldHistoryProps) {
     const { fieldRevisions, generatedResults, handleRevertColumnField } = useAppContext();
     const revisions = getRevisions(fieldRevisions, columnKey(columnName, kind));
@@ -69,6 +71,7 @@ export function ColumnFieldHistory({
             title={title}
             formatValue={formatValue}
             disabled={disabled}
+            alwaysShow={alwaysShow}
         />
     );
 }
