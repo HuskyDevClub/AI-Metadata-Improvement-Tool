@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { ColumnCard } from '../components/ColumnCard/ColumnCard';
 import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
 import { ResetFieldButton } from '../components/ResetFieldButton/ResetFieldButton';
+import { ColumnFieldHistory } from '../components/FieldHistoryButton/ConnectedFieldHistory';
 import { useAppContext } from '../contexts/AppContext';
 import { formatColumnStats } from '../utils/columnAnalyzer';
 import type { CategoricalStats, TextStats } from '../types';
@@ -197,6 +198,7 @@ export function FieldOverviewPage() {
                                 onReset={() => handleResetColumnField(fieldName, 'displayName')}
                                 title="Reset display name to the value loaded from the dataset"
                             />
+                            <ColumnFieldHistory columnName={fieldName} kind="displayName" title="Display Name"/>
                         </span>
                         <input
                             type="text"
@@ -216,11 +218,15 @@ export function FieldOverviewPage() {
                             <span className="field-overview-identifier-label">
                                 API Field Name
                                 {ENABLE_API_FIELD_NAME_EDIT && (
-                                    <ResetFieldButton
-                                        show={apiFieldNameChanged}
-                                        onReset={() => handleResetColumnField(fieldName, 'fieldName')}
-                                        title="Reset API field name to the value loaded from the dataset"
-                                    />
+                                    <>
+                                        <ResetFieldButton
+                                            show={apiFieldNameChanged}
+                                            onReset={() => handleResetColumnField(fieldName, 'fieldName')}
+                                            title="Reset API field name to the value loaded from the dataset"
+                                        />
+                                        <ColumnFieldHistory columnName={fieldName} kind="fieldName"
+                                                            title="API Field Name"/>
+                                    </>
                                 )}
                             </span>
                             <input

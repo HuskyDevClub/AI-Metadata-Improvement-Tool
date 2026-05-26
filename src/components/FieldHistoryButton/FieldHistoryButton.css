@@ -1,0 +1,212 @@
+.fh-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.fh-dot {
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    border: 1px solid var(--warning-border);
+    background: var(--warning-bg);
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.fh-dot:hover:not(:disabled) {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+
+.fh-dot:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+.fh-dot-open {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+
+.fh-dot:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.fh-dot-inner {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--warning);
+}
+
+.fh-popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 50;
+    min-width: 320px;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.fh-popover-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--surface-secondary);
+}
+
+.fh-popover-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.fh-popover-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: var(--radius-xs);
+    line-height: 1;
+}
+
+.fh-popover-close:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+}
+
+.fh-popover-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.fh-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.fh-item:last-child {
+    border-bottom: none;
+}
+
+.fh-item-current {
+    background: var(--accent-light);
+}
+
+.fh-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fh-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.4;
+}
+
+.fh-badge-original {
+    background: var(--surface-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+.fh-badge-ai {
+    background: var(--info-bg);
+    color: var(--info);
+    border: 1px solid var(--info-border);
+}
+
+.fh-badge-user {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid var(--success-border);
+}
+
+.fh-time {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.fh-current-pill {
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--surface);
+    border: 1px solid var(--accent-border);
+}
+
+.fh-revert-btn {
+    margin-left: auto;
+    padding: 3px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.fh-revert-btn:hover:not(:disabled) {
+    background: var(--accent-light);
+    border-color: var(--accent-border);
+    color: var(--accent);
+}
+
+.fh-revert-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.fh-item-value {
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.fh-empty {
+    color: var(--text-tertiary);
+    font-style: italic;
+}

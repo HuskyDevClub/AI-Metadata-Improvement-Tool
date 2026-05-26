@@ -6,6 +6,7 @@ import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
 import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
 import { DiffView } from '../shared/DiffView';
 import { PeriodPicker } from '../PeriodPicker/PeriodPicker';
+import { DatasetFieldHistory } from '../FieldHistoryButton/ConnectedFieldHistory';
 import './DatasetDescription.css';
 
 type DatasetFieldKey =
@@ -220,6 +221,7 @@ export function DatasetDescription({
                     <InfoTooltip
                         text="A short, plain-language description of what the data includes and why it’s collected. Cite legislation if applicable. Note common uses or users. You can include disclaimers, but users will see a Note more immediately."
                         width="350px"/>
+                    <DatasetFieldHistory field="datasetDescription" title="Description"/>
                 </h3>
 
                 <EditableDescription
@@ -253,6 +255,7 @@ export function DatasetDescription({
                             <InfoTooltip
                                 text="If you need a new category beyond the menu of options, contact the Open Data Program (opendata@wa.gov)."
                                 width="300px"/>
+                            <DatasetFieldHistory field="category" title="Category"/>
                         </span>
                         {pendingCategory !== null ? (
                             <DiffView
@@ -323,6 +326,7 @@ export function DatasetDescription({
                                 <InfoTooltip
                                     text={tagsTooltipText}
                                     width="400px"/>
+                                <DatasetFieldHistory field="tags" title="Tags"/>
                             </span>
                         </div>
                         <DiffView
@@ -382,6 +386,7 @@ export function DatasetDescription({
                                 <InfoTooltip
                                     text={tagsTooltipText}
                                     width="400px"/>
+                                <DatasetFieldHistory field="tags" title="Tags"/>
                             </span>
                             <button
                                 className="btn btn-primary btn-md"
@@ -510,7 +515,10 @@ export function DatasetDescription({
                     <div className="dataset-license">
                         <span className="dataset-category-title">Licensing and Attribution</span>
                         <div className="dataset-license-row">
-                            <label className="dataset-license-label">License</label>
+                            <label className="dataset-license-label">
+                                License
+                                <DatasetFieldHistory field="licenseId" title="License"/>
+                            </label>
                             <select
                                 className="dataset-category-select"
                                 value={licenseId}
@@ -536,7 +544,10 @@ export function DatasetDescription({
                             </div>
                         )}
                         <div className="dataset-license-row">
-                            <label className="dataset-license-label">Attribution</label>
+                            <label className="dataset-license-label">
+                                Attribution
+                                <DatasetFieldHistory field="attribution" title="Attribution"/>
+                            </label>
                             <input
                                 type="text"
                                 className="dataset-row-label-input dataset-license-input"
@@ -563,6 +574,7 @@ export function DatasetDescription({
                                     <InfoTooltip
                                         text="Earliest-to-most-recent dates covered by the data itself. You may use &quot;the present&quot; for the most recent date, if the data is kept current."
                                         width="300px"/>
+                                    <DatasetFieldHistory field="periodOfTime" title="Period of Time"/>
                                 </label>
                                 <DiffView
                                     currentValue={periodOfTime}
@@ -583,6 +595,7 @@ export function DatasetDescription({
                                     <InfoTooltip
                                         text="Earliest-to-most-recent dates covered by the data itself. Check &quot;to present&quot; if the data is kept current."
                                         width="300px"/>
+                                    <DatasetFieldHistory field="periodOfTime" title="Period of Time"/>
                                 </label>
                                 <PeriodPicker
                                     value={periodOfTime}
@@ -615,6 +628,7 @@ export function DatasetDescription({
                                         <InfoTooltip
                                             text="How frequently the data is updated, e.g., annually, quarterly, monthly, weekly, daily or as needed."
                                             width="300px"/>
+                                        <DatasetFieldHistory field="postingFrequency" title="Posting Frequency"/>
                                     </label>
                                     <select
                                         className="dataset-category-select"
@@ -664,7 +678,10 @@ export function DatasetDescription({
 
                 {onEditContactEmail && (
                     <div className="dataset-contact">
-                        <span className="dataset-category-title">Contact Email</span>
+                        <span className="dataset-category-title">
+                            Contact Email
+                            <DatasetFieldHistory field="contactEmail" title="Contact Email"/>
+                        </span>
                         <div className="dataset-license-row">
                             <input
                                 type="email"

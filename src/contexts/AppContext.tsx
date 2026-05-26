@@ -66,6 +66,7 @@ import type {
     APIConfig,
     ColumnInfo,
     CsvRow,
+    FieldRevisionsMap,
     GeneratedResults,
     OpenAIConfig as OpenAIConfigType,
     PromptTemplates,
@@ -73,6 +74,15 @@ import type {
     Status,
     TokenUsage,
 } from '../types';
+import {
+    appendRevision,
+    type ColumnFieldKind,
+    columnKey,
+    type DatasetFieldKey,
+    datasetKey,
+    findRevision,
+    seedRevisions,
+} from '../utils/fieldRevisions';
 
 function parseSuggestions(text: string): SuggestionItem[] {
     // Split on lines starting with bullet points, dashes, or asterisks
@@ -128,6 +138,7 @@ interface SavedDatasetState {
     pendingPeriodOfTime: string | null;
     regeneratingDataset: boolean;
     regeneratingColumns: Set<string>;
+    fieldRevisions: FieldRevisionsMap;
 }
 
 export type ResettableColumnField = 'description' | 'displayName' | 'fieldName';
@@ -276,6 +287,9 @@ interface AppContextType {
     handleEditPostingFrequency: (newPostingFrequency: string) => void;
     handleResetField: <K extends keyof GeneratedResults>(field: K) => void;
     handleResetColumnField: (columnName: string, field: ResettableColumnField) => void;
+    fieldRevisions: FieldRevisionsMap;
+    handleRevertDatasetField: (field: DatasetFieldKey, revisionId: string) => void;
+    handleRevertColumnField: (columnName: string, kind: ColumnFieldKind, revisionId: string) => void;
     handlePushToSocrata: () => Promise<void>;
     handleCloseDataset: () => void;
     closeTab: (id: string) => void;
@@ -452,6 +466,17 @@ export function AppProvider({ children }: {children: ReactNode}) {
     // individual fields back to the value loaded from the source (Socrata
     // metadata for imports; the empty defaults for CSV uploads).
     const [initialResults, setInitialResults] = useState<GeneratedResults | null>(null);
+    // Per-field revision history. Each entry tracks who produced the value
+    // (original/ai/user) so users can see what changed and revert to any
+    // earlier draft.
+    const [fieldRevisions, setFieldRevisions] = useState<FieldRevisionsMap>({});
+
+    const recordRevision = useCallback(
+        (key: string, value: string | string[], source: 'ai' | 'user') => {
+            setFieldRevisions((prev) => appendRevision(prev, key, value, source));
+        },
+        [],
+    );
 
     useEffect(() => {
         let cancelled = false;
@@ -524,7 +549,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap, socrataCanEdit,
         pendingDatasetDescription, pendingColumnDescriptions,
         pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, pendingPeriodOfTime,
-        regeneratingDataset, regeneratingColumns,
+        regeneratingDataset, regeneratingColumns, fieldRevisions,
     });
     useLayoutEffect(() => {
         datasetStateRef.current = {
@@ -532,7 +557,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap, socrataCanEdit,
             pendingDatasetDescription, pendingColumnDescriptions,
             pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, pendingPeriodOfTime,
-            regeneratingDataset, regeneratingColumns,
+            regeneratingDataset, regeneratingColumns, fieldRevisions,
         };
     });
 
@@ -566,6 +591,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setGeneratingColumns(new Set());
         setRegeneratingDataset(saved.regeneratingDataset);
         setRegeneratingColumns(new Set(saved.regeneratingColumns));
+        setFieldRevisions(saved.fieldRevisions);
         setSuggestingDataset(false);
         setDatasetSuggestions([]);
         setSuggestingColumns(new Set());
@@ -1261,6 +1287,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 };
                 setGeneratedResults(initialCsvResults);
                 setInitialResults(initialCsvResults);
+                setFieldRevisions(seedRevisions(initialCsvResults, columns));
 
                 // Add tab
                 setDatasetTabs(prev => [...prev, { id: newId, fileName: result.fileName }]);
@@ -1329,6 +1356,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 columnFieldNames: {},
             });
             setInitialResults(null);
+            setFieldRevisions({});
             setShowResults(false);
             setImportedRowCount(0);
             setGeneratingColumns(new Set());
@@ -1470,12 +1498,18 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 const dsResult = await generateDatasetDescription(csvData, fileName, columnStats);
                 datasetDesc = dsResult.content;
                 setGeneratedResults((prev) => ({ ...prev, datasetDescription: datasetDesc }));
+                if (!dsResult.aborted && datasetDesc) {
+                    recordRevision(datasetKey('datasetDescription'), datasetDesc, 'ai');
+                }
             }
 
             const columnPromises = selectedColumns.map(async (col) => {
                 const info = columnStats[col];
                 const colValues = csvData.map((row) => row[col]);
                 const result = await generateColumnDescription(col, info, datasetDesc, colValues);
+                if (!result.aborted && result.content) {
+                    recordRevision(columnKey(col, 'description'), result.content, 'ai');
+                }
                 return { col, result };
             });
 
@@ -1494,7 +1528,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setGeneratingColumns(new Set());
             setIsGeneratingEmpty(false);
         }
-    }, [csvData, columnStats, generatedResults, fileName, generateDatasetDescription, generateColumnDescription]);
+    }, [csvData, columnStats, generatedResults, fileName, generateDatasetDescription, generateColumnDescription, recordRevision]);
 
     const handleSuggestDatasetImprovement = useCallback(async (sourceText?: string) => {
         const currentDesc = sourceText ?? generatedResults.datasetDescription;
@@ -1704,16 +1738,18 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const handleEditDatasetDescription = useCallback((newDescription: string) => {
         setGeneratedResults((prev) => ({ ...prev, datasetDescription: newDescription }));
-    }, []);
+        recordRevision(datasetKey('datasetDescription'), newDescription, 'user');
+    }, [recordRevision]);
 
     const handleAcceptPendingDataset = useCallback(() => {
         setPendingDatasetDescription((pending) => {
             if (pending !== null) {
                 setGeneratedResults((prev) => ({ ...prev, datasetDescription: pending }));
+                recordRevision(datasetKey('datasetDescription'), pending, 'ai');
             }
             return null;
         });
-    }, []);
+    }, [recordRevision]);
 
     const handleDiscardPendingDataset = useCallback(() => {
         setPendingDatasetDescription(null);
@@ -1727,12 +1763,13 @@ export function AppProvider({ children }: {children: ReactNode}) {
                     ...res,
                     columnDescriptions: { ...res.columnDescriptions, [columnName]: pending },
                 }));
+                recordRevision(columnKey(columnName, 'description'), pending, 'ai');
             }
             const next = { ...prev };
             delete next[columnName];
             return next;
         });
-    }, []);
+    }, [recordRevision]);
 
     const handleDiscardPendingColumn = useCallback((columnName: string) => {
         setPendingColumnDescriptions((prev) => {
@@ -1746,10 +1783,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setPendingDatasetTitle((pending) => {
             if (pending !== null) {
                 setGeneratedResults((prev) => ({ ...prev, datasetTitle: pending }));
+                recordRevision(datasetKey('datasetTitle'), pending, 'ai');
             }
             return null;
         });
-    }, []);
+    }, [recordRevision]);
 
     const handleDiscardPendingDatasetTitle = useCallback(() => {
         setPendingDatasetTitle(null);
@@ -1759,10 +1797,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setPendingRowLabel((pending) => {
             if (pending !== null) {
                 setGeneratedResults((prev) => ({ ...prev, rowLabel: pending }));
+                recordRevision(datasetKey('rowLabel'), pending, 'ai');
             }
             return null;
         });
-    }, []);
+    }, [recordRevision]);
 
     const handleDiscardPendingRowLabel = useCallback(() => {
         setPendingRowLabel(null);
@@ -1772,10 +1811,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setPendingCategory((pending) => {
             if (pending !== null) {
                 setGeneratedResults((prev) => ({ ...prev, category: pending }));
+                recordRevision(datasetKey('category'), pending, 'ai');
             }
             return null;
         });
-    }, []);
+    }, [recordRevision]);
 
     const handleDiscardPendingCategory = useCallback(() => {
         setPendingCategory(null);
@@ -1785,10 +1825,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setPendingTags((pending) => {
             if (pending !== null) {
                 setGeneratedResults((prev) => ({ ...prev, tags: pending }));
+                recordRevision(datasetKey('tags'), pending, 'ai');
             }
             return null;
         });
-    }, []);
+    }, [recordRevision]);
 
     const handleDiscardPendingTags = useCallback(() => {
         setPendingTags(null);
@@ -1798,10 +1839,11 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setPendingPeriodOfTime((pending) => {
             if (pending !== null) {
                 setGeneratedResults((prev) => ({ ...prev, periodOfTime: pending }));
+                recordRevision(datasetKey('periodOfTime'), pending, 'ai');
             }
             return null;
         });
-    }, []);
+    }, [recordRevision]);
 
     const handleDiscardPendingPeriodOfTime = useCallback(() => {
         setPendingPeriodOfTime(null);
@@ -1812,25 +1854,29 @@ export function AppProvider({ children }: {children: ReactNode}) {
             ...prev,
             columnDescriptions: { ...prev.columnDescriptions, [columnName]: newDescription },
         }));
-    }, []);
+        recordRevision(columnKey(columnName, 'description'), newDescription, 'user');
+    }, [recordRevision]);
 
     const handleEditColumnDisplayName = useCallback((columnName: string, newDisplayName: string) => {
         setGeneratedResults((prev) => ({
             ...prev,
             columnDisplayNames: { ...prev.columnDisplayNames, [columnName]: newDisplayName },
         }));
-    }, []);
+        recordRevision(columnKey(columnName, 'displayName'), newDisplayName, 'user');
+    }, [recordRevision]);
 
     const handleEditColumnFieldName = useCallback((columnName: string, newFieldName: string) => {
         setGeneratedResults((prev) => ({
             ...prev,
             columnFieldNames: { ...prev.columnFieldNames, [columnName]: newFieldName },
         }));
-    }, []);
+        recordRevision(columnKey(columnName, 'fieldName'), newFieldName, 'user');
+    }, [recordRevision]);
 
     const handleEditRowLabel = useCallback((newLabel: string) => {
         setGeneratedResults((prev) => ({ ...prev, rowLabel: newLabel }));
-    }, []);
+        recordRevision(datasetKey('rowLabel'), newLabel, 'user');
+    }, [recordRevision]);
 
     const handleGenerateRowLabel = useCallback(async () => {
         if (!csvData) return;
@@ -1856,7 +1902,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const handleEditDatasetTitle = useCallback((newTitle: string) => {
         setGeneratedResults((prev) => ({ ...prev, datasetTitle: newTitle }));
-    }, []);
+        recordRevision(datasetKey('datasetTitle'), newTitle, 'user');
+    }, [recordRevision]);
 
     const handleGenerateDatasetTitle = useCallback(async () => {
         if (!csvData) return;
@@ -1882,7 +1929,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const handleEditCategory = useCallback((newCategory: string) => {
         setGeneratedResults((prev) => ({ ...prev, category: newCategory }));
-    }, []);
+        recordRevision(datasetKey('category'), newCategory, 'user');
+    }, [recordRevision]);
 
     const handleGenerateCategory = useCallback(async () => {
         if (!csvData) return;
@@ -1926,7 +1974,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
             deduped.push(tag);
         }
         setGeneratedResults((prev) => ({ ...prev, tags: deduped }));
-    }, []);
+        recordRevision(datasetKey('tags'), deduped, 'user');
+    }, [recordRevision]);
 
     const handleAddTag = useCallback((tag: string) => {
         const clean = tag.trim();
@@ -1934,16 +1983,19 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setGeneratedResults((prev) => {
             const key = clean.toLowerCase();
             if (prev.tags.some((t) => t.toLowerCase() === key)) return prev;
-            return { ...prev, tags: [...prev.tags, clean] };
+            const nextTags = [...prev.tags, clean];
+            recordRevision(datasetKey('tags'), nextTags, 'user');
+            return { ...prev, tags: nextTags };
         });
-    }, []);
+    }, [recordRevision]);
 
     const handleRemoveTag = useCallback((tag: string) => {
-        setGeneratedResults((prev) => ({
-            ...prev,
-            tags: prev.tags.filter((t) => t !== tag),
-        }));
-    }, []);
+        setGeneratedResults((prev) => {
+            const nextTags = prev.tags.filter((t) => t !== tag);
+            recordRevision(datasetKey('tags'), nextTags, 'user');
+            return { ...prev, tags: nextTags };
+        });
+    }, [recordRevision]);
 
     const handleGenerateTags = useCallback(async () => {
         if (!csvData) return;
@@ -1999,23 +2051,28 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const handleEditLicenseId = useCallback((newLicenseId: string) => {
         setGeneratedResults((prev) => ({ ...prev, licenseId: newLicenseId }));
-    }, []);
+        recordRevision(datasetKey('licenseId'), newLicenseId, 'user');
+    }, [recordRevision]);
 
     const handleEditAttribution = useCallback((newAttribution: string) => {
         setGeneratedResults((prev) => ({ ...prev, attribution: newAttribution }));
-    }, []);
+        recordRevision(datasetKey('attribution'), newAttribution, 'user');
+    }, [recordRevision]);
 
     const handleEditContactEmail = useCallback((newContactEmail: string) => {
         setGeneratedResults((prev) => ({ ...prev, contactEmail: newContactEmail }));
-    }, []);
+        recordRevision(datasetKey('contactEmail'), newContactEmail, 'user');
+    }, [recordRevision]);
 
     const handleEditPeriodOfTime = useCallback((newPeriodOfTime: string) => {
         setGeneratedResults((prev) => ({ ...prev, periodOfTime: newPeriodOfTime }));
-    }, []);
+        recordRevision(datasetKey('periodOfTime'), newPeriodOfTime, 'user');
+    }, [recordRevision]);
 
     const handleEditPostingFrequency = useCallback((newPostingFrequency: string) => {
         setGeneratedResults((prev) => ({ ...prev, postingFrequency: newPostingFrequency }));
-    }, []);
+        recordRevision(datasetKey('postingFrequency'), newPostingFrequency, 'user');
+    }, [recordRevision]);
 
     const handleGeneratePeriodOfTime = useCallback(async () => {
         if (!csvData) return;
@@ -2155,6 +2212,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 };
                 setGeneratedResults(initialSocrataResults);
                 setInitialResults(initialSocrataResults);
+                setFieldRevisions(seedRevisions(initialSocrataResults, columns));
 
                 setShowResults(true);
 
@@ -2261,6 +2319,42 @@ export function AppProvider({ children }: {children: ReactNode}) {
             }));
         },
         [initialResults]
+    );
+
+    // Revert to a specific historical revision without appending a new entry.
+    // The popover highlights whichever revision matches the current value, so
+    // the user can hop between drafts freely without churning history.
+    const handleRevertDatasetField = useCallback(
+        (field: DatasetFieldKey, revisionId: string) => {
+            const rev = findRevision(fieldRevisions, datasetKey(field), revisionId);
+            if (!rev) return;
+            const value = rev.value;
+            setGeneratedResults((prev) => {
+                if (field === 'tags') {
+                    return { ...prev, tags: Array.isArray(value) ? [...value] : [] };
+                }
+                if (Array.isArray(value)) return prev;
+                return { ...prev, [field]: value } as GeneratedResults;
+            });
+        },
+        [fieldRevisions],
+    );
+
+    const handleRevertColumnField = useCallback(
+        (columnName: string, kind: ColumnFieldKind, revisionId: string) => {
+            const rev = findRevision(fieldRevisions, columnKey(columnName, kind), revisionId);
+            if (!rev) return;
+            const value = typeof rev.value === 'string' ? rev.value : '';
+            const mapKey: 'columnDescriptions' | 'columnDisplayNames' | 'columnFieldNames' =
+                kind === 'description' ? 'columnDescriptions'
+                    : kind === 'displayName' ? 'columnDisplayNames'
+                        : 'columnFieldNames';
+            setGeneratedResults((prev) => ({
+                ...prev,
+                [mapKey]: { ...prev[mapKey], [columnName]: value },
+            }));
+        },
+        [fieldRevisions],
     );
 
     const handlePushToSocrata = useCallback(async () => {
@@ -2461,6 +2555,9 @@ export function AppProvider({ children }: {children: ReactNode}) {
         handleEditPostingFrequency,
         handleResetField,
         handleResetColumnField,
+        fieldRevisions,
+        handleRevertDatasetField,
+        handleRevertColumnField,
         handlePushToSocrata,
         handleCloseDataset,
         closeTab,

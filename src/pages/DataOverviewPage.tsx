@@ -4,6 +4,7 @@ import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
 import { ResetFieldButton } from '../components/ResetFieldButton/ResetFieldButton';
 import { InfoTooltip } from '../components/InfoTooltip/InfoTooltip';
 import { DiffView } from '../components/shared/DiffView';
+import { DatasetFieldHistory } from '../components/FieldHistoryButton/ConnectedFieldHistory';
 import { useAppContext } from '../contexts/AppContext';
 import './DataOverviewPage.css';
 
@@ -247,6 +248,7 @@ export function DataOverviewPage() {
                                 <InfoTooltip
                                     text="A short description of what distinguishes one row from another. Ideally each row is one unique observation, e.g., the number of adult fish counted at a specific site on a certain date."
                                     width="350px"/>
+                                <DatasetFieldHistory field="rowLabel" title="Row Label"/>
                             </span>
                             <div style={{ display: 'flex', alignItems: 'center', minHeight: '32px', width: '100%' }}>
                                 {pendingRowLabel !== null ? (

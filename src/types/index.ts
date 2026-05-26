@@ -113,3 +113,14 @@ export interface TokenUsage {
 }
 
 export type CsvRow = Record<string, string>;
+
+export type FieldRevisionSource = 'original' | 'ai' | 'user';
+
+export interface FieldRevision {
+    id: string;
+    value: string | string[];
+    source: FieldRevisionSource;
+    timestamp: number;
+}
+
+export type FieldRevisionsMap = Record<string, FieldRevision[]>;
