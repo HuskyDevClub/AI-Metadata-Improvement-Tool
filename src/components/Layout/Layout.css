@@ -68,11 +68,15 @@
 }
 
 /* ─── Tab navigation bar ─── */
+.layout-nav-container {
+    position: relative;
+    margin: 0 -32px;
+}
+
 .layout-nav {
     display: flex;
     align-items: end;
     gap: 2px;
-    margin: 0 -32px;
     padding: 6px 32px 0;
     overflow-x: auto;
     scrollbar-width: none;
@@ -80,6 +84,41 @@
 
 .layout-nav::-webkit-scrollbar {
     display: none;
+}
+
+/* ─── Scroll affordance buttons (shown only when nav overflows) ─── */
+.layout-nav-scroll {
+    position: absolute;
+    bottom: 4px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 28px;
+    padding: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.layout-nav-scroll:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+    border-color: var(--text-tertiary);
+}
+
+.layout-nav-scroll-left {
+    right: 62px;
+    box-shadow: -6px 0 10px -4px rgba(0, 0, 0, 0.08);
+}
+
+.layout-nav-scroll-right {
+    right: 28px;
+    box-shadow: -6px 0 10px -4px rgba(0, 0, 0, 0.08);
 }
 
 /* ─── Base tab style (shared by Import + Dataset) ─── */
@@ -167,6 +206,37 @@
     gap: 7px;
     max-width: 220px;
     padding-right: 10px;
+}
+
+/* Drag-and-drop reordering: dim the tab being dragged and draw an accent
+   bar on the side of the hover target where it would land on drop. */
+.layout-dataset-tab.is-dragging {
+    opacity: 0.4;
+}
+
+.layout-dataset-tab.drop-before,
+.layout-dataset-tab.drop-after {
+    position: relative;
+}
+
+.layout-dataset-tab.drop-before::before,
+.layout-dataset-tab.drop-after::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--accent);
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+.layout-dataset-tab.drop-before::before {
+    left: -1px;
+}
+
+.layout-dataset-tab.drop-after::after {
+    right: -1px;
 }
 
 .layout-dataset-tab-icon {
@@ -353,17 +423,11 @@ a.layout-dataset-subtitle-value:hover .layout-dataset-subtitle-external {
 }
 
 .layout-dataset-title-input:focus {
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    box-shadow: var(--focus-ring);
 }
 
 .layout-dataset-push-btn {
-    background: #0066cc;
-    color: white;
     flex-shrink: 0;
-}
-
-.layout-dataset-push-btn:hover:not(:disabled) {
-    background: #0052a3;
 }
 
 .layout-dataset-bar-actions {

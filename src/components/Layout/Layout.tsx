@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PageId } from '../../contexts/AppContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { FloatingActions } from '../FloatingActions/FloatingActions';
@@ -41,13 +41,60 @@ function NavTab({ page, label, disabled }: {page: PageId; label: string; disable
     );
 }
 
-function DatasetTab({ id, fileName }: {id: string; fileName: string}) {
+type DropSide = 'before' | 'after';
+type DragOverState = {id: string; side: DropSide} | null;
+
+interface DatasetTabProps {
+    id: string;
+    label: string;
+    isDragging: boolean;
+    dropSide: DropSide | null;
+    onDragStartTab: (id: string) => void;
+    onDragOverTab: (id: string, side: DropSide) => void;
+    onDropTab: (targetId: string, side: DropSide) => void;
+    onDragEndTab: () => void;
+}
+
+function DatasetTab({
+                        id, label, isDragging, dropSide,
+                        onDragStartTab, onDragOverTab, onDropTab, onDragEndTab,
+                    }: DatasetTabProps) {
     const { activeDatasetId, currentPage, switchToDataset, closeTab } = useAppContext();
     const isActive = id === activeDatasetId && currentPage !== 'import' && currentPage !== 'settings';
 
+    const computeSide = (e: React.DragEvent<HTMLButtonElement>): DropSide => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        return e.clientX < rect.left + rect.width / 2 ? 'before' : 'after';
+    };
+
+    const classes = [
+        'layout-nav-link',
+        'layout-dataset-tab',
+        isActive ? 'active' : '',
+        isDragging ? 'is-dragging' : '',
+        dropSide === 'before' ? 'drop-before' : '',
+        dropSide === 'after' ? 'drop-after' : '',
+    ].filter(Boolean).join(' ');
+
     return (
         <button
-            className={`layout-nav-link layout-dataset-tab ${isActive ? 'active' : ''}`}
+            className={classes}
+            draggable
+            onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', id);
+                onDragStartTab(id);
+            }}
+            onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                onDragOverTab(id, computeSide(e));
+            }}
+            onDrop={(e) => {
+                e.preventDefault();
+                onDropTab(id, computeSide(e));
+            }}
+            onDragEnd={onDragEndTab}
             onClick={() => switchToDataset(id)}
             onAuxClick={(e) => {
                 if (e.button === 1) {
@@ -58,7 +105,7 @@ function DatasetTab({ id, fileName }: {id: string; fileName: string}) {
             onMouseDown={(e) => {
                 if (e.button === 1) e.preventDefault();
             }}
-            title={fileName}
+            title={label}
         >
             <span className="layout-dataset-tab-icon">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -70,12 +117,12 @@ function DatasetTab({ id, fileName }: {id: string; fileName: string}) {
                     <rect x="14" y="14" width="7" height="7"/>
                 </svg>
             </span>
-            <span className="layout-dataset-tab-name">{fileName}</span>
+            <span className="layout-dataset-tab-name">{label}</span>
             <span
                 className="layout-dataset-tab-close"
                 onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm(`Close dataset "${fileName}"?`)) {
+                    if (window.confirm(`Close dataset "${label}"?`)) {
                         closeTab(id);
                     }
                 }}
@@ -299,7 +346,84 @@ export function Layout() {
         handlePushToSocrata,
         datasetTabs,
         socrataDomain,
+        reorderTabs,
     } = useAppContext();
+
+    const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
+    const [dragOver, setDragOver] = useState<DragOverState>(null);
+
+    const navRef = useRef<HTMLElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
+    useEffect(() => {
+        const nav = navRef.current;
+        if (!nav) return;
+
+        const updateScrollState = () => {
+            const { scrollLeft, scrollWidth, clientWidth } = nav;
+            setCanScrollLeft(scrollLeft > 0);
+            setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
+        };
+
+        updateScrollState();
+        nav.addEventListener('scroll', updateScrollState, { passive: true });
+        const resizeObserver = new ResizeObserver(updateScrollState);
+        resizeObserver.observe(nav);
+        for (const child of Array.from(nav.children)) {
+            resizeObserver.observe(child);
+        }
+
+        // Translate vertical mouse-wheel input into horizontal tab scroll.
+        // Trackpads emit deltaX directly, so we only intercept the pure-deltaY
+        // case (mouse wheels). We always preventDefault here so single-tab navs
+        // don't jiggle 1px vertically from the implicit overflow-y: auto that
+        // overflow-x: auto forces.
+        const handleWheel = (e: WheelEvent) => {
+            if (e.deltaY === 0 || e.deltaX !== 0) return;
+            e.preventDefault();
+            if (nav.scrollWidth > nav.clientWidth) {
+                nav.scrollLeft += e.deltaY;
+            }
+        };
+        nav.addEventListener('wheel', handleWheel, { passive: false });
+
+        return () => {
+            nav.removeEventListener('scroll', updateScrollState);
+            nav.removeEventListener('wheel', handleWheel);
+            resizeObserver.disconnect();
+        };
+    }, [datasetTabs.length]);
+
+    const scrollTabs = (direction: 'left' | 'right') => {
+        const nav = navRef.current;
+        if (!nav) return;
+        const amount = nav.clientWidth * 0.7 * (direction === 'left' ? -1 : 1);
+        nav.scrollBy({ left: amount, behavior: 'smooth' });
+    };
+
+    const handleDragStartTab = (id: string) => setDraggingTabId(id);
+    const handleDragOverTab = (id: string, side: DropSide) => {
+        if (!draggingTabId || draggingTabId === id) {
+            // Don't show an indicator on the tab being dragged itself.
+            if (dragOver) setDragOver(null);
+            return;
+        }
+        if (!dragOver || dragOver.id !== id || dragOver.side !== side) {
+            setDragOver({ id, side });
+        }
+    };
+    const handleDropTab = (targetId: string, side: DropSide) => {
+        if (draggingTabId && draggingTabId !== targetId) {
+            reorderTabs(draggingTabId, targetId, side);
+        }
+        setDraggingTabId(null);
+        setDragOver(null);
+    };
+    const handleDragEndTab = () => {
+        setDraggingTabId(null);
+        setDragOver(null);
+    };
 
     // Pushing metadata requires Socrata credentials — an OAuth sign-in and/or
     // saved API keys (independent identities; either may carry write access).
@@ -355,13 +479,55 @@ export function Layout() {
                         </svg>
                     </button>
                 </div>
-                <nav className="layout-nav">
-                    <NavTab page="import" label="Import"/>
-                    {datasetTabs.length > 0 && <span className="layout-nav-divider"/>}
-                    {datasetTabs.map(tab => (
-                        <DatasetTab key={tab.id} id={tab.id} fileName={tab.fileName}/>
-                    ))}
-                </nav>
+                <div className="layout-nav-container">
+                    <nav className="layout-nav" ref={navRef}>
+                        <NavTab page="import" label="Import"/>
+                        {datasetTabs.length > 0 && <span className="layout-nav-divider"/>}
+                        {datasetTabs.map(tab => (
+                            <DatasetTab
+                                key={tab.id}
+                                id={tab.id}
+                                label={tab.label}
+                                isDragging={draggingTabId === tab.id}
+                                dropSide={dragOver?.id === tab.id ? dragOver.side : null}
+                                onDragStartTab={handleDragStartTab}
+                                onDragOverTab={handleDragOverTab}
+                                onDropTab={handleDropTab}
+                                onDragEndTab={handleDragEndTab}
+                            />
+                        ))}
+                    </nav>
+                    {canScrollLeft && (
+                        <button
+                            type="button"
+                            className="layout-nav-scroll layout-nav-scroll-left"
+                            onClick={() => scrollTabs('left')}
+                            aria-label="Scroll tabs left"
+                            title="Scroll tabs left"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                                 strokeLinejoin="round">
+                                <polyline points="15 18 9 12 15 6"/>
+                            </svg>
+                        </button>
+                    )}
+                    {canScrollRight && (
+                        <button
+                            type="button"
+                            className="layout-nav-scroll layout-nav-scroll-right"
+                            onClick={() => scrollTabs('right')}
+                            aria-label="Scroll tabs right"
+                            title="Scroll tabs right"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                                 strokeLinejoin="round">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </button>
+                    )}
+                </div>
             </div>
             {showResults && fileName && (currentPage === 'data' || currentPage === 'field') && (
                 <div className="layout-dataset-bar">

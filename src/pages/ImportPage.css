@@ -197,16 +197,10 @@
     transition: border-color 0.15s, box-shadow 0.2s, background 0.15s;
 }
 
-.import-csv-btn:hover:not(:disabled) {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
-    background: var(--accent-light);
-    color: var(--accent);
-}
-
+.import-csv-btn:hover:not(:disabled),
 .import-csv-btn.dragging {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    box-shadow: var(--focus-ring);
     background: var(--accent-light);
     color: var(--accent);
 }

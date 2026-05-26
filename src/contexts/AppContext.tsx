@@ -110,6 +110,9 @@ export type PageId = 'import' | 'data' | 'field' | 'settings';
 interface DatasetTabInfo {
     id: string;
     fileName: string;
+    // Text shown in the top-tab. Defaults to fileName for CSV uploads and
+    // datasetName for Socrata imports; tracks edits to the dataset title.
+    label: string;
 }
 
 interface SavedDatasetState {
@@ -153,6 +156,7 @@ interface AppContextType {
     datasetTabs: DatasetTabInfo[];
     activeDatasetId: string | null;
     switchToDataset: (id: string) => void;
+    reorderTabs: (fromId: string, toId: string, position: 'before' | 'after') => void;
 
     // API & Config
     openaiConfig: OpenAIConfigType;
@@ -1290,7 +1294,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setFieldRevisions(seedRevisions(initialCsvResults, columns));
 
                 // Add tab
-                setDatasetTabs(prev => [...prev, { id: newId, fileName: result.fileName }]);
+                setDatasetTabs(prev => [...prev, { id: newId, fileName: result.fileName, label: result.fileName }]);
                 lastDatasetPageRef.current = { page: 'data', fieldName: null };
                 setCurrentPage('data');
 
@@ -1399,6 +1403,24 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setDatasetTabs(prev => prev.filter(t => t.id !== id));
         }
     }, [handleCloseDataset]);
+
+    // Drag-and-drop reorder. `position` says whether the dragged tab lands
+    // immediately before or after the target tab.
+    const reorderTabs = useCallback((fromId: string, toId: string, position: 'before' | 'after') => {
+        if (fromId === toId) return;
+        setDatasetTabs((prev) => {
+            const fromIdx = prev.findIndex((t) => t.id === fromId);
+            const toIdx = prev.findIndex((t) => t.id === toId);
+            if (fromIdx === -1 || toIdx === -1) return prev;
+            const next = prev.slice();
+            const [moved] = next.splice(fromIdx, 1);
+            // After removing fromIdx, indices >= fromIdx shift left by 1.
+            const adjustedToIdx = toIdx > fromIdx ? toIdx - 1 : toIdx;
+            const insertAt = position === 'before' ? adjustedToIdx : adjustedToIdx + 1;
+            next.splice(insertAt, 0, moved);
+            return next;
+        });
+    }, []);
 
     const handleRegenerateDataset = useCallback(
         async (modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => {
@@ -2216,8 +2238,9 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
                 setShowResults(true);
 
-                // Add tab
-                setDatasetTabs(prev => [...prev, { id: newId, fileName: result.fileName }]);
+                // Add tab — prefer the portal's dataset name over the download filename
+                const tabLabel = result.datasetName || result.fileName;
+                setDatasetTabs(prev => [...prev, { id: newId, fileName: result.fileName, label: tabLabel }]);
                 lastDatasetPageRef.current = { page: 'data', fieldName: null };
                 setCurrentPage('data');
 
@@ -2235,6 +2258,22 @@ export function AppProvider({ children }: {children: ReactNode}) {
         },
         [saveCurrentDataset, socrataDomain, refreshSocrataCanEdit]
     );
+
+    // Keep the active tab's label in sync with the dataset title for Socrata
+    // imports — so edits/regenerations of the title flow through to the tab.
+    // CSV uploads stay anchored to their filename.
+    useEffect(() => {
+        if (!activeDatasetId || !socrataDatasetId) return;
+        const nextLabel = generatedResults.datasetTitle?.trim();
+        if (!nextLabel) return;
+        setDatasetTabs((prev) => {
+            const idx = prev.findIndex((t) => t.id === activeDatasetId);
+            if (idx === -1 || prev[idx].label === nextLabel) return prev;
+            const next = prev.slice();
+            next[idx] = { ...next[idx], label: nextLabel };
+            return next;
+        });
+    }, [activeDatasetId, socrataDatasetId, generatedResults.datasetTitle]);
 
     // Auto-import dataset from ?dataset_id=<id> query parameter on mount
     const urlDatasetIdHandledRef = useRef(false);
@@ -2448,6 +2487,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         datasetTabs,
         activeDatasetId,
         switchToDataset,
+        reorderTabs,
         openaiConfig,
         isOpenAIConfigured,
         promptTemplates,

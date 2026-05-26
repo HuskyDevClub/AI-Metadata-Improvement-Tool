@@ -103,7 +103,7 @@ export function SocrataDomainConfig({
             )}
             <span className="socrata-domain-config-help-text">
                 The open data portal this tool reads from and writes to. Any
-                Socrata-platform domain works (e.g. data.cityofnewyork.us).
+                Socrata-platform domain works (e.g. data.wa.gov).
                 {defaultDomain && (
                     <>
                         {' '}Server default: <code>{defaultDomain}</code>.

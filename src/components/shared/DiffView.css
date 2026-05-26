@@ -23,11 +23,11 @@
 
 .diff-view-new {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
+    box-shadow: var(--focus-ring);
 }
 
 .diff-view-current .diff-view-text {
-    color: #334155;
+    color: var(--text-secondary);
 }
 
 .diff-view-new .diff-view-text {

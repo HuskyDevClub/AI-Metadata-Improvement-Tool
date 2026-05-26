@@ -165,7 +165,7 @@
 }
 
 .ed-suggestion-delete-btn:hover {
-    color: #ef4444;
+    color: var(--error);
 }
 
 .ed-suggestion-edit-mode {
@@ -194,7 +194,7 @@
 .ed-suggestion-edit-save {
     background: none;
     border: none;
-    color: #059669;
+    color: var(--success);
     cursor: pointer;
     font-size: 14px;
     padding: 2px 4px;
@@ -208,7 +208,7 @@
 .ed-suggestion-edit-cancel {
     background: none;
     border: none;
-    color: #ef4444;
+    color: var(--error);
     cursor: pointer;
     font-size: 14px;
     padding: 2px 4px;
@@ -216,7 +216,7 @@
 }
 
 .ed-suggestion-edit-cancel:hover {
-    color: #dc2626;
+    color: #b91c1c;
 }
 
 .ed-suggestion-add-row {
@@ -252,17 +252,15 @@
     border-top: 1px solid var(--warning-border);
 }
 
-.ed-btn-apply {
-    background: var(--warning) !important;
-    color: white !important;
-    border-color: var(--warning) !important;
-    font-size: 13px;
-    padding: 8px 16px;
+.btn.ed-btn-apply {
+    background: var(--warning);
+    color: #fff;
+    border-color: var(--warning);
 }
 
-.ed-btn-apply:hover:not(:disabled) {
-    background: #b45309 !important;
-    border-color: #b45309 !important;
+.btn.ed-btn-apply:hover:not(:disabled) {
+    background: #b45309;
+    border-color: #b45309;
 }
 
 /* ── Suggestions panel ── */
