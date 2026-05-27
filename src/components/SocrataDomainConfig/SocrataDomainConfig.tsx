@@ -4,7 +4,7 @@ import './SocrataDomainConfig.css';
 interface SocrataDomainConfigProps {
     /** Portal currently in effect (null until /api/socrata/config resolves). */
     domain: string | null;
-    /** Server default portal — enables the "reset to default" action. */
+    /** Server default portal enables the "reset to default" action. */
     defaultDomain: string | null;
     /** Persist a new portal; pass '' to clear the override. */
     onSave: (domain: string) => Promise<void>;
@@ -71,7 +71,7 @@ export function SocrataDomainConfig({
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSave();
+                        if (e.key === 'Enter') handleSave().then();
                     }}
                     spellCheck={false}
                     autoCapitalize="off"

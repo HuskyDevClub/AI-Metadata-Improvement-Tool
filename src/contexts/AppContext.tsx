@@ -177,6 +177,10 @@ interface AppContextType {
     socrataDomain: string | null;
     // The server default portal — lets the UI offer a "reset to default".
     socrataDefaultDomain: string | null;
+    // Whether the Socrata "Sign in" UI should be exposed. Defaults to false
+    // until /api/socrata/config resolves; flipping the backend env var and
+    // restarting toggles this without a frontend rebuild.
+    enableSocrataOAuth: boolean;
     // Set or clear the per-user portal override (pass '' to reset to default).
     handleSocrataDomainSave: (domain: string) => Promise<void>;
 
@@ -374,6 +378,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const [socrataDomain, setSocrataDomain] = useState<string | null>(null);
     const [socrataDefaultDomain, setSocrataDefaultDomain] = useState<string | null>(null);
+    const [enableSocrataOAuth, setEnableSocrataOAuth] = useState<boolean>(false);
     const [allowedCategories, setAllowedCategories] = useState<string[]>([]);
     const [allowedTags, setAllowedTags] = useState<string[]>([]);
     const [allowedLicenses, setAllowedLicenses] = useState<SocrataLicense[]>([]);
@@ -406,6 +411,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 if (cancelled) return;
                 if (config.domain) setSocrataDomain(config.domain);
                 if (config.defaultDomain) setSocrataDefaultDomain(config.defaultDomain);
+                setEnableSocrataOAuth(config.enableOAuth);
             })
             .catch((err) => {
                 console.warn('Failed to load Socrata config:', err);
@@ -863,6 +869,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         }
         setSocrataDomain(config.domain);
         setSocrataDefaultDomain(config.defaultDomain);
+        setEnableSocrataOAuth(config.enableOAuth);
         setStatus({
             message: `Portal set to ${config.domain}`,
             type: 'success',
@@ -2496,6 +2503,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         handleOpenAIConfigClear,
         socrataDomain,
         socrataDefaultDomain,
+        enableSocrataOAuth,
         handleSocrataDomainSave,
         allowedCategories,
         allowedTags,

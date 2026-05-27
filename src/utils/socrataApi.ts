@@ -154,6 +154,8 @@ export interface SocrataConfig {
     domain: string;
     /** Server default — lets the UI offer a "reset to default" action. */
     defaultDomain: string;
+    /** Whether the "Sign in" UI is exposed (gated by ENABLE_SOCRATA_OAUTH). */
+    enableOAuth: boolean;
 }
 
 function parseSocrataConfig(result: unknown): SocrataConfig {
@@ -162,6 +164,7 @@ function parseSocrataConfig(result: unknown): SocrataConfig {
     return {
         domain,
         defaultDomain: String(data.defaultDomain || domain || ''),
+        enableOAuth: data.enableOAuth === true,
     };
 }
 

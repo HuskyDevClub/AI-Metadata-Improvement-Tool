@@ -346,6 +346,7 @@ export function Layout() {
         handlePushToSocrata,
         datasetTabs,
         socrataDomain,
+        enableSocrataOAuth,
         reorderTabs,
     } = useAppContext();
 
@@ -432,10 +433,16 @@ export function Layout() {
     // For a Socrata-imported dataset the Push button is always shown, but
     // disabled with an explanation when the push cannot succeed: no
     // credentials at all, or credentials that lack write access here.
+    const credentialsHint = enableSocrataOAuth
+        ? `Sign in${socrataDomain ? ` to ${socrataDomain}` : ''} or add API credentials in Settings`
+        : 'Add API credentials in Settings';
+    const noWriteAccessHint = enableSocrataOAuth
+        ? `Your Socrata sign-in and API credentials don't have write access`
+        : `Your API credentials don't have write access`;
     const pushDisabledReason = !hasSocrataAuth
-        ? `Sign in${socrataDomain ? ` to ${socrataDomain}` : ''} or add API credentials in Settings to push metadata`
+        ? `${credentialsHint} to push metadata`
         : !socrataCanEdit
-            ? `Your Socrata sign-in and API credentials don't have write access to this dataset${socrataDomain ? ` on ${socrataDomain}` : ''}`
+            ? `${noWriteAccessHint} to this dataset${socrataDomain ? ` on ${socrataDomain}` : ''}`
             : null;
 
     return (
@@ -446,25 +453,27 @@ export function Layout() {
                     <span className="layout-header-subtitle">Generate & improve dataset metadata with AI</span>
                 </div>
                 <div className="layout-header-actions">
-                    {socrataOAuthUser ? (
-                        <span className="layout-oauth-status">
-                            Signed in as <strong>{socrataOAuthUser.displayName}</strong>
-                            <button type="button" className="btn btn-secondary btn-md"
-                                    onClick={handleSocrataOAuthLogout}>
-                                Sign out
+                    {enableSocrataOAuth && (
+                        socrataOAuthUser ? (
+                            <span className="layout-oauth-status">
+                                Signed in as <strong>{socrataOAuthUser.displayName}</strong>
+                                <button type="button" className="btn btn-secondary btn-md"
+                                        onClick={handleSocrataOAuthLogout}>
+                                    Sign out
+                                </button>
+                            </span>
+                        ) : (
+                            <button
+                                type="button"
+                                className="btn btn-primary btn-md"
+                                onClick={handleSocrataOAuthLogin}
+                                disabled={isSocrataOAuthAuthenticating}
+                            >
+                                {isSocrataOAuthAuthenticating
+                                    ? 'Signing in...'
+                                    : socrataDomain ? `Sign in with ${socrataDomain}` : 'Sign in'}
                             </button>
-                        </span>
-                    ) : (
-                        <button
-                            type="button"
-                            className="btn btn-primary btn-md"
-                            onClick={handleSocrataOAuthLogin}
-                            disabled={isSocrataOAuthAuthenticating}
-                        >
-                            {isSocrataOAuthAuthenticating
-                                ? 'Signing in...'
-                                : socrataDomain ? `Sign in with ${socrataDomain}` : 'Sign in'}
-                        </button>
+                        )
                     )}
                     <button
                         className={`layout-settings-btn ${currentPage === 'settings' ? 'active' : ''}`}

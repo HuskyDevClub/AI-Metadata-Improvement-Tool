@@ -102,6 +102,11 @@ SOCRATA_OAUTH_REDIRECT_URI = (
     or f"{FRONTEND_URL}/api/auth/socrata/callback"
 )
 
+# OAuth is only functional when the portal-app Secret Token is configured.
+# The frontend uses this to hide the "Sign in" UI when sign-in can't succeed
+# anyway — keeping it visible would just expose a broken button.
+ENABLE_SOCRATA_OAUTH = bool(SOCRATA_SECRET_TOKEN)
+
 # --- LLM -------------------------------------------------------------------
 LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")

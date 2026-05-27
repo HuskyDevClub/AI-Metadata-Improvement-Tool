@@ -11,6 +11,7 @@ from .config import (
     COOKIE_SAMESITE,
     COOKIE_SECURE,
     DOMAIN_COOKIE_MAX_AGE,
+    ENABLE_SOCRATA_OAUTH,
     SOCRATA_CATALOG_DOMAIN,
     SOCRATA_DOMAIN,
     SOCRATA_DOMAIN_COOKIE_NAME,
@@ -65,6 +66,7 @@ async def socrata_config(request: Request) -> SocrataConfigResponse:
     return SocrataConfigResponse(
         domain=resolve_socrata_domain(request),
         defaultDomain=SOCRATA_DOMAIN,
+        enableOAuth=ENABLE_SOCRATA_OAUTH,
     )
 
 
@@ -86,7 +88,9 @@ async def set_socrata_config(
     if not raw:
         response.delete_cookie(SOCRATA_DOMAIN_COOKIE_NAME, path="/")
         return SocrataConfigResponse(
-            domain=SOCRATA_DOMAIN, defaultDomain=SOCRATA_DOMAIN
+            domain=SOCRATA_DOMAIN,
+            defaultDomain=SOCRATA_DOMAIN,
+            enableOAuth=ENABLE_SOCRATA_OAUTH,
         )
 
     domain = normalize_socrata_domain(raw)
@@ -104,7 +108,11 @@ async def set_socrata_config(
         samesite=COOKIE_SAMESITE,
         path="/",
     )
-    return SocrataConfigResponse(domain=domain, defaultDomain=SOCRATA_DOMAIN)
+    return SocrataConfigResponse(
+        domain=domain,
+        defaultDomain=SOCRATA_DOMAIN,
+        enableOAuth=ENABLE_SOCRATA_OAUTH,
+    )
 
 
 def _compute_can_edit(metadata: Any) -> bool:
