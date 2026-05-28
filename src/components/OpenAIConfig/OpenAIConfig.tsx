@@ -70,8 +70,8 @@ export function OpenAIConfig({
 
     return (
         <div className="config-section">
-            <div className="config-header">
-                <div className="config-section-title">Custom API Configuration</div>
+            <div className="section-header">
+                <div className="section-title">Custom API Configuration</div>
                 {isConfigured && !dirty && (
                     <span className="config-status-badge">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"

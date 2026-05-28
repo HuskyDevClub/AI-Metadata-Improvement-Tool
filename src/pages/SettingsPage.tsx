@@ -23,43 +23,35 @@ export function SettingsPage() {
 
     return (
         <div className="settings-page">
-            <div className="settings-page-section">
-                <OpenAIConfig
-                    key={`${openaiConfig.baseURL}-${isOpenAIConfigured}-${openaiConfig.model}-${openaiConfig.modelConcise ?? ''}-${openaiConfig.modelDetailed ?? ''}-${openaiConfig.modelSuggest ?? ''}`}
-                    config={openaiConfig}
-                    isConfigured={isOpenAIConfigured}
-                    onSave={handleOpenAIConfigSave}
-                    onClear={handleOpenAIConfigClear}
-                />
-            </div>
+            <SocrataDomainConfig
+                key={socrataDomain || 'none'}
+                domain={socrataDomain}
+                defaultDomain={socrataDefaultDomain}
+                onSave={handleSocrataDomainSave}
+            />
 
-            <div className="settings-page-section">
-                <SocrataDomainConfig
-                    key={socrataDomain || 'none'}
-                    domain={socrataDomain}
-                    defaultDomain={socrataDefaultDomain}
-                    onSave={handleSocrataDomainSave}
-                />
-            </div>
+            <SocrataApiConfig
+                key={socrataApiKeyId || 'none'}
+                keyId={socrataApiKeyId}
+                onSave={handleSocrataApiKeySave}
+                onClear={handleSocrataApiKeyClear}
+                socrataDomain={socrataDomain}
+            />
 
-            <div className="settings-page-section">
-                <SocrataApiConfig
-                    key={socrataApiKeyId || 'none'}
-                    keyId={socrataApiKeyId}
-                    onSave={handleSocrataApiKeySave}
-                    onClear={handleSocrataApiKeyClear}
-                    socrataDomain={socrataDomain}
-                />
-            </div>
+            <OpenAIConfig
+                key={`${openaiConfig.baseURL}-${isOpenAIConfigured}-${openaiConfig.model}-${openaiConfig.modelConcise ?? ''}-${openaiConfig.modelDetailed ?? ''}-${openaiConfig.modelSuggest ?? ''}`}
+                config={openaiConfig}
+                isConfigured={isOpenAIConfigured}
+                onSave={handleOpenAIConfigSave}
+                onClear={handleOpenAIConfigClear}
+            />
 
-            <div className="settings-page-section">
-                <PromptEditor
-                    templates={promptTemplates}
-                    onChange={setPromptTemplates}
-                    openaiConfig={openaiConfig}
-                    socrataDomain={socrataDomain}
-                />
-            </div>
+            <PromptEditor
+                templates={promptTemplates}
+                onChange={setPromptTemplates}
+                openaiConfig={openaiConfig}
+                socrataDomain={socrataDomain}
+            />
 
             <footer className="settings-page-footer">
                 AI Metadata Improvement Tool

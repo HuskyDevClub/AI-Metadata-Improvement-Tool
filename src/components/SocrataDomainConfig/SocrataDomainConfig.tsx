@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './SocrataDomainConfig.css';
+import '../shared/configPanel.css';
 
 interface SocrataDomainConfigProps {
     /** Portal currently in effect (null until /api/socrata/config resolves). */
@@ -56,17 +56,16 @@ export function SocrataDomainConfig({
     };
 
     return (
-        <div className="socrata-domain-config">
-            <div className="socrata-domain-config-header">
-                <div className="socrata-domain-config-title">Socrata Portal</div>
+        <div className="config-section">
+            <div className="section-header">
+                <div className="section-title">Socrata Portal</div>
                 {isOverridden && (
-                    <span className="socrata-domain-config-badge">Custom</span>
+                    <span className="config-status-badge config-status-badge--accent">Custom</span>
                 )}
             </div>
-            <div className="socrata-domain-config-row">
+            <div className="config-row">
                 <input
                     type="text"
-                    className="socrata-domain-config-input"
                     placeholder={defaultDomain ?? 'Enter a Socrata domain'}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
@@ -97,11 +96,11 @@ export function SocrataDomainConfig({
                 )}
             </div>
             {dirty && !isSaving && (
-                <span className="socrata-domain-config-dirty-hint">
+                <span className="config-dirty-hint config-dirty-hint--block">
                     Unsaved changes
                 </span>
             )}
-            <span className="socrata-domain-config-help-text">
+            <span className="config-help-text config-help-text--block">
                 The open data portal this tool reads from and writes to. Any
                 Socrata-platform domain works (e.g. data.wa.gov).
                 {defaultDomain && (

@@ -1,23 +1,8 @@
 /* Shared layout for Settings credential/configuration panels.
-   Used by OpenAIConfig and SocrataApiConfig. */
+   Used by OpenAIConfig, SocrataApiConfig, and SocrataDomainConfig. */
 
 .config-section {
     margin-bottom: 24px;
-}
-
-.config-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-}
-
-.config-section-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text);
 }
 
 .config-status-badge {
@@ -32,8 +17,41 @@
     font-weight: 600;
 }
 
+.config-status-badge--accent {
+    background-color: var(--accent-light);
+    color: var(--accent);
+    padding: 3px 8px;
+    font-size: 11px;
+}
+
 .config-status-badge svg {
     stroke: currentColor;
+}
+
+.config-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.config-row > input {
+    flex: 1;
+    min-width: 220px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.config-row > input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
 }
 
 .config-grid {
@@ -116,8 +134,19 @@
 
 .config-help-text {
     font-size: 12px;
+    line-height: 1.5;
     color: var(--text-tertiary);
     margin-top: 6px;
+}
+
+.config-help-text code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--surface-secondary);
+    padding: 1px 5px;
+    border-radius: var(--radius-xs);
 }
 
 .config-actions {
@@ -131,6 +160,15 @@
     font-size: 12px;
     color: var(--text-tertiary);
     font-style: italic;
+}
+
+.config-dirty-hint--block {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.config-help-text--block {
+    display: block;
 }
 
 @media (max-width: 768px) {

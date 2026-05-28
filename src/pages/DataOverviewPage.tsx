@@ -229,7 +229,9 @@ export function DataOverviewPage() {
 
             {csvData && (
                 <div className="section">
-                    <div className="section-title">What's in this Dataset</div>
+                    <div className="section-header">
+                        <div className="section-title">What's in this Dataset</div>
+                    </div>
                     <div className="dataset-stats">
                         <div className="stat-item">
                             <span className="stat-label">Rows</span>
@@ -345,9 +347,11 @@ export function DataOverviewPage() {
             )}
 
             <div className="section">
-                <div className="section-title">
-                    Fields ({columnNames.length}
-                    {searchQuery.trim() && ` · ${filteredColumnNames.length} shown`})
+                <div className="section-header">
+                    <div className="section-title">
+                        Fields ({columnNames.length}
+                        {searchQuery.trim() && ` · ${filteredColumnNames.length} shown`})
+                    </div>
                 </div>
 
                 <div className="field-table-controls">

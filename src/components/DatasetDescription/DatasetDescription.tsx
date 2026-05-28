@@ -214,7 +214,9 @@ export function DatasetDescription({
 
     return (
         <div className="dataset-desc-section">
-            <div className="section-title">Dataset Description</div>
+            <div className="section-header">
+                <div className="section-title">Dataset Description</div>
+            </div>
             <div className="dataset-desc-box">
                 <h3>
                     Overview

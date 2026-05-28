@@ -295,8 +295,8 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
 
     return (
         <div className="prompt-editor-section">
-            <div className="section-title">
-                Customize AI Prompts (Optional)
+            <div className="section-header">
+                <div className="section-title">Customize AI Prompts (Optional)</div>
             </div>
             <div className="prompt-editor-content">
                 {PROMPT_FIELDS.map(({ key, label }) => {
