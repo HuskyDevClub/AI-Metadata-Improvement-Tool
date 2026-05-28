@@ -6,6 +6,7 @@ import { InfoTooltip } from '../components/InfoTooltip/InfoTooltip';
 import { DiffView } from '../components/shared/DiffView';
 import { ColumnFieldHistory, DatasetFieldHistory } from '../components/FieldHistoryButton/ConnectedFieldHistory';
 import { useAppContext } from '../contexts/AppContext';
+import { analyzeTemporalCoverage, getPeriodOfTimeWarning } from '../utils/temporalCoverage';
 import './DataOverviewPage.css';
 
 export function DataOverviewPage() {
@@ -97,6 +98,30 @@ export function DataOverviewPage() {
             return generatedResults[field] !== initialResults[field];
         };
     }, [generatedResults, initialResults]);
+
+    // Detected date/year coverage for the dataset — drives the Period of Time
+    // warning. Recomputed only when the underlying data/stats change.
+    const temporalCoverage = useMemo(
+        () => analyzeTemporalCoverage(csvData ?? [], columnStats),
+        [csvData, columnStats]
+    );
+
+    // Warn when a Period of Time isn't backed by the data — but only once the
+    // field has actually been generated/edited (pending review or changed from
+    // its loaded value), so untouched portal values don't raise false alarms.
+    const periodOfTimeWarning = useMemo(() => {
+        if (generatingPeriodOfTime) return null;
+        const touched = pendingPeriodOfTime !== null || isDatasetFieldChanged('periodOfTime');
+        if (!touched) return null;
+        // AI returned an empty result that's now under review.
+        if (pendingPeriodOfTime !== null && !pendingPeriodOfTime.trim()) {
+            return temporalCoverage.hasSignal
+                ? `The AI returned no Period of Time, though date fields were detected (data spans ${temporalCoverage.dataMinYear}–${temporalCoverage.dataMaxYear}). Try regenerating, or set it manually.`
+                : 'No date or year fields were detected in this data, so the AI could not determine a Period of Time. Set it manually if you know the coverage.';
+        }
+        const effective = pendingPeriodOfTime !== null ? pendingPeriodOfTime : (generatedResults.periodOfTime ?? '');
+        return getPeriodOfTimeWarning(temporalCoverage, effective);
+    }, [temporalCoverage, pendingPeriodOfTime, generatedResults.periodOfTime, generatingPeriodOfTime, isDatasetFieldChanged]);
 
     const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
@@ -225,6 +250,7 @@ export function DataOverviewPage() {
                     pendingPeriodOfTime={pendingPeriodOfTime}
                     onAcceptPendingPeriodOfTime={handleAcceptPendingPeriodOfTime}
                     onDiscardPendingPeriodOfTime={handleDiscardPendingPeriodOfTime}
+                    periodOfTimeWarning={periodOfTimeWarning}
                     postingFrequency={generatedResults.postingFrequency}
                     onEditPostingFrequency={handleEditPostingFrequency}
                     onResetField={handleResetField}

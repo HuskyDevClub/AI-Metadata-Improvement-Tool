@@ -191,6 +191,8 @@ export const DEFAULT_PERIOD_OF_TIME_PROMPT = `Determine the Period of Time cover
 
 ${DATASET_CONTEXT_BLOCK}
 
+{temporalSummary}
+
 Output format:
 Return ONLY a single JSON object on one line with two keys, "start" and "end". No prose, no code fences, no labels.
 
@@ -206,11 +208,13 @@ Allowed values for "end":
 - "present" — use this if the dataset is kept current and includes recent records
 
 Rules:
+- Ground your answer in the detected date/year ranges shown above. Do NOT report a start earlier, or a concrete end later, than those ranges support.
+- If the most recent date in the data is within about the last year of today, set "end" to "present" instead of that specific trailing date — the data is being kept current.
 - Default to year-only ("YYYY") unless the data gives strong evidence for finer precision. It is better to under-report precision than to invent a specific month or day.
 - Do NOT promote year-level data to month- or day-level just because the data type is a date — for example, if records are timestamped 2020-01-01, 2021-01-01, 2022-01-01, those are yearly snapshots; return "2020" and "2022", not "2020-01-01" and "2022-01-01".
-- Do NOT guess dates that are not supported by the sample data.
+- Do NOT guess dates that are not supported by the data. If you are unsure, widen to year-only or return empty rather than inventing precision.
 - Do NOT include update cadence — that belongs in Posting Frequency.
-- If no time scope can be inferred at all, return {"start": "", "end": ""}.
+- If no date or year fields were detected and no time scope can be inferred, return {"start": "", "end": ""}. An empty result is better than a fabricated one.
 
 Example outputs:
 {"start": "2013", "end": "present"}

@@ -116,6 +116,18 @@
     border-radius: var(--radius-sm);
 }
 
+.dataset-period-warning {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--warning);
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    margin-top: 8px;
+    max-width: 640px;
+}
+
 /* Tags */
 .dataset-tags-header {
     display: flex;

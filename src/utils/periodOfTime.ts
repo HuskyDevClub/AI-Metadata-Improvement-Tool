@@ -240,6 +240,31 @@ function isoTokenToSide(token: string): PeriodSide | null {
     return null;
 }
 
+// When the dataset's latest record is recent, the data is almost certainly kept
+// current, so the period's end should read "present" rather than a specific
+// trailing date. The model can't reliably know today's date, so we enforce this
+// deterministically on its parsed end value.
+const RECENT_END_WINDOW_MONTHS = 12;
+
+function endInstantOf(side: PeriodSide): Date | null {
+    if (!side.year) return null;
+    const y = parseInt(side.year, 10);
+    if (!y) return null;
+    // Take the LAST instant the side could represent: end of year when only a
+    // year is given, end of month when no day — so "2025" counts as recent for
+    // most of 2026, but "2025-01" does not.
+    const m = side.month ? parseInt(side.month, 10) : 12;
+    const d = side.day ? parseInt(side.day, 10) : periodDaysInMonth(side.year, String(m));
+    return new Date(y, m - 1, d);
+}
+
+export function isRecentEnd(side: PeriodSide, now: Date = new Date()): boolean {
+    const end = endInstantOf(side);
+    if (!end) return false;
+    const cutoff = new Date(now.getFullYear(), now.getMonth() - RECENT_END_WINDOW_MONTHS, now.getDate());
+    return end.getTime() >= cutoff.getTime();
+}
+
 export function parsePeriodOfTimeResponse(raw: string): string {
     const text = raw.trim();
     if (!text) return '';
@@ -263,8 +288,12 @@ export function parsePeriodOfTimeResponse(raw: string): string {
     const endRaw = typeof obj.end === 'string' ? obj.end : '';
 
     const startSide = isoTokenToSide(startRaw) ?? EMPTY_PERIOD_SIDE;
-    const endIsPresent = endRaw.trim().toLowerCase() === 'present';
-    const endSide = endIsPresent ? EMPTY_PERIOD_SIDE : (isoTokenToSide(endRaw) ?? EMPTY_PERIOD_SIDE);
+    const endSideParsed = isoTokenToSide(endRaw);
+    // Treat an explicit "present", or any concrete end that lands within the
+    // recent window, as ongoing.
+    const endIsPresent = endRaw.trim().toLowerCase() === 'present'
+        || (endSideParsed != null && isRecentEnd(endSideParsed));
+    const endSide = endIsPresent ? EMPTY_PERIOD_SIDE : (endSideParsed ?? EMPTY_PERIOD_SIDE);
 
     return periodStateToString({ start: startSide, end: endSide, endIsPresent });
 }

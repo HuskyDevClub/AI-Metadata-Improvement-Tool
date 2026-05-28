@@ -48,8 +48,8 @@ function buildPromptInfo(socrataDomain: string | null): PromptInfo {
             placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}, {tagList}',
         },
         periodOfTime: {
-            description: 'Template for inferring the real-world time span the data covers (not the update cadence).',
-            placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}',
+            description: 'Template for inferring the real-world time span the data covers (not the update cadence). {temporalSummary} is replaced with date/year ranges the app computes directly from the data; if you remove it, those ranges are appended automatically so the model still sees them.',
+            placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}, {temporalSummary}',
         },
         datasetSuggestion: {
             description: 'Template for reviewing an existing dataset description and returning actionable improvement suggestions.',

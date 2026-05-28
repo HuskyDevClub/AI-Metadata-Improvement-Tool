@@ -87,6 +87,7 @@ interface DatasetDescriptionProps {
     pendingPeriodOfTime?: string | null;
     onAcceptPendingPeriodOfTime?: () => void;
     onDiscardPendingPeriodOfTime?: () => void;
+    periodOfTimeWarning?: string | null;
     postingFrequency?: string;
     onEditPostingFrequency?: (newPostingFrequency: string) => void;
     onResetField?: (field: DatasetFieldKey) => void;
@@ -143,6 +144,7 @@ export function DatasetDescription({
                                        pendingPeriodOfTime = null,
                                        onAcceptPendingPeriodOfTime,
                                        onDiscardPendingPeriodOfTime,
+                                       periodOfTimeWarning = null,
                                        postingFrequency = '',
                                        onEditPostingFrequency,
                                        onResetField,
@@ -712,6 +714,11 @@ export function DatasetDescription({
                                     disabled={isGeneratingPeriodOfTime}
                                     title="Reset Period of Time to the value loaded from the dataset"
                                 />
+                            </div>
+                        )}
+                        {onEditPeriodOfTime && periodOfTimeWarning && (
+                            <div className="dataset-period-warning" role="status">
+                                <span aria-hidden="true">⚠ </span>{periodOfTimeWarning}
                             </div>
                         )}
                         {onEditPostingFrequency && (

@@ -39,6 +39,7 @@ import {
 } from '../utils/columnAnalyzer';
 import { handleRegenerationError } from '../utils/stateHelpers';
 import { parsePeriodOfTimeResponse } from '../utils/periodOfTime';
+import { analyzeTemporalCoverage, buildTemporalSummary } from '../utils/temporalCoverage';
 import {
     appendPromptModifiers,
     buildColumnImprovementPrompt,
@@ -1187,7 +1188,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         // tags), so it needs enough of the list to reach less-popular-but-accurate
         // matches — not just the top handful. Caller pre-ranks tagList so
         // category-scoped entries come first, then global tags, each by usage.
-        const PROMPT_TAG_CAP = 50;
+        const PROMPT_TAG_CAP = 100;
         const promptTags = tagList.slice(0, PROMPT_TAG_CAP);
         const rendered = promptTags.length > 0
             ? promptTags.join(', ')
@@ -2144,7 +2145,16 @@ export function AppProvider({ children }: {children: ReactNode}) {
         stats: Record<string, ColumnInfo>,
         rowCountOverride?: number,
     ): string => {
-        return buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.periodOfTime, '', undefined, rowCountOverride);
+        const base = buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.periodOfTime, '', undefined, rowCountOverride);
+        // Deterministic date/year ranges computed from the actual data — the
+        // single most important signal for an accurate span, since the sample
+        // rows alone rarely reveal the true min/max.
+        const summary = buildTemporalSummary(analyzeTemporalCoverage(data, stats));
+        // Fill the placeholder when present; otherwise append (older saved
+        // templates predate {temporalSummary} and would lose the ranges).
+        return base.includes('{temporalSummary}')
+            ? base.replace('{temporalSummary}', summary)
+            : `${base}\n\n${summary}`;
     }, [promptTemplates.periodOfTime, buildDatasetPromptFromTemplate]);
 
     const generatePeriodOfTime = useCallback(
