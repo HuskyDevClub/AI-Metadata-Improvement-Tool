@@ -107,6 +107,13 @@ SOCRATA_OAUTH_REDIRECT_URI = (
 # anyway — keeping it visible would just expose a broken button.
 ENABLE_SOCRATA_OAUTH = bool(SOCRATA_SECRET_TOKEN)
 
+# Whether the Settings page exposes the "Save keys" / "Save configuration"
+# (and their "Clear") buttons. When false — the default — those controls are
+# hidden so users can't persist Socrata or LLM credentials into the server-side
+# session. Set ENABLE_CONFIG_SAVE=true and restart to expose them; this toggles
+# without a frontend rebuild (the frontend reads it from /api/socrata/config).
+ENABLE_CONFIG_SAVE = os.getenv("ENABLE_CONFIG_SAVE", "false").lower() == "true"
+
 # --- LLM -------------------------------------------------------------------
 LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
