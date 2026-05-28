@@ -135,7 +135,11 @@ def _compute_can_edit(metadata: Any) -> bool:
     )
 
 
-@router.post("/import", response_model=SocrataImportResponse)
+@router.post(
+    "/import",
+    response_model=SocrataImportResponse,
+    dependencies=[Depends(require_xhr_header)],
+)
 async def socrata_import(
     request: SocrataImportRequest, http_request: Request
 ) -> SocrataImportResponse:
@@ -152,10 +156,14 @@ async def socrata_import(
     credentials: list[dict[str, Any] | None] = []
     inline_key_id = (request.apiKeyId or "").strip()
     inline_key_secret = (request.apiKeySecret or "").strip()
+    inline_credential: dict[str, Any] | None = None
     if inline_key_id and inline_key_secret:
-        credentials.append(
-            {"kind": "api_key", "id": inline_key_id, "secret": inline_key_secret}
-        )
+        inline_credential = {
+            "kind": "api_key",
+            "id": inline_key_id,
+            "secret": inline_key_secret,
+        }
+        credentials.append(inline_credential)
     credentials.extend(socrata_credentials(session))
     credentials.append(None)
 
@@ -171,6 +179,7 @@ async def socrata_import(
             # reused for the stats phase.
             headers: dict[str, str] = {}  # set per-credential in the loop below
             metadata_resp: httpx.Response | None = None
+            used_credential: dict[str, Any] | None = None
             count_rows: Any = []
             sample_rows: Any = []
             last_meta: Any = None
@@ -190,6 +199,7 @@ async def socrata_import(
                     and last_meta.status_code == 200
                 ):
                     metadata_resp, count_rows, sample_rows = results
+                    used_credential = credential
                     break
 
             if metadata_resp is None:
@@ -236,6 +246,12 @@ async def socrata_import(
             # push-back. Captured here at import time; the UI re-checks it via
             # the /rights endpoint when credentials change. See _compute_can_edit.
             can_edit = _compute_can_edit(metadata)
+            # The inline key is single-use and never persisted, so the push-back
+            # path can't use it: /export and the /rights re-check read only
+            # session credentials. Don't let the inline identity advertise write
+            # access — that would offer a Push the export can't authenticate.
+            if inline_credential is not None and used_credential is inline_credential:
+                can_edit = False
 
             contact_email = nested_metadata.get("contactEmail") or ""
 
