@@ -117,6 +117,15 @@ export function EditableDescription({
     // When the user iterates from the compare view, refine the candidate they're
     // reviewing instead of the saved description (or a fresh generation).
     const refineSource = hasPending && pendingDescription ? pendingDescription : undefined;
+    // On a fresh import the description still matches the value loaded from the
+    // dataset (canReset only flips once it diverges), so nothing has been
+    // AI-generated yet. Label the controls "Generate" rather than the confusing
+    // "Regenerate / Again", matching the sibling category/tags/period controls.
+    const isPristine = !hasPending && !canReset;
+    // With no text to work from, the modifier/suggest/custom controls have
+    // nothing to act on — show only the Generate button. (When reviewing a
+    // pending draft the buttons target that draft, so check it instead.)
+    const isEmpty = ((refineSource ?? description) || '').trim() === '';
 
     const suggestionsPanel = (suggestions.length > 0 || isSuggesting) && (
         <div className="ed-suggestions">
@@ -248,56 +257,59 @@ export function EditableDescription({
         <div className="ed-regenerate-controls">
             {isRegenerating ? (
                 <span className="ed-regenerating">
-                    <span className="spinner"></span> Regenerating...
+                    <span className="spinner"></span> {isPristine ? 'Generating...' : 'Regenerating...'}
                 </span>
             ) : (
                 <>
-                    <span className="ed-label">{refineSource ? 'Refine new:' : 'Regenerate:'}</span>
                     <button className="btn btn-secondary btn-md"
                             onClick={() => onRegenerate('', undefined, refineSource)}
                             disabled={isBusy}
-                            title={refineSource ? 'Rephrase the new draft' : 'Regenerate'}>Again
+                            title={refineSource ? 'Rephrase the new draft' : isPristine ? 'Generate a description' : 'Regenerate from scratch'}>{refineSource ? 'Refine' : isPristine ? 'Generate' : 'Regenerate'}
                     </button>
-                    <button
-                        className="btn btn-secondary btn-md ed-btn-concise"
-                        onClick={() => onRegenerate('concise', undefined, refineSource)}
-                        disabled={isBusy}
-                        title={refineSource ? 'Make the new draft more concise' : 'Make more concise'}
-                    >Concise
-                    </button>
-                    <button
-                        className="btn btn-secondary btn-md ed-btn-detailed"
-                        onClick={() => onRegenerate('detailed', undefined, refineSource)}
-                        disabled={isBusy}
-                        title={refineSource ? 'Make the new draft more detailed' : 'Make more detailed'}
-                    >Detailed
-                    </button>
-                    <button
-                        className="btn btn-secondary btn-md ed-btn-suggest"
-                        onClick={() => onSuggestImprovement(refineSource)}
-                        disabled={isBusy}
-                        title={refineSource
-                            ? 'Get AI suggestions to improve the new draft'
-                            : 'Get AI suggestions to improve the current description'}
-                    >{isSuggesting ? (
+                    {!isEmpty && (
                         <>
-                            <span className="spinner"></span> Analyzing...
-                        </>
-                    ) : suggestLabel}
-                    </button>
-                    <div className="ed-custom-instruction-wrapper">
-                        <input
-                            type="text"
-                            value={customInstruction}
-                            onChange={(e) => setCustomInstruction(e.target.value)}
-                            className="ed-custom-instruction-input"
-                            placeholder="Custom..."
-                        />
-                        <button className="btn btn-secondary btn-md" onClick={handleCustomApply}
+                            <button
+                                className="btn btn-secondary btn-md ed-btn-concise"
+                                onClick={() => onRegenerate('concise', undefined, refineSource)}
                                 disabled={isBusy}
-                                title="Apply">Apply
-                        </button>
-                    </div>
+                                title={refineSource ? 'Make the new draft more concise' : 'Make more concise'}
+                            >Concise
+                            </button>
+                            <button
+                                className="btn btn-secondary btn-md ed-btn-detailed"
+                                onClick={() => onRegenerate('detailed', undefined, refineSource)}
+                                disabled={isBusy}
+                                title={refineSource ? 'Make the new draft more detailed' : 'Make more detailed'}
+                            >Detailed
+                            </button>
+                            <button
+                                className="btn btn-secondary btn-md ed-btn-suggest"
+                                onClick={() => onSuggestImprovement(refineSource)}
+                                disabled={isBusy}
+                                title={refineSource
+                                    ? 'Get AI suggestions to improve the new draft'
+                                    : 'Get AI suggestions to improve the current description'}
+                            >{isSuggesting ? (
+                                <>
+                                    <span className="spinner"></span> Analyzing...
+                                </>
+                            ) : suggestLabel}
+                            </button>
+                            <div className="ed-custom-instruction-wrapper">
+                                <input
+                                    type="text"
+                                    value={customInstruction}
+                                    onChange={(e) => setCustomInstruction(e.target.value)}
+                                    className="ed-custom-instruction-input"
+                                    placeholder="Custom..."
+                                />
+                                <button className="btn btn-secondary btn-md" onClick={handleCustomApply}
+                                        disabled={isBusy}
+                                        title="Apply">Apply
+                                </button>
+                            </div>
+                        </>
+                    )}
                     {onReset && (
                         <ResetFieldButton
                             show={canReset}
