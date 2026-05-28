@@ -56,6 +56,7 @@ import {
     DEFAULT_ROW_LABEL_PROMPT,
     DEFAULT_SYSTEM_PROMPT,
     DEFAULT_TAGS_PROMPT,
+    filterToAllowedTags,
     parseCategoryIndex,
     parseTagsFromResponse,
     sanitizeInline,
@@ -138,6 +139,11 @@ interface SavedDatasetState {
     pendingRowLabel: string | null;
     pendingCategory: string | null;
     pendingTags: string[] | null;
+    // Frozen snapshot of the tags as they were just before an AI generation was
+    // applied. Non-null means the per-tag compare view is open: the live tags
+    // (generatedResults.tags) already hold the AI proposal and are edited in
+    // place, while this baseline feeds the read-only "Current" column.
+    tagsBaseline: string[] | null;
     pendingPeriodOfTime: string | null;
     regeneratingDataset: boolean;
     regeneratingColumns: Set<string>;
@@ -251,6 +257,7 @@ interface AppContextType {
     pendingRowLabel: string | null;
     pendingCategory: string | null;
     pendingTags: string[] | null;
+    tagsBaseline: string[] | null;
     pendingPeriodOfTime: string | null;
     handleAcceptPendingDataset: () => void;
     handleDiscardPendingDataset: () => void;
@@ -264,6 +271,8 @@ interface AppContextType {
     handleDiscardPendingCategory: () => void;
     handleAcceptPendingTags: () => void;
     handleDiscardPendingTags: () => void;
+    handleFinishTagReview: () => void;
+    handleRevertTagReview: () => void;
     handleAcceptPendingPeriodOfTime: () => void;
     handleDiscardPendingPeriodOfTime: () => void;
     handleGenerateSelectedDescriptions: (selectedColumns: string[]) => Promise<void>;
@@ -530,6 +539,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const [pendingRowLabel, setPendingRowLabel] = useState<string | null>(null);
     const [pendingCategory, setPendingCategory] = useState<string | null>(null);
     const [pendingTags, setPendingTags] = useState<string[] | null>(null);
+    const [tagsBaseline, setTagsBaseline] = useState<string[] | null>(null);
     const [pendingPeriodOfTime, setPendingPeriodOfTime] = useState<string | null>(null);
     const [tokenUsage, setTokenUsage] = useState<TokenUsage>({
         promptTokens: 0,
@@ -568,7 +578,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         csvData, fileName, columnStats, generatedResults, initialResults, showResults,
         importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap, socrataCanEdit,
         pendingDatasetDescription, pendingColumnDescriptions,
-        pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, pendingPeriodOfTime,
+        pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, tagsBaseline, pendingPeriodOfTime,
         regeneratingDataset, regeneratingColumns, fieldRevisions,
     });
     useLayoutEffect(() => {
@@ -576,7 +586,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             csvData, fileName, columnStats, generatedResults, initialResults, showResults,
             importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap, socrataCanEdit,
             pendingDatasetDescription, pendingColumnDescriptions,
-            pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, pendingPeriodOfTime,
+            pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, tagsBaseline, pendingPeriodOfTime,
             regeneratingDataset, regeneratingColumns, fieldRevisions,
         };
     });
@@ -622,6 +632,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setPendingRowLabel(saved.pendingRowLabel);
         setPendingCategory(saved.pendingCategory);
         setPendingTags(saved.pendingTags);
+        setTagsBaseline(saved.tagsBaseline);
         setPendingPeriodOfTime(saved.pendingPeriodOfTime);
         setIsGeneratingEmpty(false);
         setGeneratingRowLabel(false);
@@ -710,6 +721,34 @@ export function AppProvider({ children }: {children: ReactNode}) {
         const saved = savedDatasetsRef.current.get(id);
         if (saved) {
             savedDatasetsRef.current.set(id, { ...saved, pendingTags: value });
+        }
+    }, []);
+
+    const setTagsBaselineForDataset = useCallback((id: string, value: string[] | null) => {
+        if (id === activeDatasetIdRef.current) {
+            setTagsBaseline(value);
+            return;
+        }
+        const saved = savedDatasetsRef.current.get(id);
+        if (saved) {
+            savedDatasetsRef.current.set(id, { ...saved, tagsBaseline: value });
+        }
+    }, []);
+
+    // Tab-safe write of the live tag list. A streaming generation can finish
+    // after the user switched tabs, so the AI result must land on the dataset it
+    // was started on rather than whatever is active now.
+    const setTagsForDataset = useCallback((id: string, value: string[]) => {
+        if (id === activeDatasetIdRef.current) {
+            setGeneratedResults((prev) => ({ ...prev, tags: value }));
+            return;
+        }
+        const saved = savedDatasetsRef.current.get(id);
+        if (saved) {
+            savedDatasetsRef.current.set(id, {
+                ...saved,
+                generatedResults: { ...saved.generatedResults, tags: value },
+            });
         }
     }, []);
 
@@ -1144,13 +1183,15 @@ export function AppProvider({ children }: {children: ReactNode}) {
         rowCountOverride?: number,
     ): string => {
         const base = buildDatasetPromptFromTemplate(data, name, stats, promptTemplates.tags, '', undefined, rowCountOverride);
-        // Send a small, high-signal vocabulary to the LLM. Caller is expected to
-        // pre-rank tagList so category-scoped entries come first.
-        const PROMPT_TAG_CAP = 20;
+        // The model must pick from this vocabulary (it is forbidden from inventing
+        // tags), so it needs enough of the list to reach less-popular-but-accurate
+        // matches — not just the top handful. Caller pre-ranks tagList so
+        // category-scoped entries come first, then global tags, each by usage.
+        const PROMPT_TAG_CAP = 50;
         const promptTags = tagList.slice(0, PROMPT_TAG_CAP);
         const rendered = promptTags.length > 0
             ? promptTags.join(', ')
-            : '(no existing tags available — generate tags from the dataset alone)';
+            : '(The portal tag list could not be loaded. As a fallback only, you may propose tags derived from the dataset itself — the publisher will review them.)';
         return base.replace('{tagList}', rendered);
     }, [promptTemplates.tags, buildDatasetPromptFromTemplate]);
 
@@ -1217,10 +1258,12 @@ export function AppProvider({ children }: {children: ReactNode}) {
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                onPartial(parseTagsFromResponse(fullContent));
+                // Keep only existing-vocabulary tags as they stream in, so the UI
+                // never flashes an invented tag the final result will drop.
+                onPartial(filterToAllowedTags(parseTagsFromResponse(fullContent), tagList));
             }, (abortControllerRef.current = new AbortController()).signal);
             addTokenUsage(result.usage);
-            const finalTags = parseTagsFromResponse(fullContent);
+            const finalTags = filterToAllowedTags(parseTagsFromResponse(fullContent), tagList);
             onPartial(finalTags);
             return { tags: finalTags };
         },
@@ -1273,6 +1316,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setPendingRowLabel(null);
                 setPendingCategory(null);
                 setPendingTags(null);
+                setTagsBaseline(null);
                 setPendingPeriodOfTime(null);
                 setIsGeneratingEmpty(false);
                 setGeneratingRowLabel(false);
@@ -1394,6 +1438,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setPendingRowLabel(null);
             setPendingCategory(null);
             setPendingTags(null);
+            setTagsBaseline(null);
             setPendingPeriodOfTime(null);
             setIsGeneratingEmpty(false);
             setGeneratingRowLabel(false);
@@ -1875,6 +1920,24 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setPendingTags(null);
     }, []);
 
+    // Close the per-tag compare view, keeping the live tags as edited. No commit
+    // step is needed — every accept/reject already wrote through to the live set.
+    const handleFinishTagReview = useCallback(() => {
+        setTagsBaseline(null);
+    }, []);
+
+    // Throw away the AI generation entirely: restore the tags to the baseline
+    // captured before generation, then close the compare view.
+    const handleRevertTagReview = useCallback(() => {
+        setTagsBaseline((baseline) => {
+            if (baseline !== null) {
+                setGeneratedResults((prev) => ({ ...prev, tags: baseline }));
+                recordRevision(datasetKey('tags'), baseline, 'user');
+            }
+            return null;
+        });
+    }, [recordRevision]);
+
     const handleAcceptPendingPeriodOfTime = useCallback(() => {
         setPendingPeriodOfTime((pending) => {
             if (pending !== null) {
@@ -2041,12 +2104,28 @@ export function AppProvider({ children }: {children: ReactNode}) {
         if (!csvData) return;
         const genId = activeDatasetIdRef.current;
         if (!genId) return;
+        // Snapshot the tags as they stand now — this becomes the read-only
+        // "Current" column once the proposal is applied for per-tag review.
+        const baseline = [...(datasetStateRef.current.generatedResults.tags ?? [])];
         setGeneratingTags(true);
         setPendingTagsForDataset(genId, []);
         try {
-            await generateTags(csvData, fileName, columnStats, importedRowCount || undefined, (value) => {
-                setPendingTagsForDataset(genId, value);
-            });
+            const { tags: finalTags } = await generateTags(
+                csvData, fileName, columnStats, importedRowCount || undefined,
+                (value) => {
+                    // Stream the proposal into pendingTags purely for a live preview.
+                    setPendingTagsForDataset(genId, value);
+                },
+            );
+            // Apply the AI proposal to the live tags and open the compare view.
+            // pendingTags is cleared — it was only the streaming preview; from here
+            // the baseline (Current) vs the live tags (New) drives the diff.
+            setTagsForDataset(genId, finalTags);
+            if (genId === activeDatasetIdRef.current) {
+                recordRevision(datasetKey('tags'), finalTags, 'ai');
+            }
+            setTagsBaselineForDataset(genId, baseline);
+            setPendingTagsForDataset(genId, null);
             setStatus({ message: 'Successfully generated tags!', type: 'success' });
         } catch (error) {
             setPendingTagsForDataset(genId, null);
@@ -2057,7 +2136,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         } finally {
             setGeneratingTags(false);
         }
-    }, [csvData, fileName, columnStats, importedRowCount, generateTags, setPendingTagsForDataset]);
+    }, [csvData, fileName, columnStats, importedRowCount, generateTags, setPendingTagsForDataset, setTagsForDataset, setTagsBaselineForDataset, recordRevision]);
 
     const buildPeriodOfTimePrompt = useCallback((
         data: CsvRow[],
@@ -2187,6 +2266,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setPendingRowLabel(null);
                 setPendingCategory(null);
                 setPendingTags(null);
+                setTagsBaseline(null);
                 setPendingPeriodOfTime(null);
                 setIsGeneratingEmpty(false);
                 setGeneratingRowLabel(false);
@@ -2566,6 +2646,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         pendingRowLabel,
         pendingCategory,
         pendingTags,
+        tagsBaseline,
         pendingPeriodOfTime,
         handleAcceptPendingDataset,
         handleDiscardPendingDataset,
@@ -2579,6 +2660,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         handleDiscardPendingCategory,
         handleAcceptPendingTags,
         handleDiscardPendingTags,
+        handleFinishTagReview,
+        handleRevertTagReview,
         handleAcceptPendingPeriodOfTime,
         handleDiscardPendingPeriodOfTime,
         handleGenerateSelectedDescriptions,

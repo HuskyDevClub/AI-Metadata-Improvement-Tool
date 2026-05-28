@@ -41,8 +41,11 @@ export function DataOverviewPage() {
         handleAcceptPendingCategory,
         handleDiscardPendingCategory,
         pendingTags,
+        tagsBaseline,
         handleAcceptPendingTags,
         handleDiscardPendingTags,
+        handleFinishTagReview,
+        handleRevertTagReview,
         pendingPeriodOfTime,
         handleAcceptPendingPeriodOfTime,
         handleDiscardPendingPeriodOfTime,
@@ -203,8 +206,11 @@ export function DataOverviewPage() {
                     onGenerateTags={handleGenerateTags}
                     isGeneratingTags={generatingTags}
                     pendingTags={pendingTags}
+                    tagsBaseline={tagsBaseline}
                     onAcceptPendingTags={handleAcceptPendingTags}
                     onDiscardPendingTags={handleDiscardPendingTags}
+                    onFinishTagReview={handleFinishTagReview}
+                    onRevertTagReview={handleRevertTagReview}
                     licenseId={generatedResults.licenseId}
                     allowedLicenses={allowedLicenses}
                     onEditLicenseId={handleEditLicenseId}

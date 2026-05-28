@@ -68,8 +68,11 @@ interface DatasetDescriptionProps {
     onGenerateTags?: () => void;
     isGeneratingTags?: boolean;
     pendingTags?: string[] | null;
+    tagsBaseline?: string[] | null;
     onAcceptPendingTags?: () => void;
     onDiscardPendingTags?: () => void;
+    onFinishTagReview?: () => void;
+    onRevertTagReview?: () => void;
     licenseId?: string;
     allowedLicenses?: SocrataLicense[];
     onEditLicenseId?: (newLicenseId: string) => void;
@@ -123,8 +126,9 @@ export function DatasetDescription({
                                        onGenerateTags,
                                        isGeneratingTags = false,
                                        pendingTags = null,
-                                       onAcceptPendingTags,
-                                       onDiscardPendingTags,
+                                       tagsBaseline = null,
+                                       onFinishTagReview,
+                                       onRevertTagReview,
                                        licenseId = '',
                                        allowedLicenses = [],
                                        onEditLicenseId,
@@ -178,6 +182,19 @@ export function DatasetDescription({
         }
         return [...starts, ...contains].slice(0, 50);
     }, [newTagInput, allowedTags, tags]);
+
+    // Per-tag compare view (open while tagsBaseline is non-null). The live `tags`
+    // already hold the AI proposal; tags absent from the live set but present in
+    // the baseline are the AI's removals, shown struck-through with a restore.
+    const removedTags = useMemo(
+        () => (tagsBaseline ?? []).filter((b) => !tags.some((t) => t.toLowerCase() === b.toLowerCase())),
+        [tagsBaseline, tags]
+    );
+    const hasTagChanges = useMemo(() => {
+        if (tagsBaseline === null) return false;
+        if (removedTags.length > 0) return true;
+        return tags.some((t) => !tagsBaseline.some((b) => b.toLowerCase() === t.toLowerCase()));
+    }, [tagsBaseline, tags, removedTags]);
 
     useEffect(() => {
         if (!showTagSuggestions) return;
@@ -320,7 +337,7 @@ export function DatasetDescription({
                     </div>
                 )}
 
-                {onAddTag && onRemoveTag && pendingTags !== null && (
+                {onAddTag && onRemoveTag && isGeneratingTags && (
                     <div className="dataset-tags">
                         <div className="dataset-tags-header">
                             <span className="dataset-category-title">
@@ -331,56 +348,129 @@ export function DatasetDescription({
                                 <DatasetFieldHistory field="tags" title="Tags"/>
                             </span>
                         </div>
-                        <DiffView
-                            currentValue={
-                                <div className="dataset-tags-chips dataset-tags-chips-pending">
-                                    {tags.length === 0 ? (
-                                        <em className="diff-view-empty">No tags</em>
-                                    ) : (
-                                        tags.map((tag) => {
-                                            const removed = !pendingTags.some((t) => t.toLowerCase() === tag.toLowerCase());
-                                            return (
-                                                <span
-                                                    key={tag}
-                                                    className={`dataset-tag-chip dataset-tag-chip-static ${removed ? 'dataset-tag-chip-removed' : ''}`}
-                                                >
-                                                    {tag}
-                                                </span>
-                                            );
-                                        })
-                                    )}
+                        <div className="diff-view dataset-field-pending">
+                            <div className="diff-view-block diff-view-current">
+                                <div className="diff-view-label">Current</div>
+                                <div className="diff-view-text">
+                                    <div className="dataset-tags-chips dataset-tags-chips-pending">
+                                        {tags.length === 0 ? (
+                                            <em className="diff-view-empty">No tags</em>
+                                        ) : (
+                                            tags.map((tag) => (
+                                                <span key={tag}
+                                                      className="dataset-tag-chip dataset-tag-chip-static">{tag}</span>
+                                            ))
+                                        )}
+                                    </div>
                                 </div>
-                            }
-                            newValue={
-                                <div className="dataset-tags-chips dataset-tags-chips-pending">
-                                    {pendingTags.length === 0 && !isGeneratingTags ? (
-                                        <em className="diff-view-empty">Empty</em>
-                                    ) : (
-                                        pendingTags.map((tag) => {
-                                            const added = !tags.some((t) => t.toLowerCase() === tag.toLowerCase());
-                                            return (
-                                                <span
-                                                    key={tag}
-                                                    className={`dataset-tag-chip dataset-tag-chip-static ${added ? 'dataset-tag-chip-added' : ''}`}
-                                                >
-                                                    {tag}
-                                                </span>
-                                            );
-                                        })
-                                    )}
+                            </div>
+                            <div className="diff-view-block diff-view-new">
+                                <div className="diff-view-label">New</div>
+                                <div className="diff-view-text">
+                                    <div className="dataset-tags-chips dataset-tags-chips-pending">
+                                        {(pendingTags ?? []).map((tag) => (
+                                            <span key={tag}
+                                                  className="dataset-tag-chip dataset-tag-chip-static dataset-tag-chip-added">{tag}</span>
+                                        ))}
+                                        <span className="ed-cursor">|</span>
+                                    </div>
                                 </div>
-                            }
-                            isGenerating={isGeneratingTags}
-                            onAccept={onAcceptPendingTags!}
-                            onDiscard={onDiscardPendingTags!}
-                            className="dataset-field-pending"
-                            acceptTooltip="Replace the current tags with the new ones"
-                            discardTooltip="Discard the new tags and keep the current ones"
-                        />
+                            </div>
+                        </div>
                     </div>
                 )}
 
-                {onAddTag && onRemoveTag && pendingTags === null && (
+                {onAddTag && onRemoveTag && !isGeneratingTags && tagsBaseline !== null && (
+                    <div className="dataset-tags">
+                        <div className="dataset-tags-header">
+                            <span className="dataset-category-title">
+                                Tags and Keywords
+                                <InfoTooltip
+                                    text={tagsTooltipText}
+                                    width="400px"/>
+                                <DatasetFieldHistory field="tags" title="Tags"/>
+                            </span>
+                        </div>
+                        <div className="diff-view dataset-field-pending dataset-tags-review">
+                            <div className="diff-view-block diff-view-current">
+                                <div className="diff-view-label">Current</div>
+                                <div className="diff-view-text">
+                                    <div className="dataset-tags-chips dataset-tags-chips-pending">
+                                        {tagsBaseline.length === 0 ? (
+                                            <em className="diff-view-empty">No tags</em>
+                                        ) : (
+                                            tagsBaseline.map((tag) => (
+                                                <span key={tag}
+                                                      className="dataset-tag-chip dataset-tag-chip-static">{tag}</span>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="diff-view-block diff-view-new">
+                                <div className="diff-view-label">New — reject (×) or keep (↺) each change</div>
+                                <div className="diff-view-text">
+                                    <div className="dataset-tags-chips dataset-tags-chips-pending">
+                                        {tags.length === 0 && removedTags.length === 0 && (
+                                            <em className="diff-view-empty">No tags</em>
+                                        )}
+                                        {tags.map((tag) => {
+                                            const added = !tagsBaseline.some((b) => b.toLowerCase() === tag.toLowerCase());
+                                            return (
+                                                <span key={tag}
+                                                      className={`dataset-tag-chip ${added ? 'dataset-tag-chip-added' : ''}`}>
+                                                    {tag}
+                                                    <button
+                                                        type="button"
+                                                        className="dataset-tag-chip-remove"
+                                                        onClick={() => onRemoveTag(tag)}
+                                                        aria-label={added ? `Reject added tag ${tag}` : `Remove tag ${tag}`}
+                                                        title={added ? 'Reject this AI-added tag' : 'Remove this tag'}
+                                                    >
+                                                        &times;
+                                                    </button>
+                                                </span>
+                                            );
+                                        })}
+                                        {removedTags.map((tag) => (
+                                            <span key={tag} className="dataset-tag-chip dataset-tag-chip-removed">
+                                                {tag}
+                                                <button
+                                                    type="button"
+                                                    className="dataset-tag-chip-restore"
+                                                    onClick={() => onAddTag(tag)}
+                                                    aria-label={`Keep removed tag ${tag}`}
+                                                    title="Keep this tag (undo the AI removal)"
+                                                >
+                                                    ↺
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="diff-view-actions">
+                                <button
+                                    className="btn btn-primary btn-md"
+                                    onClick={onFinishTagReview}
+                                    title="Finish reviewing — your per-tag changes are already applied"
+                                >
+                                    Done
+                                </button>
+                                <button
+                                    className="btn btn-secondary btn-md"
+                                    onClick={onRevertTagReview}
+                                    disabled={!hasTagChanges}
+                                    title="Discard the AI changes and restore the original tags"
+                                >
+                                    Discard AI changes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {onAddTag && onRemoveTag && !isGeneratingTags && tagsBaseline === null && (
                     <div className="dataset-tags">
                         <div className="dataset-tags-header">
                             <span className="dataset-category-title">

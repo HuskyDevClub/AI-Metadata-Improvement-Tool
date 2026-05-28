@@ -147,25 +147,31 @@ Rules:
 
 Return ONLY the number — nothing else.`;
 
-export const DEFAULT_TAGS_PROMPT = `Generate a concise set of Tags and Keywords for this government dataset. Tags help users search and filter datasets.
+export const DEFAULT_TAGS_PROMPT = `Select Tags and Keywords for this government dataset from the portal's EXISTING tag vocabulary only. Reusing the portal's established tags keeps this dataset discoverable alongside related datasets that already use them.
 
 ${DATASET_CONTEXT_BLOCK}
 
-Existing tags already used on the portal (sorted by usage, most popular first):
+Existing portal tags you may choose from (sorted by usage, most popular first):
 {tagList}
 
-Selection rules:
-- STRONGLY PREFER tags from the list above so this dataset is discoverable alongside related datasets that already use those tags.
-- Only invent a NEW tag (one not in the list) if no listed tag accurately captures a key subject of this dataset. When you do, follow the same formatting rules as listed tags.
-- Do not pick a listed tag just because it sounds related — it must actually describe this dataset.
+Guiding principle: more tags is NOT better. Only choose tags that are genuinely necessary and meaningful for finding and understanding this dataset. A few precise tags are far better than a long list. Each tag should add something the others do not — keep them as distinct from one another as possible, and never repeat the same idea. Never pad the set to reach a number.
 
-Quality rules:
-- Return 4–8 tags total.
-- Tags must describe the subject matter, scope, and distinguishing features of the data. Prefer specific terms (e.g., "restaurant inspections") over generic ones (e.g., "public health").
-- Tags should be lowercase, 1–3 words each, use spaces (not hyphens or underscores), and contain no punctuation.
-- Do not duplicate tags. Do not include the dataset title as a tag. Do not include generic filler like "data", "dataset", or "information".
+Work in two steps:
 
-Return ONLY a comma-separated list of tags on a single line — no bullets, no numbering, no explanation, no quotes around individual tags.`;
+STEP 1 — Select candidates from the list:
+- Choose tags ONLY from the list above. Do NOT invent new tags, and do NOT reword, pluralize, or otherwise alter a listed tag — return it exactly as written. The publisher will add any brand-new tags manually.
+- Read the list from the top (most popular) downward, and pick only the tags that clearly and necessarily describe this dataset's subject matter, scope, or distinguishing features.
+- When two listed tags fit equally well, prefer the one higher in the list (more popular). Do still go further down the list when a less common tag is a more accurate match.
+- Do not pick a tag just because it sounds related, is popular, or might apply — include it only if removing it would lose something meaningful about this dataset.
+
+STEP 2 — Review and consolidate:
+- Look back over your Step 1 selections and cut the set down to only what is essential.
+- When several selected tags are variants or near-synonyms of each other (e.g., "license", "licenses", "licensing"), keep only ONE — whichever appears highest in the list above (most popular) — and drop the others.
+- Keep the remaining tags as distinct from one another as possible: each should capture a DIFFERENT facet of the dataset (e.g., subject, geography, program, data type). If two tags convey essentially the same idea or overlap heavily in meaning — even when worded differently — keep only the stronger one. No tag should be a near-duplicate of another.
+- Drop any tag made redundant by a more specific or more popular tag you are keeping, and any tag that only loosely relates to the data.
+- There is no fixed count and no minimum. Use as few tags as accurately cover the dataset — most well-tagged datasets land around 5–10. Treat that as a normal range, not a target: use the low end (or fewer) for narrow datasets, and only go higher when a genuinely broad dataset truly needs it. Every tag you return MUST appear verbatim in the list above.
+
+Return ONLY a comma-separated list of the final tags on a single line — no bullets, no numbering, no explanation, no quotes around individual tags. If none of the listed tags fit this dataset, return an empty line.`;
 
 export const DEFAULT_ROW_LABEL_PROMPT = `Determine the most accurate and concise Row Label for this government dataset. The Row Label should describe what a single row represents in plain language.
 
@@ -303,6 +309,18 @@ export function parseTagsFromResponse(text: string): string[] {
         tags.push(tag);
     }
     return tags;
+}
+
+// Enforce that generated tags come ONLY from the portal's existing vocabulary.
+// The tags prompt instructs the model to pick from the supplied list, but this is
+// the hard guarantee: any tag the model invented or reworded is dropped. Matching
+// is case-insensitive; order from the model (its consolidated ranking) is kept.
+// When `allowed` is empty (e.g. the portal tag list failed to load) we cannot
+// enforce membership, so the tags pass through unfiltered as a graceful fallback.
+export function filterToAllowedTags(tags: string[], allowed: string[]): string[] {
+    if (allowed.length === 0) return tags;
+    const allowedSet = new Set(allowed.map((t) => t.toLowerCase()));
+    return tags.filter((t) => allowedSet.has(t.toLowerCase()));
 }
 
 export function buildNumberedCategoryList(categories: string[]): string {
