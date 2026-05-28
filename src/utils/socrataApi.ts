@@ -156,6 +156,11 @@ export interface SocrataConfig {
     defaultDomain: string;
     /** Whether the "Sign in" UI is exposed (gated by ENABLE_SOCRATA_OAUTH). */
     enableOAuth: boolean;
+    /**
+     * Whether the Settings "Save keys" / "Save configuration" (and "Clear")
+     * buttons are exposed (gated by ENABLE_CONFIG_SAVE). Defaults to false.
+     */
+    enableConfigSave: boolean;
 }
 
 function parseSocrataConfig(result: unknown): SocrataConfig {
@@ -165,6 +170,7 @@ function parseSocrataConfig(result: unknown): SocrataConfig {
         domain,
         defaultDomain: String(data.defaultDomain || domain || ''),
         enableOAuth: data.enableOAuth === true,
+        enableConfigSave: data.enableConfigSave === true,
     };
 }
 

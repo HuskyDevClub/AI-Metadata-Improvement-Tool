@@ -154,11 +154,14 @@ class SocrataConfigResponse(BaseModel):
     `domain` is the portal currently in effect (per-user override or default);
     `defaultDomain` is the server default, so the UI can offer a reset.
     `enableOAuth` controls whether the "Sign in" UI is shown.
+    `enableConfigSave` controls whether the Settings "Save keys" /
+    "Save configuration" (and "Clear") buttons are shown.
     """
 
     domain: str
     defaultDomain: str
     enableOAuth: bool
+    enableConfigSave: bool
 
 
 class SocrataDomainRequest(BaseModel):

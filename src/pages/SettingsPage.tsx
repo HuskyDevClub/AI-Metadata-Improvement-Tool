@@ -19,6 +19,7 @@ export function SettingsPage() {
         socrataDomain,
         socrataDefaultDomain,
         handleSocrataDomainSave,
+        enableConfigSave,
     } = useAppContext();
 
     return (
@@ -36,6 +37,7 @@ export function SettingsPage() {
                 onSave={handleSocrataApiKeySave}
                 onClear={handleSocrataApiKeyClear}
                 socrataDomain={socrataDomain}
+                saveEnabled={enableConfigSave}
             />
 
             <OpenAIConfig
@@ -44,6 +46,7 @@ export function SettingsPage() {
                 isConfigured={isOpenAIConfigured}
                 onSave={handleOpenAIConfigSave}
                 onClear={handleOpenAIConfigClear}
+                saveEnabled={enableConfigSave}
             />
 
             <PromptEditor

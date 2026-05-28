@@ -181,6 +181,11 @@ interface AppContextType {
     // until /api/socrata/config resolves; flipping the backend env var and
     // restarting toggles this without a frontend rebuild.
     enableSocrataOAuth: boolean;
+    // Whether the Settings "Save keys" / "Save configuration" (and "Clear")
+    // buttons are exposed. Defaults to false until /api/socrata/config resolves;
+    // flipping the ENABLE_CONFIG_SAVE backend env var and restarting toggles
+    // this without a frontend rebuild.
+    enableConfigSave: boolean;
     // Set or clear the per-user portal override (pass '' to reset to default).
     handleSocrataDomainSave: (domain: string) => Promise<void>;
 
@@ -379,6 +384,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const [socrataDomain, setSocrataDomain] = useState<string | null>(null);
     const [socrataDefaultDomain, setSocrataDefaultDomain] = useState<string | null>(null);
     const [enableSocrataOAuth, setEnableSocrataOAuth] = useState<boolean>(false);
+    const [enableConfigSave, setEnableConfigSave] = useState<boolean>(false);
     const [allowedCategories, setAllowedCategories] = useState<string[]>([]);
     const [allowedTags, setAllowedTags] = useState<string[]>([]);
     const [allowedLicenses, setAllowedLicenses] = useState<SocrataLicense[]>([]);
@@ -412,6 +418,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 if (config.domain) setSocrataDomain(config.domain);
                 if (config.defaultDomain) setSocrataDefaultDomain(config.defaultDomain);
                 setEnableSocrataOAuth(config.enableOAuth);
+                setEnableConfigSave(config.enableConfigSave);
             })
             .catch((err) => {
                 console.warn('Failed to load Socrata config:', err);
@@ -870,6 +877,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setSocrataDomain(config.domain);
         setSocrataDefaultDomain(config.defaultDomain);
         setEnableSocrataOAuth(config.enableOAuth);
+        setEnableConfigSave(config.enableConfigSave);
         setStatus({
             message: `Portal set to ${config.domain}`,
             type: 'success',
@@ -2504,6 +2512,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         socrataDomain,
         socrataDefaultDomain,
         enableSocrataOAuth,
+        enableConfigSave,
         handleSocrataDomainSave,
         allowedCategories,
         allowedTags,

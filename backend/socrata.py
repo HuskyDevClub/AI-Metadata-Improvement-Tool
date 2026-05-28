@@ -11,6 +11,7 @@ from .config import (
     COOKIE_SAMESITE,
     COOKIE_SECURE,
     DOMAIN_COOKIE_MAX_AGE,
+    ENABLE_CONFIG_SAVE,
     ENABLE_SOCRATA_OAUTH,
     SOCRATA_CATALOG_DOMAIN,
     SOCRATA_DOMAIN,
@@ -67,6 +68,7 @@ async def socrata_config(request: Request) -> SocrataConfigResponse:
         domain=resolve_socrata_domain(request),
         defaultDomain=SOCRATA_DOMAIN,
         enableOAuth=ENABLE_SOCRATA_OAUTH,
+        enableConfigSave=ENABLE_CONFIG_SAVE,
     )
 
 
@@ -91,6 +93,7 @@ async def set_socrata_config(
             domain=SOCRATA_DOMAIN,
             defaultDomain=SOCRATA_DOMAIN,
             enableOAuth=ENABLE_SOCRATA_OAUTH,
+            enableConfigSave=ENABLE_CONFIG_SAVE,
         )
 
     domain = normalize_socrata_domain(raw)
@@ -112,6 +115,7 @@ async def set_socrata_config(
         domain=domain,
         defaultDomain=SOCRATA_DOMAIN,
         enableOAuth=ENABLE_SOCRATA_OAUTH,
+        enableConfigSave=ENABLE_CONFIG_SAVE,
     )
 
 

@@ -15,6 +15,8 @@ interface OpenAIConfigProps {
     ) => Promise<void>;
     onClear?: () => void;
     showModel?: boolean;
+    /** When false, the Save and Clear buttons are hidden. */
+    saveEnabled?: boolean;
 }
 
 export function OpenAIConfig({
@@ -23,6 +25,7 @@ export function OpenAIConfig({
                                  onSave,
                                  onClear,
                                  showModel = true,
+                                 saveEnabled = false,
                              }: OpenAIConfigProps) {
     const [baseURLInput, setBaseURLInput] = useState(config.baseURL);
     const [apiKeyInput, setApiKeyInput] = useState('');
@@ -185,32 +188,36 @@ export function OpenAIConfig({
                     </div>
                 )}
             </div>
-            <div className="config-actions">
-                <button
-                    type="button"
-                    className="btn btn-primary btn-md"
-                    onClick={handleSave}
-                    disabled={!canSave}
-                >
-                    {isSaving ? 'Saving...' : justSaved ? 'Saved' : 'Save configuration'}
-                </button>
-                {onClear && (
-                    <button
-                        type="button"
-                        className="btn btn-secondary btn-md"
-                        onClick={() => {
-                            if (window.confirm('Clear saved API configuration? This will remove the configuration from the server-side session.')) {
-                                onClear();
-                            }
-                        }}
-                    >
-                        Clear
-                    </button>
-                )}
-                {dirty && !justSaved && (
-                    <span className="config-dirty-hint">Unsaved changes</span>
-                )}
-            </div>
+            {(saveEnabled || (onClear && isConfigured)) && (
+                <div className="config-actions">
+                    {saveEnabled && (
+                        <button
+                            type="button"
+                            className="btn btn-primary btn-md"
+                            onClick={handleSave}
+                            disabled={!canSave}
+                        >
+                            {isSaving ? 'Saving...' : justSaved ? 'Saved' : 'Save configuration'}
+                        </button>
+                    )}
+                    {onClear && isConfigured && (
+                        <button
+                            type="button"
+                            className="btn btn-secondary btn-md"
+                            onClick={() => {
+                                if (window.confirm('Clear saved API configuration? This will remove the configuration from the server-side session.')) {
+                                    onClear();
+                                }
+                            }}
+                        >
+                            Clear
+                        </button>
+                    )}
+                    {saveEnabled && dirty && !justSaved && (
+                        <span className="config-dirty-hint">Unsaved changes</span>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

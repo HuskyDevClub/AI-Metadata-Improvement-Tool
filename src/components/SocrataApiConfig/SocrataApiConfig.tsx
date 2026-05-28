@@ -6,6 +6,8 @@ interface SocrataApiConfigProps {
     onSave: (keyId: string, keySecret: string) => Promise<void>;
     onClear: () => void;
     socrataDomain: string | null;
+    /** When false, the Save/Update and Clear buttons are hidden. */
+    saveEnabled?: boolean;
 }
 
 export function SocrataApiConfig({
@@ -13,6 +15,7 @@ export function SocrataApiConfig({
                                      onSave,
                                      onClear,
                                      socrataDomain,
+                                     saveEnabled = false,
                                  }: SocrataApiConfigProps) {
     const [keyIdInput, setKeyIdInput] = useState(keyId);
     const [keySecretInput, setKeySecretInput] = useState('');
@@ -94,33 +97,38 @@ export function SocrataApiConfig({
                     </div>
                 </div>
             </div>
-            <div className="config-actions">
-                <button
-                    type="button"
-                    className="btn btn-primary btn-md"
-                    onClick={handleSave}
-                    disabled={!canSave}
-                >
-                    {isSaving ? 'Saving...' : isConfigured ? 'Update keys' : 'Save keys'}
-                </button>
-                <button
-                    type="button"
-                    className="btn btn-secondary btn-md"
-                    onClick={() => {
-                        if (window.confirm('Clear saved Socrata API credentials? This will remove the API configuration from the server-side session.')) {
-                            onClear();
-                            setKeyIdInput('');
-                            setKeySecretInput('');
-                        }
-                    }}
-                    disabled={!isConfigured && keyIdInput === '' && keySecretInput === ''}
-                >
-                    Clear
-                </button>
-                {dirty && !isSaving && (
-                    <span className="config-dirty-hint">Unsaved changes</span>
-                )}
-            </div>
+            {(saveEnabled || isConfigured) && (
+                <div className="config-actions">
+                    {saveEnabled && (
+                        <button
+                            type="button"
+                            className="btn btn-primary btn-md"
+                            onClick={handleSave}
+                            disabled={!canSave}
+                        >
+                            {isSaving ? 'Saving...' : isConfigured ? 'Update keys' : 'Save keys'}
+                        </button>
+                    )}
+                    {isConfigured && (
+                        <button
+                            type="button"
+                            className="btn btn-secondary btn-md"
+                            onClick={() => {
+                                if (window.confirm('Clear saved Socrata API credentials? This will remove the API configuration from the server-side session.')) {
+                                    onClear();
+                                    setKeyIdInput('');
+                                    setKeySecretInput('');
+                                }
+                            }}
+                        >
+                            Clear
+                        </button>
+                    )}
+                    {saveEnabled && dirty && !isSaving && (
+                        <span className="config-dirty-hint">Unsaved changes</span>
+                    )}
+                </div>
+            )}
             <span className="config-help-text">
                 {socrataDomain && (
                     <>Generate API keys from your {socrataDomain} profile &gt; Developer Settings.{' '}</>
