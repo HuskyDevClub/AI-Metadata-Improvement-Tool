@@ -238,7 +238,10 @@ interface AppContextType {
 
     // Handlers
     handleAnalyze: (file: File) => Promise<void>;
-    handleSocrataImport: (datasetId: string) => Promise<void>;
+    handleSocrataImport: (
+        datasetId: string,
+        inlineKey?: {apiKeyId: string; apiKeySecret: string},
+    ) => Promise<void>;
     handleStop: () => void;
     handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => Promise<void>;
     handleRegenerateColumn: (columnName: string, modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => Promise<void>;
@@ -2134,7 +2137,10 @@ export function AppProvider({ children }: {children: ReactNode}) {
     }, [csvData, fileName, columnStats, importedRowCount, generatePeriodOfTime, setPendingPeriodOfTimeForDataset]);
 
     const handleSocrataImport = useCallback(
-        async (datasetId: string) => {
+        async (
+            datasetId: string,
+            inlineKey?: {apiKeyId: string; apiKeySecret: string},
+        ) => {
             setIsProcessing(true);
             setStatus({
                 message: socrataDomain
@@ -2144,7 +2150,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             });
 
             try {
-                const result = await fetchSocrataImport(datasetId);
+                const result = await fetchSocrataImport(datasetId, inlineKey);
 
                 if (!result.sampleRows || result.sampleRows.length === 0) {
                     setStatus({ message: 'No data found in dataset', type: 'error' });

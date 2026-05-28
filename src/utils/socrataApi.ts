@@ -97,12 +97,22 @@ export async function pushSocrataMetadata(
     return response.json();
 }
 
-export async function fetchSocrataImport(datasetId: string): Promise<SocrataImportResult> {
+export async function fetchSocrataImport(
+    datasetId: string,
+    inlineKey?: {apiKeyId: string; apiKeySecret: string},
+): Promise<SocrataImportResult> {
     const response = await fetch(`${API_BASE_URL}/api/socrata/import`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
         credentials: 'include',
-        body: JSON.stringify({ datasetId }),
+        body: JSON.stringify(
+            inlineKey
+                ? { datasetId, apiKeyId: inlineKey.apiKeyId, apiKeySecret: inlineKey.apiKeySecret }
+                : { datasetId },
+        ),
     });
 
     await assertResponseOk(response, 'Failed to import dataset');

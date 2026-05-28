@@ -97,7 +97,7 @@ export function SocrataApiConfig({
                     </div>
                 </div>
             </div>
-            {(saveEnabled || isConfigured) && (
+            {(saveEnabled || isConfigured || dirty) && (
                 <div className="config-actions">
                     {saveEnabled && (
                         <button
@@ -109,11 +109,18 @@ export function SocrataApiConfig({
                             {isSaving ? 'Saving...' : isConfigured ? 'Update keys' : 'Save keys'}
                         </button>
                     )}
-                    {isConfigured && (
+                    {(isConfigured || dirty) && (
                         <button
                             type="button"
                             className="btn btn-secondary btn-md"
                             onClick={() => {
+                                // Nothing saved server-side yet — just discard
+                                // the typed input without a server call/confirm.
+                                if (!isConfigured) {
+                                    setKeyIdInput('');
+                                    setKeySecretInput('');
+                                    return;
+                                }
                                 if (window.confirm('Clear saved Socrata API credentials? This will remove the API configuration from the server-side session.')) {
                                     onClear();
                                     setKeyIdInput('');

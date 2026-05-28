@@ -37,6 +37,7 @@ export function ImportPage() {
         handleSocrataApiKeySave,
         handleSocrataApiKeyClear,
         socrataDomain,
+        enableConfigSave,
     } = useAppContext();
 
     const [dragging, setDragging] = useState(false);
@@ -82,24 +83,34 @@ export function ImportPage() {
             const trimmedKeyId = apiKeyIdInput.trim();
             const trimmedKeySecret = apiKeySecretInput.trim();
             const hasNewCredentials = !!(trimmedKeyId && trimmedKeySecret);
+            // Remembering persists the key to the session cookie, which the
+            // backend only allows when ENABLE_CONFIG_SAVE is on.
+            const remember = rememberKey && enableConfigSave;
 
-            // Auth lives in an HttpOnly cookie, so the key must be saved to the
-            // cookie before import can use it. When "Remember" is off we clear
-            // the cookie after the import completes, making it effectively single-use.
-            if (hasNewCredentials) {
+            if (hasNewCredentials && remember) {
+                // Persist the key, then import via the session cookie.
                 await handleSocrataApiKeySave(trimmedKeyId, trimmedKeySecret);
-            } else if (!rememberKey && socrataApiKeyId) {
-                await handleSocrataApiKeyClear();
-            }
-
-            try {
                 await handleSocrataImport(parsedId);
-            } finally {
-                if (hasNewCredentials && !rememberKey) {
+            } else if (hasNewCredentials) {
+                // Single-use: pass the key inline so it's never written to the
+                // session. Drop any previously-saved key only if the user
+                // actively opted out (the checkbox is available and unchecked).
+                if (enableConfigSave && !rememberKey && socrataApiKeyId) {
                     await handleSocrataApiKeyClear();
-                    setApiKeyIdInput('');
-                    setApiKeySecretInput('');
                 }
+                await handleSocrataImport(parsedId, {
+                    apiKeyId: trimmedKeyId,
+                    apiKeySecret: trimmedKeySecret,
+                });
+                setApiKeyIdInput('');
+                setApiKeySecretInput('');
+            } else {
+                // No new key entered: reuse the saved key, unless the user
+                // actively opted out of remembering it.
+                if (enableConfigSave && !rememberKey && socrataApiKeyId) {
+                    await handleSocrataApiKeyClear();
+                }
+                await handleSocrataImport(parsedId);
             }
         } catch (error) {
             console.error("Failed to submit Socrata dataset:", error);
@@ -219,19 +230,23 @@ export function ImportPage() {
                             onChange={(e) => setApiKeySecretInput(e.target.value)}
                         />
                     </div>
-                    <label className="import-form-remember">
-                        <input
-                            type="checkbox"
-                            checked={rememberKey}
-                            onChange={(e) => setRememberKey(e.target.checked)}
-                        />
-                        Remember this API key on this browser
-                    </label>
+                    {enableConfigSave && (
+                        <label className="import-form-remember">
+                            <input
+                                type="checkbox"
+                                checked={rememberKey}
+                                onChange={(e) => setRememberKey(e.target.checked)}
+                            />
+                            Remember this API key on this browser
+                        </label>
+                    )}
                     <span className="import-form-hint">
                         {socrataDomain && (
                             <>Generate API keys from your {socrataDomain} profile &gt; Developer Settings.{' '}</>
                         )}
-                        Saved keys live in an encrypted HttpOnly session cookie.
+                        {enableConfigSave
+                            ? 'Saved keys live in an encrypted HttpOnly session cookie.'
+                            : 'The key is used once for this import and not stored.'}
                     </span>
                 </div>
             )}
