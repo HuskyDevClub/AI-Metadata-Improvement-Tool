@@ -16,6 +16,7 @@ from fastapi.responses import RedirectResponse
 from .config import (
     COOKIE_SAMESITE,
     COOKIE_SECURE,
+    ENABLE_CONFIG_SAVE,
     FRONTEND_URL,
     OAUTH_STATE_SECRET,
     SESSION_COOKIE_MAX_AGE,
@@ -54,6 +55,20 @@ def require_xhr_header(request: Request) -> None:
         raise HTTPException(
             status_code=403,
             detail="Missing X-Requested-With header (CSRF protection).",
+        )
+
+
+def require_config_save_enabled() -> None:
+    """Gate for credential-persistence endpoints.
+
+    When ENABLE_CONFIG_SAVE is false, persisting Socrata/LLM credentials into
+    the session is disabled server-side — not just hidden in the UI. Clearing
+    already-saved credentials stays allowed so stranded keys can be removed.
+    """
+    if not ENABLE_CONFIG_SAVE:
+        raise HTTPException(
+            status_code=403,
+            detail="Saving credentials is disabled (ENABLE_CONFIG_SAVE=false).",
         )
 
 
@@ -292,7 +307,7 @@ async def socrata_session(request: Request) -> SocrataSessionResponse:
 @router.put(
     "/socrata/api-key",
     status_code=204,
-    dependencies=[Depends(require_xhr_header)],
+    dependencies=[Depends(require_xhr_header), Depends(require_config_save_enabled)],
 )
 async def socrata_api_key_save(
     body: SocrataApiKeyRequest, request: Request, response: Response
@@ -397,7 +412,7 @@ async def openai_session(request: Request) -> OpenAISessionResponse:
 @router.put(
     "/openai/config",
     status_code=204,
-    dependencies=[Depends(require_xhr_header)],
+    dependencies=[Depends(require_xhr_header), Depends(require_config_save_enabled)],
 )
 async def openai_config_save(
     body: OpenAIConfigRequest, request: Request, response: Response

@@ -147,21 +147,34 @@ async def socrata_import(
     base_url = socrata_base_url(domain)
     session = read_session(http_request)
 
+    # A single-use API key passed inline is tried first and never persisted, so
+    # private-dataset imports work even when saving to the session is disabled.
+    credentials: list[dict[str, Any] | None] = []
+    inline_key_id = (request.apiKeyId or "").strip()
+    inline_key_secret = (request.apiKeySecret or "").strip()
+    if inline_key_id and inline_key_secret:
+        credentials.append(
+            {"kind": "api_key", "id": inline_key_id, "secret": inline_key_secret}
+        )
+    credentials.extend(socrata_credentials(session))
+    credentials.append(None)
+
     metadata_url = f"{base_url}/api/views/{dataset_id}.json"
     soda_base = f"{base_url}/resource/{dataset_id}.json"
 
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
             # Phase 1: metadata + row count + sample rows (parallel). Try each
-            # identity in turn — OAuth, then the API key, then anonymous — so a
-            # dataset readable by only one of them still imports. The headers
-            # of whichever identity can read it are reused for the stats phase.
+            # identity in turn — inline single-use key, OAuth, the saved API
+            # key, then anonymous — so a dataset readable by only one of them
+            # still imports. The headers of whichever identity can read it are
+            # reused for the stats phase.
             headers: dict[str, str] = {}  # set per-credential in the loop below
             metadata_resp: httpx.Response | None = None
             count_rows: Any = []
             sample_rows: Any = []
             last_meta: Any = None
-            for credential in [*socrata_credentials(session), None]:
+            for credential in credentials:
                 headers = build_auth_headers(credential)
                 results = await asyncio.gather(
                     client.get(metadata_url, headers=headers),

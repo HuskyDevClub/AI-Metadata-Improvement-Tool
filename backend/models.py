@@ -39,9 +39,15 @@ class SocrataImportRequest(BaseModel):
     """Request to import a dataset from the Socrata portal by dataset ID.
 
     Auth (OAuth token or API key) is read from the encrypted session cookie.
+    `apiKeyId`/`apiKeySecret` may instead carry a single-use API key inline —
+    used for one import without persisting it to the session, so it works even
+    when ENABLE_CONFIG_SAVE is false. When present it's tried before any
+    session credential.
     """
 
     datasetId: str
+    apiKeyId: str | None = None
+    apiKeySecret: str | None = None
 
 
 class SocrataColumnMetadata(BaseModel):
