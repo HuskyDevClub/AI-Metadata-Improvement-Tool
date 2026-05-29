@@ -248,6 +248,7 @@ interface AppContextType {
     handleSocrataImport: (
         datasetId: string,
         inlineKey?: {apiKeyId: string; apiKeySecret: string},
+        domain?: string,
     ) => Promise<void>;
     handleStop: () => void;
     handleRegenerateDataset: (modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => Promise<void>;
@@ -2229,17 +2230,22 @@ export function AppProvider({ children }: {children: ReactNode}) {
         async (
             datasetId: string,
             inlineKey?: {apiKeyId: string; apiKeySecret: string},
+            domain?: string,
         ) => {
+            // A pasted URL may target a different portal than the configured one;
+            // read from it for this import only (the configured portal is left
+            // untouched — switching it stays a manual Settings action).
+            const sourceDomain = domain || socrataDomain;
             setIsProcessing(true);
             setStatus({
-                message: socrataDomain
-                    ? `Importing dataset from ${socrataDomain}...`
+                message: sourceDomain
+                    ? `Importing dataset from ${sourceDomain}...`
                     : 'Importing dataset...',
                 type: 'info',
             });
 
             try {
-                const result = await fetchSocrataImport(datasetId, inlineKey);
+                const result = await fetchSocrataImport(datasetId, inlineKey, domain);
 
                 if (!result.sampleRows || result.sampleRows.length === 0) {
                     setStatus({ message: 'No data found in dataset', type: 'error' });

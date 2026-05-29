@@ -1,11 +1,4 @@
-import type {
-    CategoricalStats,
-    ColumnInfo,
-    CsvRow,
-    NumericStats,
-    TemporalStats,
-    TextStats,
-} from '../types';
+import type { CategoricalStats, ColumnInfo, CsvRow, NumericStats, TemporalStats, TextStats, } from '../types';
 import { periodStringToState } from './periodOfTime';
 import { sanitizeInline } from './prompts';
 
@@ -136,8 +129,14 @@ function detectDateColumn(values: string[]): DateScan | null {
         if (!p) continue;
         parsed++;
         const key = dateKey(p);
-        if (key < minKey) { minKey = key; min = p; }
-        if (key > maxKey) { maxKey = key; max = p; }
+        if (key < minKey) {
+            minKey = key;
+            min = p;
+        }
+        if (key > maxKey) {
+            maxKey = key;
+            max = p;
+        }
         if (p.d == null) allHaveDay = false;
         if (p.m == null) allHaveMonth = false;
     }
@@ -148,7 +147,7 @@ function detectDateColumn(values: string[]): DateScan | null {
     return { min, max, precision };
 }
 
-function detectYearColumn(name: string, values: string[]): { minYear: number; maxYear: number } | null {
+function detectYearColumn(name: string, values: string[]): {minYear: number; maxYear: number} | null {
     if (!YEAR_NAME_RE.test(name)) return null;
     let parsed = 0;
     let total = 0;

@@ -100,7 +100,16 @@ export async function pushSocrataMetadata(
 export async function fetchSocrataImport(
     datasetId: string,
     inlineKey?: {apiKeyId: string; apiKeySecret: string},
+    domain?: string,
 ): Promise<SocrataImportResult> {
+    // `domain` is a per-request portal override from a pasted URL — read from
+    // that portal for this import only; the configured portal is left untouched.
+    const body: Record<string, string> = { datasetId };
+    if (inlineKey) {
+        body.apiKeyId = inlineKey.apiKeyId;
+        body.apiKeySecret = inlineKey.apiKeySecret;
+    }
+    if (domain) body.domain = domain;
     const response = await fetch(`${API_BASE_URL}/api/socrata/import`, {
         method: 'POST',
         headers: {
@@ -108,11 +117,7 @@ export async function fetchSocrataImport(
             'X-Requested-With': 'XMLHttpRequest',
         },
         credentials: 'include',
-        body: JSON.stringify(
-            inlineKey
-                ? { datasetId, apiKeyId: inlineKey.apiKeyId, apiKeySecret: inlineKey.apiKeySecret }
-                : { datasetId },
-        ),
+        body: JSON.stringify(body),
     });
 
     await assertResponseOk(response, 'Failed to import dataset');

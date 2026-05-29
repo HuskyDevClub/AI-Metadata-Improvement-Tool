@@ -78,6 +78,9 @@ export function ImportPage() {
         if (!datasetId.trim()) return;
 
         const parsedId = extractDatasetId(datasetId) ?? datasetId.trim();
+        // A pasted URL carries its own portal — read from it for this import
+        // only. The configured portal stays put (switch it manually in Settings).
+        const parsedDomain = extractDomain(datasetId) ?? undefined;
 
         try {
             const trimmedKeyId = apiKeyIdInput.trim();
@@ -90,7 +93,7 @@ export function ImportPage() {
             if (hasNewCredentials && remember) {
                 // Persist the key, then import via the session cookie.
                 await handleSocrataApiKeySave(trimmedKeyId, trimmedKeySecret);
-                await handleSocrataImport(parsedId);
+                await handleSocrataImport(parsedId, undefined, parsedDomain);
             } else if (hasNewCredentials) {
                 // Single-use: pass the key inline so it's never written to the
                 // session. Drop any previously-saved key only if the user
@@ -101,7 +104,7 @@ export function ImportPage() {
                 await handleSocrataImport(parsedId, {
                     apiKeyId: trimmedKeyId,
                     apiKeySecret: trimmedKeySecret,
-                });
+                }, parsedDomain);
                 setApiKeyIdInput('');
                 setApiKeySecretInput('');
             } else {
@@ -110,7 +113,7 @@ export function ImportPage() {
                 if (enableConfigSave && !rememberKey && socrataApiKeyId) {
                     await handleSocrataApiKeyClear();
                 }
-                await handleSocrataImport(parsedId);
+                await handleSocrataImport(parsedId, undefined, parsedDomain);
             }
         } catch (error) {
             console.error("Failed to submit Socrata dataset:", error);
