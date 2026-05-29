@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAppContext } from '../contexts/AppContext';
+import { ACCEPTED_UPLOAD_EXTENSIONS, isSupportedDataFile } from '../utils/socrataApi';
 import './ImportPage.css';
 
 const DATASET_ID_PATTERN = /(?:^|\/)([a-z0-9]{4}-[a-z0-9]{4})(?:$|\/|\?)/i;
@@ -151,7 +152,7 @@ export function ImportPage() {
         dragCounter.current = 0;
 
         const file = e.dataTransfer.files?.[0];
-        if (file && file.name.endsWith('.csv')) {
+        if (file && isSupportedDataFile(file)) {
             handleAnalyze(file);
         }
     }, [handleAnalyze]);
@@ -257,7 +258,7 @@ export function ImportPage() {
             {/* Divider */}
             <div className="import-or-divider">or</div>
 
-            {/* Upload CSV */}
+            {/* Upload CSV or Excel */}
             <button
                 className={`import-csv-btn${dragging ? ' dragging' : ''}`}
                 onClick={handleCsvClick}
@@ -274,12 +275,12 @@ export function ImportPage() {
                     <line x1="12" y1="18" x2="12" y2="12"/>
                     <polyline points="9 15 12 12 15 15"/>
                 </svg>
-                Upload CSV file
+                Upload CSV or Excel file
             </button>
 
             {/* Hidden file input */}
-            <input ref={csvFileRef} type="file" accept=".csv" onChange={handleCsvFileChange}
-                   style={{ display: 'none' }}/>
+            <input ref={csvFileRef} type="file" accept={ACCEPTED_UPLOAD_EXTENSIONS.join(',')}
+                   onChange={handleCsvFileChange} style={{ display: 'none' }}/>
 
             {isProcessing && (
                 <div className="import-processing">

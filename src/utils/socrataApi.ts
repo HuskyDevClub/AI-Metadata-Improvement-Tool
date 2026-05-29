@@ -8,7 +8,37 @@ interface ParseResult {
     fileName: string;
 }
 
+/** Delimited text formats PapaParse reads (it auto-detects the delimiter). */
+const CSV_EXTENSIONS = ['.csv', '.tsv'];
+/** Spreadsheet formats read client-side with SheetJS. */
+const EXCEL_EXTENSIONS = ['.xlsx', '.xls', '.xlsm'];
+
+/** Every extension the uploader accepts, e.g. for an `<input accept>`. */
+export const ACCEPTED_UPLOAD_EXTENSIONS = [...CSV_EXTENSIONS, ...EXCEL_EXTENSIONS];
+
+function hasExtension(file: File, extensions: string[]): boolean {
+    const name = file.name.toLowerCase();
+    return extensions.some((ext) => name.endsWith(ext));
+}
+
+/** True when the file is a format the uploader knows how to parse. */
+export function isSupportedDataFile(file: File): boolean {
+    return hasExtension(file, ACCEPTED_UPLOAD_EXTENSIONS);
+}
+
+/**
+ * Parse an uploaded data file into rows keyed by column header. Excel workbooks
+ * (.xlsx/.xls/.xlsm) are read with SheetJS; everything else takes the CSV/TSV
+ * path. Both resolve to the same { data, fileName } shape so callers stay
+ * format-agnostic.
+ */
 export function parseFile(file: File): Promise<ParseResult> {
+    return hasExtension(file, EXCEL_EXTENSIONS)
+        ? parseExcelFile(file)
+        : parseCsvFile(file);
+}
+
+function parseCsvFile(file: File): Promise<ParseResult> {
     return new Promise((resolve, reject) => {
         Papa.parse<CsvRow>(file, {
             header: true,
@@ -24,6 +54,40 @@ export function parseFile(file: File): Promise<ParseResult> {
             },
         });
     });
+}
+
+/**
+ * Parse the first worksheet of an Excel workbook. Cells come back as the
+ * formatted strings the user sees in Excel (dates, numbers) so the result
+ * matches the CSV path's all-string values.
+ */
+async function parseExcelFile(file: File): Promise<ParseResult> {
+    // Lazy-load SheetJS: it's large and only needed for spreadsheet uploads,
+    // so keep it out of the initial bundle.
+    const XLSX = await import('xlsx');
+
+    const buffer = new Uint8Array(await file.arrayBuffer());
+    const workbook = XLSX.read(buffer, { type: 'array' });
+
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) throw new Error('The workbook has no sheets.');
+
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+        workbook.Sheets[sheetName],
+        { defval: '', raw: false },
+    );
+
+    // Coerce every cell to a string so rows satisfy CsvRow and the downstream
+    // pipeline, which assumes string values everywhere.
+    const data: CsvRow[] = rawRows.map((row) => {
+        const out: CsvRow = {};
+        for (const [key, value] of Object.entries(row)) {
+            out[key] = value == null ? '' : String(value);
+        }
+        return out;
+    });
+
+    return { data, fileName: file.name };
 }
 
 interface SocrataColumnMeta {
