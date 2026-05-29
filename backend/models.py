@@ -43,11 +43,17 @@ class SocrataImportRequest(BaseModel):
     used for one import without persisting it to the session, so it works even
     when ENABLE_CONFIG_SAVE is false. When present it's tried before any
     session credential.
+
+    `domain` is an optional per-request portal override: when a full dataset URL
+    is pasted, the frontend sends the URL's host so the read targets that portal
+    for this import only. It is NOT persisted — the user's configured portal
+    (used for push-back) is unchanged. Falls back to the configured portal.
     """
 
     datasetId: str
     apiKeyId: str | None = None
     apiKeySecret: str | None = None
+    domain: str | None = None
 
 
 class SocrataColumnMetadata(BaseModel):

@@ -147,7 +147,12 @@ async def socrata_import(
         raise HTTPException(status_code=400, detail="Dataset ID is required")
 
     dataset_id = request.datasetId.strip()
+    # A pasted URL carries its own portal; honor it for this read only (never
+    # persisted). Anything invalid falls back to the user's configured portal.
     domain = resolve_socrata_domain(http_request)
+    requested_domain = normalize_socrata_domain(request.domain or "")
+    if requested_domain and is_valid_socrata_domain(requested_domain):
+        domain = requested_domain
     base_url = socrata_base_url(domain)
     session = read_session(http_request)
 
