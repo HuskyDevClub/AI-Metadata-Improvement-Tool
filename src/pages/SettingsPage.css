@@ -9,6 +9,16 @@
     color: var(--text-tertiary);
 }
 
+.settings-page-footer-repo {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.settings-page-footer-repo:hover {
+    text-decoration: underline;
+}
+
 .settings-page-footer-version {
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.01em;

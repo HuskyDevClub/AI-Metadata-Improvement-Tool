@@ -57,7 +57,17 @@ export function SettingsPage() {
             />
 
             <footer className="settings-page-footer">
-                AI Metadata Improvement Tool
+                <span className="settings-page-footer-credit">
+                    <a
+                        className="settings-page-footer-repo"
+                        href="https://github.com/HuskyDevClub/AI-Metadata-Improvement-Tool"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        AI Metadata Improvement Tool
+                    </a>
+                    {' by Wynter Lin, Danny Yue, Felix Zhao, and Julia Zhu'}
+                </span>
                 <span className="settings-page-footer-version">
                     Build {__BUILD_DATE__} · commit {__BUILD_COMMIT__}
                 </span>
