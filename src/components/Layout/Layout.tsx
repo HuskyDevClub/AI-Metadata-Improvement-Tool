@@ -344,6 +344,8 @@ export function Layout() {
         socrataCanEdit,
         socrataApiKeyId,
         handlePushToSocrata,
+        handleExportMetadata,
+        handleImportMetadata,
         datasetTabs,
         socrataDomain,
         enableSocrataOAuth,
@@ -352,6 +354,7 @@ export function Layout() {
 
     const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
     const [dragOver, setDragOver] = useState<DragOverState>(null);
+    const importMetadataRef = useRef<HTMLInputElement>(null);
 
     const navRef = useRef<HTMLElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -542,6 +545,43 @@ export function Layout() {
                 <div className="layout-dataset-bar">
                     <DatasetTitleBar/>
                     <div className="layout-dataset-bar-actions">
+                        <input
+                            ref={importMetadataRef}
+                            type="file"
+                            accept="application/json,.json"
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) void handleImportMetadata(file);
+                                e.target.value = '';
+                            }}
+                        />
+                        <button
+                            className="btn btn-secondary btn-md layout-dataset-push-btn"
+                            onClick={() => importMetadataRef.current?.click()}
+                            title="Import metadata from a previously exported JSON file and apply it to this dataset"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Import
+                        </button>
+                        <button
+                            className="btn btn-secondary btn-md layout-dataset-push-btn"
+                            onClick={handleExportMetadata}
+                            title="Export this dataset's metadata as a JSON file"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 5 17 10"/>
+                                <line x1="12" y1="5" x2="12" y2="15"/>
+                            </svg>
+                            Export
+                        </button>
                         {socrataDatasetId && (
                             <button
                                 className="btn btn-primary btn-md layout-dataset-push-btn"

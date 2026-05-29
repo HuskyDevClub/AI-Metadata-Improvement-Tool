@@ -85,6 +85,7 @@ import {
     findRevision,
     seedRevisions,
 } from '../utils/fieldRevisions';
+import { applyMetadataImport, downloadMetadataExport, parseMetadataImport, } from '../utils/metadataIo';
 
 function parseSuggestions(text: string): SuggestionItem[] {
     // Split on lines starting with bullet points, dashes, or asterisks
@@ -318,6 +319,8 @@ interface AppContextType {
     handleRevertDatasetField: (field: DatasetFieldKey, revisionId: string) => void;
     handleRevertColumnField: (columnName: string, kind: ColumnFieldKind, revisionId: string) => void;
     handlePushToSocrata: () => Promise<void>;
+    handleExportMetadata: () => void;
+    handleImportMetadata: (file: File) => Promise<void>;
     handleCloseDataset: () => void;
     closeTab: (id: string) => void;
     renderTokenUsage: () => React.ReactNode;
@@ -2580,6 +2583,93 @@ export function AppProvider({ children }: {children: ReactNode}) {
         }
     }, [socrataDatasetId, socrataDomain, generatedResults, socrataFieldNameMap]);
 
+    // Download the current dataset's metadata as a round-trippable JSON file.
+    // Works for any loaded dataset (CSV upload or Socrata import) and needs no
+    // credentials — it's a purely local snapshot of the edited fields.
+    const handleExportMetadata = useCallback(() => {
+        if (!showResults) return;
+        try {
+            downloadMetadataExport({
+                metadata: generatedResults,
+                fileName,
+                socrataDatasetId: socrataDatasetId || undefined,
+                socrataDomain,
+            });
+            setStatus({ message: 'Metadata exported.', type: 'success', autoHide: 3000 });
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : 'Unknown error';
+            setStatus({ message: `Export failed: ${detail}`, type: 'error' });
+        }
+    }, [showResults, generatedResults, fileName, socrataDatasetId, socrataDomain]);
+
+    // Apply a previously-exported metadata file onto the dataset open in the
+    // active tab. Column entries are matched by name; ones with no matching
+    // column are skipped (and surfaced in the status message). Each applied
+    // field is recorded as a 'user' revision so it shows in field history and
+    // can be reset/reverted like a manual edit.
+    const handleImportMetadata = useCallback(async (file: File) => {
+        if (!showResults) {
+            setStatus({ message: 'Load a dataset before importing metadata.', type: 'warning' });
+            return;
+        }
+        // The active dataset must not change while we read the file — otherwise
+        // we'd apply the closure's (now-stale) results onto a different tab.
+        const importId = activeDatasetIdRef.current;
+        let parsed;
+        try {
+            parsed = parseMetadataImport(await file.text());
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : 'Unknown error';
+            setStatus({ message: `Could not import metadata: ${detail}`, type: 'error' });
+            return;
+        }
+        if (activeDatasetIdRef.current !== importId) {
+            setStatus({
+                message: 'Active dataset changed during import — please try again.',
+                type: 'warning',
+            });
+            return;
+        }
+
+        const allowedColumns = new Set(Object.keys(columnStats));
+        const applied = applyMetadataImport(generatedResults, parsed.metadata, allowedColumns);
+
+        if (applied.revisions.length === 0) {
+            setStatus({
+                message: 'Imported file matched the current metadata — nothing changed.',
+                type: 'info',
+                autoHide: 4000,
+            });
+            return;
+        }
+
+        setGeneratedResults(applied.next);
+        setFieldRevisions((prev) =>
+            applied.revisions.reduce(
+                (map, r) => appendRevision(map, r.key, r.value, 'user'),
+                prev,
+            ),
+        );
+
+        if (applied.skippedColumns.length > 0) {
+            const shown = applied.skippedColumns.slice(0, 5).join(', ');
+            const extra = applied.skippedColumns.length > 5
+                ? ` (+${applied.skippedColumns.length - 5} more)`
+                : '';
+            setStatus({
+                message: `Metadata imported. ${applied.skippedColumns.length} column(s) in the file `
+                    + `didn't match this dataset and were skipped: ${shown}${extra}`,
+                type: 'warning',
+            });
+        } else {
+            setStatus({
+                message: 'Metadata imported and applied to this dataset.',
+                type: 'success',
+                autoHide: 4000,
+            });
+        }
+    }, [showResults, columnStats, generatedResults]);
+
     const renderTokenUsage = useCallback(() => {
         if (tokenUsage.totalTokens > 0) {
             return (
@@ -2721,6 +2811,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
         handleRevertDatasetField,
         handleRevertColumnField,
         handlePushToSocrata,
+        handleExportMetadata,
+        handleImportMetadata,
         handleCloseDataset,
         closeTab,
         renderTokenUsage,
