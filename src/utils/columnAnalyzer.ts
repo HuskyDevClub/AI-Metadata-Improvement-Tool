@@ -21,13 +21,51 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
         return { type: 'empty', stats: {}, nullCount, totalCount };
     }
 
-    // Try to parse as numbers
+    // How many values parse as numbers? Used both to flag a (continuous)
+    // numeric column and, for categorical columns, to tell a number-backed set
+    // (ratings, FIPS codes, years) apart from free text.
     const numericValues = nonNullValues
         .map((v) => parseFloat(v))
         .filter((v) => !isNaN(v));
+    const isNumericBase = numericValues.length / nonNullValues.length > 0.8;
 
-    if (numericValues.length / nonNullValues.length > 0.8) {
-        // Numeric column
+    // Distinct-value distribution — drives the categorical check for both
+    // number- and text-backed columns.
+    const counts = new Map<string, number>();
+    for (const v of nonNullValues) {
+        counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    const uniqueValues = [...counts.keys()];
+    const uniqueRatio = uniqueValues.length / nonNullValues.length;
+
+    // Categorical when values repeat heavily or the distinct set is small.
+    // Checked before the numeric branch so a low-cardinality number column
+    // (e.g. a 1–5 rating, a status code) is recognised as categorical rather
+    // than summarised with a meaningless min/max/mean.
+    if (uniqueRatio < 0.5 || uniqueValues.length < 50) {
+        // Sort by frequency desc so `values[0..n]` is actually the top-n
+        // (mirrors the Socrata backend's group-by order).
+        const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+        const top = sorted.slice(0, 20);
+        const stats: CategoricalStats = {
+            count: nonNullValues.length,
+            uniqueCount: uniqueValues.length,
+            values: top.map(([v]) => v),
+            valueCounts: top.map(([, c]) => c),
+            hasMore: uniqueValues.length > 20,
+        };
+        return {
+            type: 'categorical',
+            baseType: isNumericBase ? 'numeric' : 'text',
+            stats,
+            nullCount,
+            totalCount,
+        };
+    }
+
+    if (isNumericBase) {
+        // Numeric column — high enough cardinality that the distribution, not
+        // the distinct set, is what's worth summarising.
         numericValues.sort((a, b) => a - b);
         const stats: NumericStats = {
             count: numericValues.length,
@@ -41,29 +79,6 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
         return { type: 'numeric', stats, nullCount, totalCount };
     }
 
-    // Check if categorical
-    const counts = new Map<string, number>();
-    for (const v of nonNullValues) {
-        counts.set(v, (counts.get(v) ?? 0) + 1);
-    }
-    const uniqueValues = [...counts.keys()];
-    const uniqueRatio = uniqueValues.length / nonNullValues.length;
-
-    if (uniqueRatio < 0.5 || uniqueValues.length < 50) {
-        // Categorical column — sort by frequency desc so `values[0..n]` is
-        // actually the top-n (mirrors the Socrata backend's group-by order).
-        const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-        const top = sorted.slice(0, 20);
-        const stats: CategoricalStats = {
-            count: nonNullValues.length,
-            uniqueCount: uniqueValues.length,
-            values: top.map(([v]) => v),
-            valueCounts: top.map(([, c]) => c),
-            hasMore: uniqueValues.length > 20,
-        };
-        return { type: 'categorical', stats, nullCount, totalCount };
-    }
-
     // Text column
     const stats: TextStats = {
         count: nonNullValues.length,
@@ -71,6 +86,29 @@ export function analyzeColumn(_columnName: string, values: (string | null | unde
         samples: nonNullValues.slice(0, 5),
     };
     return { type: 'text', stats, nullCount, totalCount };
+}
+
+// A few Socrata types already announce their categorical nature (a checkbox is
+// always true/false), so we keep showing those verbatim rather than flattening
+// them to "Text (Categorical)".
+const SELF_DESCRIBING_CATEGORICAL = new Set(['checkbox', 'flag']);
+
+// Human-facing type label. For categorical columns this surfaces the underlying
+// base type — "Number (Categorical)" / "Text (Categorical)" — so the chip says
+// both *what* the values are and *that* they form a small set. Non-categorical
+// columns keep their original Socrata type (when present) or the detected type.
+// Accepts the loose shape shared by ColumnInfo and DataTypeBadge's props.
+export function getColumnTypeLabel(
+    info: {type: string; originalType?: string; baseType?: 'numeric' | 'text'}
+): string {
+    if (info.type === 'categorical') {
+        if (info.originalType && SELF_DESCRIBING_CATEGORICAL.has(info.originalType.toLowerCase())) {
+            return info.originalType;
+        }
+        const base = info.baseType === 'numeric' ? 'Number' : 'Text';
+        return `${base} (Categorical)`;
+    }
+    return info.originalType || info.type;
 }
 
 function formatTemporalForDisplay(value: string): string {

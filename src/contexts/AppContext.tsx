@@ -34,6 +34,7 @@ import {
     analyzeColumn,
     buildSampleRows,
     getColumnStatsText,
+    getColumnTypeLabel,
     getSampleCount,
     getSampleValues
 } from '../utils/columnAnalyzer';
@@ -86,6 +87,17 @@ import {
     seedRevisions,
 } from '../utils/fieldRevisions';
 import { applyMetadataImport, downloadMetadataExport, parseMetadataImport, } from '../utils/metadataIo';
+
+// The data-type string handed to the LLM. Categorical columns surface their
+// base type ("Number (Categorical)" / "Text (Categorical)") so the model knows
+// the values form a small set, not a continuous measure; other columns keep the
+// richer Socrata type description (e.g. "date/time (no time zone) (calendar_date)").
+function describeColumnTypeForPrompt(info: ColumnInfo): string {
+    if (info.type === 'categorical') {
+        return getColumnTypeLabel(info);
+    }
+    return info.originalType ? describeSocrataType(info.originalType) : info.type;
+}
 
 function parseSuggestions(text: string): SuggestionItem[] {
     // Split on lines starting with bullet points, dashes, or asterisks
@@ -980,12 +992,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     const buildColumnInfo = useCallback((stats: Record<string, ColumnInfo>): string => {
         return Object.entries(stats)
-            .map(([col, info]) => {
-                const typeLabel = info.originalType
-                    ? describeSocrataType(info.originalType)
-                    : info.type;
-                return `- ${col} — ${typeLabel}`;
-            })
+            .map(([col, info]) => `- ${col} — ${describeColumnTypeForPrompt(info)}`)
             .join('\n');
     }, []);
 
@@ -1059,7 +1066,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             .replace(/\{columnName}/g, sanitizeInline(columnName))
             .replace('{datasetDescription}', sanitizeUntrusted(datasetDesc))
             .replace('{columnStats}', sanitizeUntrusted(statsText))
-            .replace('{dataType}', info.originalType ? describeSocrataType(info.originalType) : info.type)
+            .replace('{dataType}', describeColumnTypeForPrompt(info))
             .replace('{nonNullCount}', String(nonNullCount))
             .replace('{rowCount}', String(info.totalCount))
             .replace('{completenessPercent}', completenessPercent)

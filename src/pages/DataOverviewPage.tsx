@@ -512,7 +512,8 @@ export function DataOverviewPage() {
                                         <span className="field-name-mono">{machineName}</span>
                                     </td>
                                     <td>
-                                        <DataTypeBadge type={info.type} originalType={info.originalType}/>
+                                        <DataTypeBadge type={info.type} originalType={info.originalType}
+                                                       baseType={info.baseType}/>
                                     </td>
                                     <td>
                                         {isGenerating ? (

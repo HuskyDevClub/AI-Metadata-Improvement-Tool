@@ -58,6 +58,11 @@ type ColumnType = 'numeric' | 'categorical' | 'text' | 'temporal' | 'geospatial'
 export interface ColumnInfo {
     type: ColumnType;
     originalType?: string;
+    // For categorical columns: whether the underlying values are numbers
+    // (e.g. ratings, FIPS codes) or free text. Drives the "Number (Categorical)"
+    // vs "Text (Categorical)" label. Absent on non-categorical columns; treated
+    // as 'text' when missing (the only categorical kind older payloads carried).
+    baseType?: 'numeric' | 'text';
     stats: NumericStats | CategoricalStats | TextStats | TemporalStats | GeospatialStats | OpaqueStats | Record<string, never>;
     nullCount: number;
     totalCount: number;

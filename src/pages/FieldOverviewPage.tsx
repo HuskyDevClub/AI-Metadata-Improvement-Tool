@@ -4,7 +4,7 @@ import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
 import { ResetFieldButton } from '../components/ResetFieldButton/ResetFieldButton';
 import { ColumnFieldHistory } from '../components/FieldHistoryButton/ConnectedFieldHistory';
 import { useAppContext } from '../contexts/AppContext';
-import { formatColumnStats } from '../utils/columnAnalyzer';
+import { formatColumnStats, getColumnTypeLabel } from '../utils/columnAnalyzer';
 import type { CategoricalStats, TextStats } from '../types';
 import './FieldOverviewPage.css';
 
@@ -117,7 +117,7 @@ export function FieldOverviewPage() {
 
             <div className="field-overview-header">
                 <h2 className="field-overview-name">{fieldName}</h2>
-                <DataTypeBadge type={info.type} originalType={info.originalType} size="large"/>
+                <DataTypeBadge type={info.type} originalType={info.originalType} baseType={info.baseType} size="large"/>
             </div>
 
             <div className="field-overview-stats">
@@ -138,7 +138,7 @@ export function FieldOverviewPage() {
                     </div>
                     <div className="field-overview-stat">
                         <span className="field-overview-stat-label">Data Type</span>
-                        <span className="field-overview-stat-value">{info.originalType || info.type}</span>
+                        <span className="field-overview-stat-value">{getColumnTypeLabel(info)}</span>
                     </div>
                 </div>
                 {statsText && (
