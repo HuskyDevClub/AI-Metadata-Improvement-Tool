@@ -108,7 +108,7 @@ function parseSuggestions(text: string): SuggestionItem[] {
     }));
 }
 
-export type PageId = 'import' | 'data' | 'field' | 'settings';
+export type PageId = 'import' | 'data' | 'field';
 
 interface DatasetTabInfo {
     id: string;
@@ -801,7 +801,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const switchToDataset = useCallback((id: string) => {
         const currentId = activeDatasetIdRef.current;
         if (id === currentId) {
-            // Already active - navigate back to its last page (in case we're on import/settings)
+            // Already active - navigate back to its last page (in case we're on import)
             const lp = lastDatasetPageRef.current;
             setCurrentPage(lp.page);
             setCurrentFieldName(lp.fieldName);

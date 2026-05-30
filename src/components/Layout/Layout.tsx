@@ -60,7 +60,7 @@ function DatasetTab({
                         onDragStartTab, onDragOverTab, onDropTab, onDragEndTab,
                     }: DatasetTabProps) {
     const { activeDatasetId, currentPage, switchToDataset, closeTab } = useAppContext();
-    const isActive = id === activeDatasetId && currentPage !== 'import' && currentPage !== 'settings';
+    const isActive = id === activeDatasetId && currentPage !== 'import';
 
     const computeSide = (e: React.DragEvent<HTMLButtonElement>): DropSide => {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -321,8 +321,6 @@ function CurrentPage() {
             return <DataOverviewPage/>;
         case 'field':
             return <FieldOverviewPage/>;
-        case 'settings':
-            return <SettingsPage/>;
     }
 }
 
@@ -334,7 +332,6 @@ export function Layout() {
         fileName,
         currentPage,
         handleStop,
-        navigate,
         socrataOAuthUser,
         isSocrataOAuthAuthenticating,
         handleSocrataOAuthLogin,
@@ -354,6 +351,7 @@ export function Layout() {
 
     const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
     const [dragOver, setDragOver] = useState<DragOverState>(null);
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const importMetadataRef = useRef<HTMLInputElement>(null);
 
     const navRef = useRef<HTMLElement>(null);
@@ -479,8 +477,8 @@ export function Layout() {
                         )
                     )}
                     <button
-                        className={`layout-settings-btn ${currentPage === 'settings' ? 'active' : ''}`}
-                        onClick={() => navigate('settings')}
+                        className={`layout-settings-btn ${settingsOpen ? 'active' : ''}`}
+                        onClick={() => setSettingsOpen(true)}
                         title="Settings"
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -609,6 +607,7 @@ export function Layout() {
                 <CurrentPage/>
             </div>
             <FloatingActions/>
+            {settingsOpen && <SettingsPage onClose={() => setSettingsOpen(false)}/>}
         </div>
     );
 }
