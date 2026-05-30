@@ -1,5 +1,11 @@
-import type { GeneratedResults } from '../types';
-import { type ColumnFieldKind, columnKey, type DatasetFieldKey, datasetKey, valuesEqual, } from './fieldRevisions';
+import type { GeneratedResults } from '@/types';
+import {
+    type ColumnFieldKind,
+    columnKey,
+    type DatasetFieldKey,
+    datasetKey,
+    valuesEqual,
+} from '@/utils/fieldRevisions';
 
 // Bump when the on-disk shape changes in a way older importers can't read.
 export const METADATA_EXPORT_VERSION = 1;

@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process'
+import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -22,6 +23,12 @@ const BUILD_DATE = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (UTC)
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
     plugins: [react()],
+    resolve: {
+        alias: {
+            '~': fileURLToPath(new URL('./', import.meta.url)),
+            '@': fileURLToPath(new URL('./src', import.meta.url))
+        }
+    },
     define: {
         __BUILD_COMMIT__: JSON.stringify(BUILD_COMMIT),
         __BUILD_DATE__: JSON.stringify(BUILD_DATE),

@@ -10,7 +10,7 @@ import {
     useRef,
     useState
 } from 'react';
-import { useOpenAI } from '../hooks/useOpenAI';
+import { useOpenAI } from '@/hooks/useOpenAI';
 import {
     clearSocrataApiKey,
     describeSocrataType,
@@ -28,8 +28,8 @@ import {
     type PushSocrataMetadataOptions,
     saveSocrataApiKey,
     saveSocrataDomain,
-} from '../utils/socrataApi';
-import { fetchOpenAISession, logoutOpenAI, saveOpenAIConfig, } from '../utils/openaiApi';
+} from '@/utils/socrataApi';
+import { fetchOpenAISession, logoutOpenAI, saveOpenAIConfig, } from '@/utils/openaiApi';
 import {
     analyzeColumn,
     buildSampleRows,
@@ -37,10 +37,10 @@ import {
     getColumnTypeLabel,
     getSampleCount,
     getSampleValues
-} from '../utils/columnAnalyzer';
-import { handleRegenerationError } from '../utils/stateHelpers';
-import { parsePeriodOfTimeResponse } from '../utils/periodOfTime';
-import { analyzeTemporalCoverage, buildTemporalSummary } from '../utils/temporalCoverage';
+} from '@/utils/columnAnalyzer';
+import { handleRegenerationError } from '@/utils/stateHelpers';
+import { parsePeriodOfTimeResponse } from '@/utils/periodOfTime';
+import { analyzeTemporalCoverage, buildTemporalSummary } from '@/utils/temporalCoverage';
 import {
     appendPromptModifiers,
     buildColumnImprovementPrompt,
@@ -64,7 +64,7 @@ import {
     sanitizeInline,
     sanitizeUntrusted,
     type SuggestionItem,
-} from '../utils/prompts';
+} from '@/utils/prompts';
 import type {
     APIConfig,
     ColumnInfo,
@@ -76,7 +76,7 @@ import type {
     SocrataLicense,
     Status,
     TokenUsage,
-} from '../types';
+} from '@/types';
 import {
     appendRevision,
     type ColumnFieldKind,
@@ -85,8 +85,8 @@ import {
     datasetKey,
     findRevision,
     seedRevisions,
-} from '../utils/fieldRevisions';
-import { applyMetadataImport, downloadMetadataExport, parseMetadataImport, } from '../utils/metadataIo';
+} from '@/utils/fieldRevisions';
+import { applyMetadataImport, downloadMetadataExport, parseMetadataImport, } from '@/utils/metadataIo';
 
 // The data-type string handed to the LLM. Categorical columns surface their
 // base type ("Number (Categorical)" / "Text (Categorical)") so the model knows

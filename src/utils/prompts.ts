@@ -1,20 +1,20 @@
-// Default prompt templates live as plain .md files under src/prompts/ so their
+// Default prompt templates live as plain .md files under prompts/ so their
 // wording can be reviewed and edited without touching TypeScript — no backtick or
 // ${} escaping hazards, and a stray brace can't break the build. Vite's `?raw`
 // suffix inlines each file as a string at build time, so the DEFAULT_* constants
 // below are equivalent to the inline string literals they replaced. The runtime
 // `{token}` placeholders (e.g. {fileName}, {columnInfo}) are substituted later by
 // the caller, not here.
-import systemPromptMd from '../prompts/system.md?raw';
-import datasetPromptMd from '../prompts/dataset.md?raw';
-import columnPromptMd from '../prompts/column.md?raw';
-import datasetTitlePromptMd from '../prompts/dataset-title.md?raw';
-import categoryPromptMd from '../prompts/category.md?raw';
-import tagsPromptMd from '../prompts/tags.md?raw';
-import rowLabelPromptMd from '../prompts/row-label.md?raw';
-import periodOfTimePromptMd from '../prompts/period-of-time.md?raw';
-import datasetSuggestionPromptMd from '../prompts/dataset-suggestion.md?raw';
-import columnSuggestionPromptMd from '../prompts/column-suggestion.md?raw';
+import systemPromptMd from '~/prompts/system.md?raw';
+import datasetPromptMd from '~/prompts/dataset.md?raw';
+import columnPromptMd from '~/prompts/column.md?raw';
+import datasetTitlePromptMd from '~/prompts/dataset-title.md?raw';
+import categoryPromptMd from '~/prompts/category.md?raw';
+import tagsPromptMd from '~/prompts/tags.md?raw';
+import rowLabelPromptMd from '~/prompts/row-label.md?raw';
+import periodOfTimePromptMd from '~/prompts/period-of-time.md?raw';
+import datasetSuggestionPromptMd from '~/prompts/dataset-suggestion.md?raw';
+import columnSuggestionPromptMd from '~/prompts/column-suggestion.md?raw';
 
 // Untrusted-data fence tokens. They wrap any dataset-derived text inside a prompt,
 // so the model treats it as data, never as instructions. The SAME tokens are
@@ -82,7 +82,7 @@ if (import.meta.env.DEV) {
         if (!text.includes(UNTRUSTED_OPEN) || !text.includes(UNTRUSTED_CLOSE)) {
             throw new Error(
                 `Prompt ${name} is missing the untrusted-data fence tokens ` +
-                `(${UNTRUSTED_OPEN} … ${UNTRUSTED_CLOSE}). Restore them in src/prompts/*.md.`
+                `(${UNTRUSTED_OPEN} … ${UNTRUSTED_CLOSE}). Restore them in prompts/*.md.`
             );
         }
     }

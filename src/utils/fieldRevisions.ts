@@ -1,4 +1,4 @@
-import type { FieldRevision, FieldRevisionsMap, FieldRevisionSource, GeneratedResults, } from '../types';
+import type { FieldRevision, FieldRevisionsMap, FieldRevisionSource, GeneratedResults, } from '@/types';
 
 const COALESCE_WINDOW_MS = 2000;
 

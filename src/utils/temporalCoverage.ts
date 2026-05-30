@@ -1,6 +1,6 @@
-import type { CategoricalStats, ColumnInfo, CsvRow, NumericStats, TemporalStats, TextStats, } from '../types';
-import { periodStringToState } from './periodOfTime';
-import { sanitizeInline } from './prompts';
+import type { CategoricalStats, ColumnInfo, CsvRow, NumericStats, TemporalStats, TextStats, } from '@/types';
+import { periodStringToState } from '@/utils/periodOfTime';
+import { sanitizeInline } from '@/utils/prompts';
 
 // Bounds for what counts as a plausible calendar year. Anything outside this is
 // almost certainly an id, code, count, or measurement — not a date.

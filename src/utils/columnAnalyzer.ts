@@ -7,7 +7,7 @@ import type {
     OpaqueStats,
     TemporalStats,
     TextStats
-} from '../types';
+} from '@/types';
 
 export function analyzeColumn(_columnName: string, values: (string | null | undefined)[]): ColumnInfo {
     const nonNullValues = values.filter(

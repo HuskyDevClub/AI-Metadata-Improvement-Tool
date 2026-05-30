@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import '../shared/configPanel.css';
+import '@/components/shared/configPanel.css';
 
 interface SocrataApiConfigProps {
     keyId: string;

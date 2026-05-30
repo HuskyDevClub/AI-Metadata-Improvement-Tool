@@ -1,7 +1,7 @@
 import Papa from 'papaparse';
-import type { ColumnInfo, CsvRow, SocrataLicense } from '../types';
-import { API_BASE_URL } from './config';
-import { assertResponseOk } from './api';
+import type { ColumnInfo, CsvRow, SocrataLicense } from '@/types';
+import { API_BASE_URL } from '@/utils/config';
+import { assertResponseOk } from '@/utils/api';
 
 interface ParseResult {
     data: CsvRow[];

@@ -1,6 +1,6 @@
-import { AppProvider } from './contexts/AppContext';
-import { Layout } from './components/Layout/Layout';
-import './App.css';
+import { AppProvider } from '@/contexts/AppContext';
+import { Layout } from '@/components/Layout/Layout';
+import '@/App.css';
 
 function App() {
     return (

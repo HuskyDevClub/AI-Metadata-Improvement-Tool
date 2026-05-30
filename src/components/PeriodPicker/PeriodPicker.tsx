@@ -8,8 +8,8 @@ import {
     type PeriodState,
     periodStateToString,
     periodStringToState,
-} from '../../utils/periodOfTime';
-import './PeriodPicker.css';
+} from '@/utils/periodOfTime';
+import '@/components/PeriodPicker/PeriodPicker.css';
 
 type Mode = 'pickers' | 'custom';
 

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { SuggestionItem } from '../../utils/prompts';
-import { renderInlineMarkdown } from '../../utils/inlineMarkdown';
-import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
-import { DiffView } from '../shared/DiffView';
-import './EditableDescription.css';
+import type { SuggestionItem } from '@/utils/prompts';
+import { renderInlineMarkdown } from '@/utils/inlineMarkdown';
+import { ResetFieldButton } from '@/components/ResetFieldButton/ResetFieldButton';
+import { DiffView } from '@/components/shared/DiffView';
+import '@/components/EditableDescription/EditableDescription.css';
 
 interface EditableDescriptionProps {
     description: string;

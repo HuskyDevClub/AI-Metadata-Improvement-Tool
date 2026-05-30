@@ -1,4 +1,4 @@
-import './ResetFieldButton.css';
+import '@/components/ResetFieldButton/ResetFieldButton.css';
 
 interface ResetFieldButtonProps {
     onReset: () => void;

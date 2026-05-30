@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { OpenAIConfig as OpenAIConfigType } from '../../types';
-import '../shared/configPanel.css';
+import type { OpenAIConfig as OpenAIConfigType } from '@/types';
+import '@/components/shared/configPanel.css';
 
 interface OpenAIConfigProps {
     config: OpenAIConfigType;

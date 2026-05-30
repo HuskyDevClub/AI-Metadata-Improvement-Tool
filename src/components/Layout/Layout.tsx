@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PageId } from '../../contexts/AppContext';
-import { useAppContext } from '../../contexts/AppContext';
-import { FloatingActions } from '../FloatingActions/FloatingActions';
-import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
-import { StatusMessage } from '../StatusMessage/StatusMessage';
-import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
-import { ImportPage } from '../../pages/ImportPage';
-import { DataOverviewPage } from '../../pages/DataOverviewPage';
-import { FieldOverviewPage } from '../../pages/FieldOverviewPage';
-import { DiffView } from '../shared/DiffView';
-import { SettingsPage } from '../../pages/SettingsPage';
-import { DatasetFieldHistory } from '../FieldHistoryButton/ConnectedFieldHistory';
-import './Layout.css';
+import type { PageId } from '@/contexts/AppContext';
+import { useAppContext } from '@/contexts/AppContext';
+import { FloatingActions } from '@/components/FloatingActions/FloatingActions';
+import { ResetFieldButton } from '@/components/ResetFieldButton/ResetFieldButton';
+import { StatusMessage } from '@/components/StatusMessage/StatusMessage';
+import { InfoTooltip } from '@/components/InfoTooltip/InfoTooltip';
+import { ImportPage } from '@/pages/ImportPage';
+import { DataOverviewPage } from '@/pages/DataOverviewPage';
+import { FieldOverviewPage } from '@/pages/FieldOverviewPage';
+import { DiffView } from '@/components/shared/DiffView';
+import { SettingsPage } from '@/pages/SettingsPage';
+import { DatasetFieldHistory } from '@/components/FieldHistoryButton/ConnectedFieldHistory';
+import '@/components/Layout/Layout.css';
 
 function NavTab({ page, label, disabled }: {page: PageId; label: string; disabled?: boolean}) {
     const { currentPage, navigate } = useAppContext();

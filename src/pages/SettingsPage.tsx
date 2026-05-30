@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { OpenAIConfig } from '../components/OpenAIConfig/OpenAIConfig';
-import { PromptEditor } from '../components/PromptEditor/PromptEditor';
-import { SocrataApiConfig } from '../components/SocrataApiConfig/SocrataApiConfig';
-import { SocrataDomainConfig } from '../components/SocrataDomainConfig/SocrataDomainConfig';
-import { useAppContext } from '../contexts/AppContext';
-import './SettingsPage.css';
+import { OpenAIConfig } from '@/components/OpenAIConfig/OpenAIConfig';
+import { PromptEditor } from '@/components/PromptEditor/PromptEditor';
+import { SocrataApiConfig } from '@/components/SocrataApiConfig/SocrataApiConfig';
+import { SocrataDomainConfig } from '@/components/SocrataDomainConfig/SocrataDomainConfig';
+import { useAppContext } from '@/contexts/AppContext';
+import '@/pages/SettingsPage.css';
 
 export function SettingsPage({ onClose }: {onClose: () => void}) {
     const {

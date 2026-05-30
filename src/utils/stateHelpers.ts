@@ -1,4 +1,4 @@
-import type { Status } from '../types';
+import type { Status } from '@/types';
 
 /**
  * Helper to handle errors consistently across regeneration handlers

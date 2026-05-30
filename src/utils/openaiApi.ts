@@ -1,5 +1,5 @@
-import { API_BASE_URL } from './config';
-import { assertResponseOk } from './api';
+import { API_BASE_URL } from '@/utils/config';
+import { assertResponseOk } from '@/utils/api';
 
 interface OpenAISession {
     isConfigured: boolean;

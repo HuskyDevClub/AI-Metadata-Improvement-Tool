@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import type { FieldRevision, FieldRevisionSource } from '../../types';
-import { valuesEqual } from '../../utils/fieldRevisions';
-import './FieldHistoryButton.css';
+import type { FieldRevision, FieldRevisionSource } from '@/types';
+import { valuesEqual } from '@/utils/fieldRevisions';
+import '@/components/FieldHistoryButton/FieldHistoryButton.css';
 
 interface FieldHistoryButtonProps {
     revisions: FieldRevision[];

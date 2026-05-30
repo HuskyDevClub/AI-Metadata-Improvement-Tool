@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { type SuggestionItem } from '../../utils/prompts';
-import type { SocrataLicense } from '../../types';
-import { EditableDescription } from '../EditableDescription/EditableDescription';
-import { ResetFieldButton } from '../ResetFieldButton/ResetFieldButton';
-import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
-import { DiffView } from '../shared/DiffView';
-import { PeriodPicker } from '../PeriodPicker/PeriodPicker';
-import { DatasetFieldHistory } from '../FieldHistoryButton/ConnectedFieldHistory';
-import './DatasetDescription.css';
+import { type SuggestionItem } from '@/utils/prompts';
+import type { SocrataLicense } from '@/types';
+import { EditableDescription } from '@/components/EditableDescription/EditableDescription';
+import { ResetFieldButton } from '@/components/ResetFieldButton/ResetFieldButton';
+import { InfoTooltip } from '@/components/InfoTooltip/InfoTooltip';
+import { DiffView } from '@/components/shared/DiffView';
+import { PeriodPicker } from '@/components/PeriodPicker/PeriodPicker';
+import { DatasetFieldHistory } from '@/components/FieldHistoryButton/ConnectedFieldHistory';
+import '@/components/DatasetDescription/DatasetDescription.css';
 
 type DatasetFieldKey =
     | 'datasetDescription'

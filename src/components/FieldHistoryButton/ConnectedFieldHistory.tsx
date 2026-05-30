@@ -1,13 +1,13 @@
 import { type ReactNode } from 'react';
-import { useAppContext } from '../../contexts/AppContext';
+import { useAppContext } from '@/contexts/AppContext';
 import {
     type ColumnFieldKind,
     columnKey,
     type DatasetFieldKey,
     datasetKey,
     getRevisions,
-} from '../../utils/fieldRevisions';
-import { FieldHistoryButton } from './FieldHistoryButton';
+} from '@/utils/fieldRevisions';
+import { FieldHistoryButton } from '@/components/FieldHistoryButton/FieldHistoryButton';
 
 interface DatasetFieldHistoryProps {
     field: DatasetFieldKey;

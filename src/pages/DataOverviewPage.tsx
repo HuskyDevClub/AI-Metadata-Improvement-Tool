@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DatasetDescription } from '../components/DatasetDescription/DatasetDescription';
-import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
-import { ResetFieldButton } from '../components/ResetFieldButton/ResetFieldButton';
-import { InfoTooltip } from '../components/InfoTooltip/InfoTooltip';
-import { DiffView } from '../components/shared/DiffView';
-import { ColumnFieldHistory, DatasetFieldHistory } from '../components/FieldHistoryButton/ConnectedFieldHistory';
-import { useAppContext } from '../contexts/AppContext';
-import { analyzeTemporalCoverage, getPeriodOfTimeWarning } from '../utils/temporalCoverage';
-import './DataOverviewPage.css';
+import { DatasetDescription } from '@/components/DatasetDescription/DatasetDescription';
+import { DataTypeBadge } from '@/components/DataTypeBadge/DataTypeBadge';
+import { ResetFieldButton } from '@/components/ResetFieldButton/ResetFieldButton';
+import { InfoTooltip } from '@/components/InfoTooltip/InfoTooltip';
+import { DiffView } from '@/components/shared/DiffView';
+import { ColumnFieldHistory, DatasetFieldHistory } from '@/components/FieldHistoryButton/ConnectedFieldHistory';
+import { useAppContext } from '@/contexts/AppContext';
+import { analyzeTemporalCoverage, getPeriodOfTimeWarning } from '@/utils/temporalCoverage';
+import '@/pages/DataOverviewPage.css';
 
 export function DataOverviewPage() {
     const {

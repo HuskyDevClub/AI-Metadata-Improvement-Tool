@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useAppContext } from '../contexts/AppContext';
-import { ACCEPTED_UPLOAD_EXTENSIONS, isSupportedDataFile } from '../utils/socrataApi';
-import './ImportPage.css';
+import { useAppContext } from '@/contexts/AppContext';
+import { ACCEPTED_UPLOAD_EXTENSIONS, isSupportedDataFile } from '@/utils/socrataApi';
+import '@/pages/ImportPage.css';
 
 const DATASET_ID_PATTERN = /(?:^|\/)([a-z0-9]{4}-[a-z0-9]{4})(?:$|\/|\?)/i;
 

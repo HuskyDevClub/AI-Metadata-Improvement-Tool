@@ -1,10 +1,10 @@
-import type { SuggestionItem } from '../../utils/prompts';
-import type { ColumnInfo } from '../../types';
-import { formatColumnStats, sanitizeId } from '../../utils/columnAnalyzer';
-import { EditableDescription } from '../EditableDescription/EditableDescription';
-import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
-import { ColumnFieldHistory } from '../FieldHistoryButton/ConnectedFieldHistory';
-import './ColumnCard.css';
+import type { SuggestionItem } from '@/utils/prompts';
+import type { ColumnInfo } from '@/types';
+import { formatColumnStats, sanitizeId } from '@/utils/columnAnalyzer';
+import { EditableDescription } from '@/components/EditableDescription/EditableDescription';
+import { InfoTooltip } from '@/components/InfoTooltip/InfoTooltip';
+import { ColumnFieldHistory } from '@/components/FieldHistoryButton/ConnectedFieldHistory';
+import '@/components/ColumnCard/ColumnCard.css';
 
 interface ColumnCardProps {
     name: string;

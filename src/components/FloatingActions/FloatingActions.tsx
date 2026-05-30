@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import './FloatingActions.css';
+import '@/components/FloatingActions/FloatingActions.css';
 
 export function FloatingActions() {
     const [showScrollTop, setShowScrollTop] = useState(false);

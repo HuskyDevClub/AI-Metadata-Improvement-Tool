@@ -1,5 +1,5 @@
-import { getColumnTypeLabel } from '../../utils/columnAnalyzer';
-import './DataTypeBadge.css';
+import { getColumnTypeLabel } from '@/utils/columnAnalyzer';
+import '@/components/DataTypeBadge/DataTypeBadge.css';
 
 interface DataTypeBadgeProps {
     type: string;

@@ -130,6 +130,18 @@ OAuth login allows users to authenticate with their own portal credentials. Socr
    - Regenerate with "More Concise", "More Detailed", or custom instructions
 5. **Export**: Push updated metadata back to data.wa.gov (requires OAuth or API Key authentication)
 
+## Customizing Prompts
+
+The system relies on prompt templates to steer the AI's behavior when generating metadata. All default prompt templates are stored as plain `.md` files in the `prompts/` directory at the root of the project.
+
+To update or customize the AI prompts (e.g., system personas, formatting instructions, or dataset criteria):
+1. Navigate to the `prompts/` directory.
+2. Open the relevant `.md` file (such as `system.md`, `dataset.md`, or `column.md`).
+3. Make your edits and save the file.
+4. The changes will be applied automatically if you are running the local development server.
+
+> **Note:** Ensure you do not remove or modify the untrusted-data fence tokens (`<<<UNTRUSTED_DATA>>>` and `<<<END_UNTRUSTED_DATA>>>`) present in the prompt templates, as these securely isolate dataset content and prevent prompt injection attacks.
+
 ## Deployment
 
 ### Quick Start for Testers (Manual Setup)

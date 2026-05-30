@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
-import { ColumnCard } from '../components/ColumnCard/ColumnCard';
-import { DataTypeBadge } from '../components/DataTypeBadge/DataTypeBadge';
-import { ResetFieldButton } from '../components/ResetFieldButton/ResetFieldButton';
-import { ColumnFieldHistory } from '../components/FieldHistoryButton/ConnectedFieldHistory';
-import { useAppContext } from '../contexts/AppContext';
-import { formatColumnStats, getColumnTypeLabel } from '../utils/columnAnalyzer';
-import type { CategoricalStats, TextStats } from '../types';
-import './FieldOverviewPage.css';
+import { ColumnCard } from '@/components/ColumnCard/ColumnCard';
+import { DataTypeBadge } from '@/components/DataTypeBadge/DataTypeBadge';
+import { ResetFieldButton } from '@/components/ResetFieldButton/ResetFieldButton';
+import { ColumnFieldHistory } from '@/components/FieldHistoryButton/ConnectedFieldHistory';
+import { useAppContext } from '@/contexts/AppContext';
+import { formatColumnStats, getColumnTypeLabel } from '@/utils/columnAnalyzer';
+import type { CategoricalStats, TextStats } from '@/types';
+import '@/pages/FieldOverviewPage.css';
 
 /** Set to `true` to allow users to edit the API field name. */
 const ENABLE_API_FIELD_NAME_EDIT = false;

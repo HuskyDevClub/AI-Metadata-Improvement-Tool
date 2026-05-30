@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import '../shared/configPanel.css';
+import '@/components/shared/configPanel.css';
 
 interface SocrataDomainConfigProps {
     /** Portal currently in effect (null until /api/socrata/config resolves). */

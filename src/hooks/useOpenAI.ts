@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import type { GenerationMode, OpenAIConfig, TokenUsage } from '../types';
-import { API_BASE_URL } from '../utils/config';
-import { assertResponseOk } from '../utils/api';
+import type { GenerationMode, OpenAIConfig, TokenUsage } from '@/types';
+import { API_BASE_URL } from '@/utils/config';
+import { assertResponseOk } from '@/utils/api';
 
 export function useOpenAI() {
     const callOpenAIStream = useCallback(

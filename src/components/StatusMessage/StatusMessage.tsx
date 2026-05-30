@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { Status } from '../../types';
-import './StatusMessage.css';
+import type { Status } from '@/types';
+import '@/components/StatusMessage/StatusMessage.css';
 
 interface StatusMessageProps {
     status: Status | null;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { OpenAIConfig, PromptTemplates } from '../../types';
-import { useOpenAI } from '../../hooks/useOpenAI';
+import type { OpenAIConfig, PromptTemplates } from '@/types';
+import { useOpenAI } from '@/hooks/useOpenAI';
 import {
     DEFAULT_CATEGORY_PROMPT,
     DEFAULT_COLUMN_PROMPT,
@@ -12,8 +12,8 @@ import {
     DEFAULT_ROW_LABEL_PROMPT,
     DEFAULT_SYSTEM_PROMPT,
     DEFAULT_TAGS_PROMPT,
-} from '../../utils/prompts';
-import './PromptEditor.css';
+} from '@/utils/prompts';
+import '@/components/PromptEditor/PromptEditor.css';
 
 type PromptInfo = Record<string, {description: string; placeholders?: string}>;
 

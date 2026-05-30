@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import './DiffView.css';
+import '@/components/shared/DiffView.css';
 
 interface DiffViewProps {
     currentLabel?: string;
