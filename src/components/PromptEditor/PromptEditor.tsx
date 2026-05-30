@@ -88,6 +88,19 @@ const PROMPT_FIELDS: {key: keyof PromptTemplates; label: string}[] = [
     { key: 'columnSuggestion', label: 'Column Description Suggestion Prompt' },
 ];
 
+const EXPORT_FILENAMES: Record<keyof PromptTemplates, string> = {
+    systemPrompt: 'system.md',
+    dataset: 'dataset.md',
+    column: 'column.md',
+    rowLabel: 'row-label.md',
+    datasetTitle: 'dataset-title.md',
+    category: 'category.md',
+    tags: 'tags.md',
+    periodOfTime: 'period-of-time.md',
+    datasetSuggestion: 'dataset-suggestion.md',
+    columnSuggestion: 'column-suggestion.md',
+};
+
 type AiMode = 'ask' | 'improve';
 
 const IMPROVE_SYSTEM_PROMPT = `You are a prompt-engineering assistant. The user is editing a prompt template that another AI will use. They will give you the current template and an instruction describing how they want it changed.
@@ -184,6 +197,32 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
     const [aiError, setAiError] = useState<string | null>(null);
     const abortRef = useRef<AbortController | null>(null);
     const { callOpenAIStream } = useOpenAI();
+
+    const handleExport = useCallback((key: keyof PromptTemplates) => {
+        const dataStr = templates[key];
+        const dataUri = 'data:text/markdown;charset=utf-8,' + encodeURIComponent(dataStr);
+        const exportFileDefaultName = EXPORT_FILENAMES[key];
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+    }, [templates]);
+
+    const handleImport = useCallback((key: keyof PromptTemplates, event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const content = e.target?.result;
+            if (typeof content === 'string') {
+                onChange({ ...templates, [key]: content });
+            }
+        };
+        reader.readAsText(file);
+
+        event.target.value = '';
+    }, [templates, onChange]);
 
     const cancelReset = useCallback(() => setResetTarget(null), []);
     const confirmReset = useCallback(() => {
@@ -307,6 +346,19 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                             <div className="prompt-editor-box-header">
                                 <h4>{label} <InfoIcon description={info?.description}/></h4>
                                 <div className="prompt-editor-box-actions">
+                                    <button
+                                        className="btn btn-secondary btn-md"
+                                        onClick={() => handleExport(key)}
+                                        title="Export this prompt"
+                                    >
+                                        Export
+                                    </button>
+                                    <label className="btn btn-secondary btn-md" style={{ cursor: 'pointer', margin: 0 }}
+                                           title="Import a prompt">
+                                        Import
+                                        <input type="file" accept=".md" onChange={(e) => handleImport(key, e)}
+                                               style={{ display: 'none' }}/>
+                                    </label>
                                     <button
                                         className="btn btn-secondary btn-md"
                                         onClick={() => openAi(key)}
