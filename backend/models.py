@@ -71,6 +71,10 @@ class ColumnStats(BaseModel):
     type: Literal[
         "numeric", "categorical", "text", "temporal", "geospatial", "opaque", "empty"
     ]
+    # For categorical columns: whether the underlying values are numbers
+    # (e.g. ratings, FIPS codes) or free text. Lets the frontend render
+    # "Number (Categorical)" vs "Text (Categorical)". None for other types.
+    baseType: Literal["numeric", "text"] | None = None
     stats: dict[str, Any]
     nullCount: int
     totalCount: int

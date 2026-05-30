@@ -178,15 +178,25 @@ async def _compute_numeric_stats(
     total_rows: int,
     headers: dict[str, str],
 ) -> ColumnStats:
-    """Compute numeric column stats using SODA aggregate + quartile lookups."""
+    """Compute numeric column stats using SODA aggregate + quartile lookups.
+
+    A numeric column with few distinct values (e.g. a 1–5 rating, a FIPS or
+    status code) is really categorical — the distinct set, not a min/max/mean,
+    is what matters. We fetch the distinct count alongside the other aggregates
+    (one extra term, no extra round-trip) and hand off to the categorical path
+    when the cardinality is low. Mirrors the frontend analyzeColumn heuristic.
+    """
     esc = soda_escape(field)
 
-    # Aggregate: count, min, max, avg
+    # Aggregate: count, distinct count, min, max, avg
     agg_rows = await soda_get(
         client,
         soda_base,
         {
-            "$select": f"count({esc}) as cnt, min({esc}) as mn, max({esc}) as mx, avg({esc}) as av",
+            "$select": (
+                f"count({esc}) as cnt, count(distinct {esc}) as ucnt, "
+                f"min({esc}) as mn, max({esc}) as mx, avg({esc}) as av"
+            ),
         },
         headers,
     )
@@ -201,6 +211,13 @@ async def _compute_numeric_stats(
     if cnt == 0:
         return ColumnStats(
             type="empty", stats={}, nullCount=total_rows, totalCount=total_rows
+        )
+
+    distinct = _coerce_unique_count(row.get("ucnt"), cnt, field)
+    unique_ratio = distinct / cnt
+    if unique_ratio < 0.5 or distinct < TEXT_GROUPBY_LIMIT:
+        return await _compute_numeric_categorical_stats(
+            client, soda_base, field, total_rows, cnt, distinct, headers
         )
 
     mn = float(row.get("mn") or 0)
@@ -249,6 +266,40 @@ async def _compute_numeric_stats(
             "q3": q3,
         },
         nullCount=total_rows - cnt,
+        totalCount=total_rows,
+    )
+
+
+async def _compute_numeric_categorical_stats(
+    client: httpx.AsyncClient,
+    soda_base: str,
+    field: str,
+    total_rows: int,
+    non_null: int,
+    distinct: int,
+    headers: dict[str, str],
+) -> ColumnStats:
+    """Build categorical stats for a low-cardinality numeric column.
+
+    `non_null` and `distinct` are exact aggregates already computed by the
+    caller; the group-by only supplies the top values by frequency for display.
+    """
+    groups = await _compute_groupby(client, soda_base, field, headers, limit=20)
+    values = [
+        _truncate_sample(str(g.get(field))) for g in groups if g.get(field) is not None
+    ]
+    value_counts = [int(g.get("cnt") or 0) for g in groups if g.get(field) is not None]
+    return ColumnStats(
+        type="categorical",
+        baseType="numeric",
+        stats={
+            "count": non_null,
+            "uniqueCount": distinct,
+            "values": values,
+            "valueCounts": value_counts,
+            "hasMore": distinct > 20,
+        },
+        nullCount=total_rows - non_null,
         totalCount=total_rows,
     )
 
@@ -662,6 +713,7 @@ def _classify_from_groupby(
     value_counts = [int(g.get("cnt") or 0) for g in top]
     return ColumnStats(
         type="categorical",
+        baseType="text",
         stats={
             "count": non_null_count,
             "uniqueCount": distinct_count,
@@ -745,6 +797,7 @@ async def compute_column_stats(
         unique_count = len(groups)
         return display_name, ColumnStats(
             type="categorical",
+            baseType="text",
             stats={
                 "count": non_null,
                 "uniqueCount": unique_count,
