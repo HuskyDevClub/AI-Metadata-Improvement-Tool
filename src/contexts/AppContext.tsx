@@ -31,7 +31,6 @@ import {
 } from '@/utils/socrataApi';
 import { fetchOpenAISession, logoutOpenAI, saveOpenAIConfig, } from '@/utils/openaiApi';
 import {
-    analyzeColumn,
     buildSampleRows,
     getColumnStatsText,
     getColumnTypeLabel,
@@ -142,6 +141,7 @@ interface SavedDatasetState {
     importedRowCount: number;
     tokenUsage: TokenUsage;
     socrataDatasetId: string;
+    socrataSourceDomain: string | null;
     socrataFieldNameMap: Record<string, string>;
     socrataCanEdit: boolean;
     // In-flight compare-UI state. Streaming regenerations on one dataset
@@ -242,6 +242,10 @@ interface AppContextType {
 
     // Socrata
     socrataDatasetId: string;
+    // The portal this dataset was imported from. Usually equals the configured
+    // `socrataDomain`, but a dataset imported via a pasted URL from a different
+    // portal records that portal here. Null for CSV/Excel uploads.
+    socrataSourceDomain: string | null;
     // True when the signed-in user may edit the imported dataset (captured from
     // the portal's `rights` at import time). Gates whether Push is shown.
     socrataCanEdit: boolean;
@@ -566,6 +570,8 @@ export function AppProvider({ children }: {children: ReactNode}) {
 
     // Socrata push-back state
     const [socrataDatasetId, setSocrataDatasetId] = useState('');
+    // Portal a Socrata dataset was actually imported from (see AppContextType).
+    const [socrataSourceDomain, setSocrataSourceDomain] = useState<string | null>(null);
     const [socrataFieldNameMap, setSocrataFieldNameMap] = useState<Record<string, string>>({});
     const [socrataCanEdit, setSocrataCanEdit] = useState(false);
     const [isPushingSocrata, setIsPushingSocrata] = useState(false);
@@ -593,7 +599,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     // Ref that always holds current per-dataset state (updated synchronously after render)
     const datasetStateRef = useRef({
         csvData, fileName, columnStats, generatedResults, initialResults, showResults,
-        importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap, socrataCanEdit,
+        importedRowCount, tokenUsage, socrataDatasetId, socrataSourceDomain, socrataFieldNameMap, socrataCanEdit,
         pendingDatasetDescription, pendingColumnDescriptions,
         pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, tagsBaseline, pendingPeriodOfTime,
         regeneratingDataset, regeneratingColumns, fieldRevisions,
@@ -601,7 +607,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
     useLayoutEffect(() => {
         datasetStateRef.current = {
             csvData, fileName, columnStats, generatedResults, initialResults, showResults,
-            importedRowCount, tokenUsage, socrataDatasetId, socrataFieldNameMap, socrataCanEdit,
+            importedRowCount, tokenUsage, socrataDatasetId, socrataSourceDomain, socrataFieldNameMap, socrataCanEdit,
             pendingDatasetDescription, pendingColumnDescriptions,
             pendingDatasetTitle, pendingRowLabel, pendingCategory, pendingTags, tagsBaseline, pendingPeriodOfTime,
             regeneratingDataset, regeneratingColumns, fieldRevisions,
@@ -632,6 +638,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         setImportedRowCount(saved.importedRowCount);
         setTokenUsage(saved.tokenUsage);
         setSocrataDatasetId(saved.socrataDatasetId);
+        setSocrataSourceDomain(saved.socrataSourceDomain);
         setSocrataFieldNameMap(saved.socrataFieldNameMap);
         setSocrataCanEdit(saved.socrataCanEdit);
         setIsProcessing(false);
@@ -1285,13 +1292,18 @@ export function AppProvider({ children }: {children: ReactNode}) {
     const handleAnalyze = useCallback(
         async (file: File) => {
             setIsProcessing(true);
-            setStatus({ message: 'Reading CSV file...', type: 'info' });
+            setStatus({ message: 'Reading file...', type: 'info' });
 
             try {
-                const result = await parseFile(file);
+                const result = await parseFile(file, (rowsProcessed) => {
+                    setStatus({
+                        message: `Reading file… ${rowsProcessed.toLocaleString()} rows`,
+                        type: 'info',
+                    });
+                });
 
                 if (!result.data || result.data.length === 0) {
-                    setStatus({ message: 'No data found in CSV file', type: 'error' });
+                    setStatus({ message: 'No data found in file', type: 'error' });
                     setIsProcessing(false);
                     return;
                 }
@@ -1310,9 +1322,10 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setCsvData(result.data);
                 setFileName(result.fileName);
                 setShowResults(true);
-                setImportedRowCount(0);
+                setImportedRowCount(result.rowCount);
                 setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
                 setSocrataDatasetId('');
+                setSocrataSourceDomain(null);
                 setSocrataFieldNameMap({});
                 setSocrataCanEdit(false);
                 setGeneratingColumns(new Set());
@@ -1337,16 +1350,14 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setGeneratingTags(false);
                 setGeneratingPeriodOfTime(false);
 
-                setStatus({ message: 'Analyzing columns...', type: 'info' });
-                const columns = Object.keys(result.data[0]);
-                const stats: Record<string, ColumnInfo> = {};
+                // Column stats are computed during the streaming parse (in the
+                // worker), so just consume them here — no client-side analyzeColumn.
+                const columns = Object.keys(result.columnStats);
                 const displayNameMap: Record<string, string> = {};
                 columns.forEach((col) => {
-                    const values = result.data.map((row) => row[col]);
-                    stats[col] = analyzeColumn(col, values);
                     displayNameMap[col] = col;
                 });
-                setColumnStats(stats);
+                setColumnStats(result.columnStats);
 
                 const initialCsvResults: GeneratedResults = {
                     datasetTitle: '',
@@ -1372,7 +1383,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 lastDatasetPageRef.current = { page: 'data', fieldName: null };
                 setCurrentPage('data');
 
-                setStatus({ message: 'CSV loaded successfully.', type: 'success', autoHide: 3000 });
+                setStatus({ message: 'Data loaded successfully.', type: 'success', autoHide: 3000 });
             } catch (error) {
                 const detail = error instanceof Error ? error.message : 'Unknown error';
                 setStatus({ message: `Error reading CSV: ${detail}`, type: 'error' });
@@ -1460,6 +1471,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
             setGeneratingPeriodOfTime(false);
             setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
             setSocrataDatasetId('');
+            setSocrataSourceDomain(null);
             setSocrataFieldNameMap({});
             setSocrataCanEdit(false);
             setIsPushingSocrata(false);
@@ -2279,6 +2291,9 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 setImportedRowCount(result.totalRowCount);
                 setTokenUsage({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
                 setSocrataDatasetId(datasetId);
+                // Remember the portal this came from — for a pasted-URL import
+                // that's the URL's host, not the configured portal.
+                setSocrataSourceDomain(sourceDomain);
                 setGeneratingColumns(new Set());
                 setRegeneratingDataset(false);
                 setRegeneratingColumns(new Set());
@@ -2600,14 +2615,16 @@ export function AppProvider({ children }: {children: ReactNode}) {
                 metadata: generatedResults,
                 fileName,
                 socrataDatasetId: socrataDatasetId || undefined,
-                socrataDomain,
+                // Record the portal this dataset actually came from (which may
+                // differ from the configured one for a pasted-URL import).
+                socrataDomain: socrataSourceDomain ?? socrataDomain,
             });
             setStatus({ message: 'Metadata exported.', type: 'success', autoHide: 3000 });
         } catch (error) {
             const detail = error instanceof Error ? error.message : 'Unknown error';
             setStatus({ message: `Export failed: ${detail}`, type: 'error' });
         }
-    }, [showResults, generatedResults, fileName, socrataDatasetId, socrataDomain]);
+    }, [showResults, generatedResults, fileName, socrataDatasetId, socrataSourceDomain, socrataDomain]);
 
     // Apply a previously-exported metadata file onto the dataset open in the
     // active tab. Column entries are matched by name; ones with no matching
@@ -2739,6 +2756,7 @@ export function AppProvider({ children }: {children: ReactNode}) {
         generatingTags,
         generatingPeriodOfTime,
         socrataDatasetId,
+        socrataSourceDomain,
         socrataCanEdit,
         isPushingSocrata,
         socrataOAuthUser,

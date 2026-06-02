@@ -145,6 +145,7 @@ function DatasetTitleBar() {
         generatingDatasetTitle,
         socrataDatasetId,
         socrataDomain,
+        socrataSourceDomain,
         pendingDatasetTitle,
         handleAcceptPendingDatasetTitle,
         handleDiscardPendingDatasetTitle,
@@ -173,6 +174,9 @@ function DatasetTitleBar() {
     };
 
     const isSocrataImport = !!socrataDatasetId;
+    // Link to the portal the dataset was actually imported from — for a
+    // pasted-URL import that's the URL's host, not the configured portal.
+    const aboutDomain = socrataSourceDomain ?? socrataDomain;
     const subtitleText = isSocrataImport ? socrataDatasetId : fileName;
     const showSubtitle = !isEditing && !hasPending && !!title && title !== subtitleText;
 
@@ -277,13 +281,13 @@ function DatasetTitleBar() {
                     {isSocrataImport && (
                         <span className="layout-dataset-subtitle-label">Dataset ID</span>
                     )}
-                    {isSocrataImport && socrataDomain ? (
+                    {isSocrataImport && aboutDomain ? (
                         <a
                             className="layout-dataset-subtitle-value"
-                            href={`https://${socrataDomain}/d/${socrataDatasetId}/about_data`}
+                            href={`https://${aboutDomain}/d/${socrataDatasetId}/about_data`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            title={`Open About page on ${socrataDomain}`}
+                            title={`Open About page on ${aboutDomain}`}
                         >
                             {subtitleText}
                             <svg

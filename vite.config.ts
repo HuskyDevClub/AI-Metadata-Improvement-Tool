@@ -33,6 +33,12 @@ export default defineConfig(({ mode }) => ({
         __BUILD_COMMIT__: JSON.stringify(BUILD_COMMIT),
         __BUILD_DATE__: JSON.stringify(BUILD_DATE),
     },
+    // ES-format workers so the import parser's lazy `import('xlsx')` splits into
+    // its own chunk — a CSV upload then never downloads SheetJS. Matches our
+    // `new Worker(..., { type: 'module' })` usage.
+    worker: {
+        format: 'es',
+    },
     server: {
         // Proxy /api/* to the backend so the OAuth session cookie is same-origin
         // in dev. Without this, cookies set by :8000 aren't sent by :5173.

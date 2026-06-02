@@ -1,10 +1,15 @@
-import Papa from 'papaparse';
 import type { ColumnInfo, CsvRow, SocrataLicense } from '@/types';
 import { API_BASE_URL } from '@/utils/config';
 import { assertResponseOk } from '@/utils/api';
+import type { ImportWorkerRequest, ImportWorkerResponse } from '@/workers/importParser.worker';
 
 interface ParseResult {
+    /** Full rows for small files; sample rows once the file exceeds the streaming threshold. */
     data: CsvRow[];
+    /** Per-column stats computed during the streaming pass. */
+    columnStats: Record<string, ColumnInfo>;
+    /** True total row count, even when only sample rows are retained in `data`. */
+    rowCount: number;
     fileName: string;
 }
 
@@ -27,67 +32,51 @@ export function isSupportedDataFile(file: File): boolean {
 }
 
 /**
- * Parse an uploaded data file into rows keyed by column header. Excel workbooks
- * (.xlsx/.xls/.xlsm) are read with SheetJS; everything else takes the CSV/TSV
- * path. Both resolve to the same { data, fileName } shape so callers stay
- * format-agnostic.
+ * Parse an uploaded data file into per-column stats + retained rows, streaming
+ * it through a Web Worker so the main thread never blocks. CSV/TSV are read in
+ * chunks with PapaParse; Excel workbooks (.xlsx/.xls/.xlsm) with SheetJS. Files
+ * under the streaming threshold keep all their rows (and exact stats); larger
+ * files keep only sample rows + bounded-memory approximate stats, so memory
+ * stays bounded no matter how large the upload is.
+ *
+ * `onProgress` (optional) reports the running row count for a loading indicator.
  */
-export function parseFile(file: File): Promise<ParseResult> {
-    return hasExtension(file, EXCEL_EXTENSIONS)
-        ? parseExcelFile(file)
-        : parseCsvFile(file);
-}
-
-function parseCsvFile(file: File): Promise<ParseResult> {
+export function parseFile(
+    file: File,
+    onProgress?: (rowsProcessed: number) => void,
+): Promise<ParseResult> {
     return new Promise((resolve, reject) => {
-        Papa.parse<CsvRow>(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
+        const worker = new Worker(
+            new URL('../workers/importParser.worker.ts', import.meta.url),
+            { type: 'module' },
+        );
+
+        worker.onmessage = (e: MessageEvent) => {
+            const msg = e.data as ImportWorkerResponse;
+            if (msg.type === 'progress') {
+                onProgress?.(msg.rowsProcessed);
+                return;
+            }
+            worker.terminate();
+            if (msg.type === 'done') {
                 resolve({
-                    data: results.data,
-                    fileName: file.name,
+                    data: msg.data,
+                    columnStats: msg.columnStats as Record<string, ColumnInfo>,
+                    rowCount: msg.rowCount,
+                    fileName: msg.fileName,
                 });
-            },
-            error: (error) => {
-                reject(new Error(`Error parsing CSV: ${error.message}`));
-            },
-        });
+            } else {
+                reject(new Error(msg.message));
+            }
+        };
+
+        worker.onerror = (e: ErrorEvent) => {
+            worker.terminate();
+            reject(new Error(e.message || 'Failed to parse file'));
+        };
+
+        worker.postMessage({ file } satisfies ImportWorkerRequest);
     });
-}
-
-/**
- * Parse the first worksheet of an Excel workbook. Cells come back as the
- * formatted strings the user sees in Excel (dates, numbers) so the result
- * matches the CSV path's all-string values.
- */
-async function parseExcelFile(file: File): Promise<ParseResult> {
-    // Lazy-load SheetJS: it's large and only needed for spreadsheet uploads,
-    // so keep it out of the initial bundle.
-    const XLSX = await import('xlsx');
-
-    const buffer = new Uint8Array(await file.arrayBuffer());
-    const workbook = XLSX.read(buffer, { type: 'array' });
-
-    const sheetName = workbook.SheetNames[0];
-    if (!sheetName) throw new Error('The workbook has no sheets.');
-
-    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
-        workbook.Sheets[sheetName],
-        { defval: '', raw: false },
-    );
-
-    // Coerce every cell to a string so rows satisfy CsvRow and the downstream
-    // pipeline, which assumes string values everywhere.
-    const data: CsvRow[] = rawRows.map((row) => {
-        const out: CsvRow = {};
-        for (const [key, value] of Object.entries(row)) {
-            out[key] = value == null ? '' : String(value);
-        }
-        return out;
-    });
-
-    return { data, fileName: file.name };
 }
 
 interface SocrataColumnMeta {
