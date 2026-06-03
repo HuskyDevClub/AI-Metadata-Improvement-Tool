@@ -20,6 +20,19 @@ load_dotenv(override=True)
 SOCRATA_APP_TOKEN = os.getenv("SOCRATA_APP_TOKEN", "")
 SOCRATA_SECRET_TOKEN = os.getenv("SOCRATA_SECRET_TOKEN", "")
 
+
+def _env_bool(name: str, default: bool) -> bool:
+    """Parse a boolean env var, distinguishing "unset" from an explicit value.
+
+    An unset or empty value yields *default*; otherwise truthy spellings
+    (1/true/yes/on, case-insensitive) enable and everything else disables.
+    """
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
 # Hostname shape: alphanumeric/hyphen labels joined by dots, at least one dot.
 # Deliberately strict — the value is interpolated straight into outbound URLs.
 _DOMAIN_RE = re.compile(
@@ -102,10 +115,12 @@ SOCRATA_OAUTH_REDIRECT_URI = (
     or f"{FRONTEND_URL}/api/auth/socrata/callback"
 )
 
-# OAuth is only functional when the portal-app Secret Token is configured.
-# The frontend uses this to hide the "Sign in" UI when sign-in can't succeed
-# anyway — keeping it visible would just expose a broken button.
-ENABLE_SOCRATA_OAUTH = bool(SOCRATA_SECRET_TOKEN)
+# Whether the "Sign in with data.wa.gov" UI is shown. This is the sole control:
+# set ENABLE_SOCRATA_OAUTH=true to reveal the button, false (the default) to
+# hide it. SOCRATA_SECRET_TOKEN no longer affects visibility. Note OAuth still
+# can't *complete* without SOCRATA_SECRET_TOKEN (see auth.py), so enabling the
+# toggle without a token exposes a button that will error.
+ENABLE_SOCRATA_OAUTH = _env_bool("ENABLE_SOCRATA_OAUTH", False)
 
 # Whether persisting Socrata/LLM credentials into the server-side session is
 # allowed. When false — the default — the save endpoints reject with 403 and the
