@@ -48,6 +48,22 @@ jobs:
             databricks secrets put-secret open-data-tool "$KEY" --string-value "$VAL"
           done <<< "$DATABRICKS_ENV_FILE"
 
+          # Generate stable session/OAuth crypto secrets once if they aren't
+          # already present (either provided above via .env.databricks or set on
+          # a prior run). Reusing them keeps user sessions valid across restarts
+          # and redeploys and lets OAuth state validation work across workers.
+          EXISTING_KEYS=$(databricks secrets list-secrets open-data-tool --output json \
+            | jq -r 'if type=="object" then .secrets else . end | .[].key')
+          if ! grep -qx "SESSION_ENCRYPTION_KEY" <<< "$EXISTING_KEYS"; then
+            echo "  generating SESSION_ENCRYPTION_KEY"
+            FERNET_KEY=$(python3 -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())")
+            databricks secrets put-secret open-data-tool SESSION_ENCRYPTION_KEY --string-value "$FERNET_KEY"
+          fi
+          if ! grep -qx "OAUTH_STATE_SECRET" <<< "$EXISTING_KEYS"; then
+            echo "  generating OAUTH_STATE_SECRET"
+            databricks secrets put-secret open-data-tool OAUTH_STATE_SECRET --string-value "$(openssl rand -hex 32)"
+          fi
+
       - name: Register secret resources on the app
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
@@ -60,7 +76,9 @@ jobs:
             {name:"llm-endpoint",          secret:{scope:"open-data-tool", key:"LLM_ENDPOINT",         permission:"READ"}},
             {name:"llm-api-key",           secret:{scope:"open-data-tool", key:"LLM_API_KEY",          permission:"READ"}},
             {name:"llm-model",             secret:{scope:"open-data-tool", key:"LLM_MODEL",            permission:"READ"}},
-            {name:"frontend-url",          secret:{scope:"open-data-tool", key:"FRONTEND_URL",         permission:"READ"}}
+            {name:"frontend-url",          secret:{scope:"open-data-tool", key:"FRONTEND_URL",         permission:"READ"}},
+            {name:"session-encryption-key",secret:{scope:"open-data-tool", key:"SESSION_ENCRYPTION_KEY", permission:"READ"}},
+            {name:"oauth-state-secret",    secret:{scope:"open-data-tool", key:"OAUTH_STATE_SECRET",     permission:"READ"}}
           ]')
           databricks apps update "$APP_NAME" --json "{\"resources\": $RESOURCES}"
 
