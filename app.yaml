@@ -7,7 +7,7 @@ command:
   - "-c"
   - |
     pip install -r backend/requirements.txt && \
-    uvicorn backend.main:app --host 0.0.0.0 --port 8000
+    uvicorn backend.main:app --host 0.0.0.0 --port "${PORT:-8000}"
 
 env:
   - name: SOCRATA_APP_TOKEN
@@ -19,6 +19,15 @@ env:
   # still required for OAuth to complete once the button is shown.
   - name: ENABLE_SOCRATA_OAUTH
     value: "true"
+  # Stable session/OAuth crypto so user sessions survive app restarts and
+  # redeploys, and OAuth state validation works across workers. Without these
+  # the backend mints a fresh key per process (logging everyone out on restart).
+  # CI generates each one once if absent and reuses it thereafter (see
+  # .github/workflows/deploy-databricks.yml).
+  - name: SESSION_ENCRYPTION_KEY
+    valueFrom: session-encryption-key
+  - name: OAUTH_STATE_SECRET
+    valueFrom: oauth-state-secret
   - name: LLM_ENDPOINT
     valueFrom: llm-endpoint
   - name: LLM_API_KEY
