@@ -40,6 +40,9 @@ trap 'rm -rf "$STAGING"' EXIT
 echo "==> Preparing deployment artifacts in $STAGING..."
 cp app.yaml "$STAGING/"
 cp -r backend "$STAGING/"
+# Ship the prompt templates so the backend's GET /api/prompts can serve them
+# (the AI-Metadata-Evaluation-Tool fetches these to score the shipping prompts).
+cp -r prompts "$STAGING/"
 
 # Build the authenticated remote URL from GitHub Actions env vars.
 # GITHUB_TOKEN and GITHUB_REPOSITORY ("owner/repo") are auto-provided by Actions.

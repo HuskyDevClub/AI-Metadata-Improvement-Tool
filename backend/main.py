@@ -12,6 +12,7 @@ from .config import FRONTEND_URL, PORT
 from .auth import router as auth_router
 from .llm import router as llm_router
 from .models import HealthResponse
+from .prompts import router as prompts_router
 from .socrata import router as socrata_router
 
 app = FastAPI(
@@ -73,6 +74,7 @@ async def health_check() -> HealthResponse:
 app.include_router(auth_router)
 app.include_router(socrata_router)
 app.include_router(llm_router)
+app.include_router(prompts_router)
 
 
 # Serve static files (React frontend) - must be last
