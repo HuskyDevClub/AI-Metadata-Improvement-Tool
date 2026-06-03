@@ -14,6 +14,11 @@ env:
     valueFrom: socrata-app-token
   - name: SOCRATA_SECRET_TOKEN
     valueFrom: socrata-secret-token
+  # Sole control for the "Sign in with data.wa.gov" UI (not a secret, so set
+  # directly). Set to "false" to hide the button. SOCRATA_SECRET_TOKEN above is
+  # still required for OAuth to complete once the button is shown.
+  - name: ENABLE_SOCRATA_OAUTH
+    value: "true"
   - name: LLM_ENDPOINT
     valueFrom: llm-endpoint
   - name: LLM_API_KEY
