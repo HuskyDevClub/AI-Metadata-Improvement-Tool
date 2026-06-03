@@ -17,16 +17,16 @@ export function renderInlineMarkdown(text: string): ReactNode[] {
         if (!part) return null;
         if (part.length > 1 && part.startsWith('`') && part.endsWith('`')) {
             return (
-                <code key={i} className="md-code">
-                    {part.slice(1, -1)}
+                <code key={ i } className="md-code">
+                    { part.slice(1, -1) }
                 </code>
             );
         }
         if (part.length > 3 && part.startsWith('**') && part.endsWith('**')) {
-            return <strong key={i}>{part.slice(2, -2)}</strong>;
+            return <strong key={ i }>{ part.slice(2, -2) }</strong>;
         }
         if (part.length > 1 && part.startsWith('*') && part.endsWith('*')) {
-            return <em key={i}>{part.slice(1, -1)}</em>;
+            return <em key={ i }>{ part.slice(1, -1) }</em>;
         }
         return part;
     });

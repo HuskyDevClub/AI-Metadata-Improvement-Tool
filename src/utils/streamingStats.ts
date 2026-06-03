@@ -1,9 +1,4 @@
-import type {
-    CategoricalStats,
-    ColumnInfo,
-    NumericStats,
-    TextStats,
-} from '@/types';
+import type { CategoricalStats, ColumnInfo, NumericStats, TextStats, } from '@/types';
 
 // These mirror the thresholds in `analyzeColumn` (src/utils/columnAnalyzer.ts)
 // exactly, so a streamed column produces the same ColumnInfo shape/branching as
@@ -92,7 +87,7 @@ class KmvCardinality {
     private siftDown(i: number): void {
         const h = this.heap;
         const n = h.length;
-        for (;;) {
+        for (; ;) {
             const l = 2 * i + 1;
             const r = 2 * i + 2;
             let largest = i;
@@ -198,18 +193,6 @@ export class ColumnSketch {
         if (this.samples.length < TEXT_SAMPLES) this.samples.push(value);
     }
 
-    /** Distinct-value count: exact when under the cap, else the KMV estimate. */
-    private distinctCount(): number {
-        return this.overflowed && this.kmv ? this.kmv.estimate() : this.counts.size;
-    }
-
-    private topValues(): { value: string; count: number }[] {
-        return [...this.counts.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, TOP_VALUES)
-            .map(([value, count]) => ({ value, count }));
-    }
-
     finalize(totalCount: number): ColumnInfo {
         const nullCount = totalCount - this.nonNull;
 
@@ -260,5 +243,17 @@ export class ColumnSketch {
             samples: this.samples.slice(0, TEXT_SAMPLES),
         };
         return { type: 'text', stats, nullCount, totalCount };
+    }
+
+    /** Distinct-value count: exact when under the cap, else the KMV estimate. */
+    private distinctCount(): number {
+        return this.overflowed && this.kmv ? this.kmv.estimate() : this.counts.size;
+    }
+
+    private topValues(): { value: string; count: number }[] {
+        return [...this.counts.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, TOP_VALUES)
+            .map(([value, count]) => ({ value, count }));
     }
 }

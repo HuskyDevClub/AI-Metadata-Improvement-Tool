@@ -16,7 +16,7 @@ function extractDatasetId(input: string): string | null {
 function extractDomain(input: string): string | null {
     const trimmed = input.trim();
     if (!trimmed) return null;
-    const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${ trimmed }`;
     try {
         const host = new URL(withScheme).hostname.toLowerCase();
         // A bare dataset id ("6fex-3r7d") parses to a host with no dot —
@@ -168,7 +168,7 @@ export function ImportPage() {
         <div className="import-page">
             <h1 className="import-title">Import Dataset</h1>
             <p className="import-subtitle">
-                Enter a dataset ID{socrataDomain ? ` from ${socrataDomain}` : ''}
+                Enter a dataset ID{ socrataDomain ? ` from ${ socrataDomain }` : '' }
             </p>
 
             <div className="import-form-row">
@@ -177,26 +177,26 @@ export function ImportPage() {
                     type="text"
                     className="import-form-input"
                     placeholder="e.g. 6fex-3r7d"
-                    value={datasetId}
-                    onChange={(e) => setDatasetId(e.target.value)}
-                    onKeyDown={(e) => {
+                    value={ datasetId }
+                    onChange={ (e) => setDatasetId(e.target.value) }
+                    onKeyDown={ (e) => {
                         if (e.key === 'Enter') handleSocrataSubmit();
-                    }}
+                    } }
                 />
                 <button
                     className="btn btn-primary btn-lg"
-                    onClick={handleSocrataSubmit}
-                    disabled={!datasetId.trim() || isProcessing}
+                    onClick={ handleSocrataSubmit }
+                    disabled={ !datasetId.trim() || isProcessing }
                 >
-                    {isProcessing ? 'Importing...' : 'Import'}
+                    { isProcessing ? 'Importing...' : 'Import' }
                 </button>
             </div>
-            {isUrlInput && (
+            { isUrlInput && (
                 <span className="import-form-detected-id">
-                    Will import dataset <code>{detectedId}</code>
-                    {detectedDomain && <> from <code>{detectedDomain}</code></>}
+                    Will import dataset <code>{ detectedId }</code>
+                    { detectedDomain && <> from <code>{ detectedDomain }</code></> }
                 </span>
-            )}
+            ) }
             <span className="import-form-hint">
                 The identifier or full URL of the dataset
             </span>
@@ -204,15 +204,15 @@ export function ImportPage() {
             <label className="import-form-toggle">
                 <input
                     type="checkbox"
-                    checked={showApiKey}
-                    onChange={(e) => setShowApiKey(e.target.checked)}
+                    checked={ showApiKey }
+                    onChange={ (e) => setShowApiKey(e.target.checked) }
                 />
                 API Key
                 <span className="import-form-optional">optional</span>
-                {apiKeysSaved && <span className="import-form-saved-badge">Saved</span>}
+                { apiKeysSaved && <span className="import-form-saved-badge">Saved</span> }
             </label>
 
-            {showApiKey && (
+            { showApiKey && (
                 <div className="import-form-credentials">
                     <div className="import-form-group">
                         <label htmlFor="socrataApiKeyId">API Key ID</label>
@@ -220,8 +220,8 @@ export function ImportPage() {
                             id="socrataApiKeyId"
                             type="text"
                             placeholder="Your Socrata API Key ID"
-                            value={apiKeyIdInput}
-                            onChange={(e) => setApiKeyIdInput(e.target.value)}
+                            value={ apiKeyIdInput }
+                            onChange={ (e) => setApiKeyIdInput(e.target.value) }
                         />
                     </div>
                     <div className="import-form-group">
@@ -230,43 +230,43 @@ export function ImportPage() {
                             id="socrataApiKeySecret"
                             type="password"
                             placeholder="Your Socrata API Key Secret"
-                            value={apiKeySecretInput}
-                            onChange={(e) => setApiKeySecretInput(e.target.value)}
+                            value={ apiKeySecretInput }
+                            onChange={ (e) => setApiKeySecretInput(e.target.value) }
                         />
                     </div>
-                    {enableConfigSave && (
+                    { enableConfigSave && (
                         <label className="import-form-remember">
                             <input
                                 type="checkbox"
-                                checked={rememberKey}
-                                onChange={(e) => setRememberKey(e.target.checked)}
+                                checked={ rememberKey }
+                                onChange={ (e) => setRememberKey(e.target.checked) }
                             />
                             Remember this API key on this browser
                         </label>
-                    )}
+                    ) }
                     <span className="import-form-hint">
-                        {socrataDomain && (
-                            <>Generate API keys from your {socrataDomain} profile &gt; Developer Settings.{' '}</>
-                        )}
-                        {enableConfigSave
+                        { socrataDomain && (
+                            <>Generate API keys from your { socrataDomain } profile &gt; Developer Settings.{ ' ' }</>
+                        ) }
+                        { enableConfigSave
                             ? 'Saved keys live in an encrypted HttpOnly session cookie.'
-                            : 'The key is used once for this import and not stored.'}
+                            : 'The key is used once for this import and not stored.' }
                     </span>
                 </div>
-            )}
+            ) }
 
-            {/* Divider */}
+            {/* Divider */ }
             <div className="import-or-divider">or</div>
 
-            {/* Upload CSV or Excel */}
+            {/* Upload CSV or Excel */ }
             <button
-                className={`import-csv-btn${dragging ? ' dragging' : ''}`}
-                onClick={handleCsvClick}
-                disabled={isProcessing}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
+                className={ `import-csv-btn${ dragging ? ' dragging' : '' }` }
+                onClick={ handleCsvClick }
+                disabled={ isProcessing }
+                onDragEnter={ handleDragEnter }
+                onDragLeave={ handleDragLeave }
+                onDragOver={ handleDragOver }
+                onDrop={ handleDrop }
             >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -278,18 +278,18 @@ export function ImportPage() {
                 Upload CSV or Excel file
             </button>
 
-            {/* Hidden file input */}
-            <input ref={csvFileRef} type="file" accept={ACCEPTED_UPLOAD_EXTENSIONS.join(',')}
-                   onChange={handleCsvFileChange} style={{ display: 'none' }}/>
+            {/* Hidden file input */ }
+            <input ref={ csvFileRef } type="file" accept={ ACCEPTED_UPLOAD_EXTENSIONS.join(',') }
+                   onChange={ handleCsvFileChange } style={ { display: 'none' } }/>
 
-            {isProcessing && (
+            { isProcessing && (
                 <div className="import-processing">
                     <div className="spinner spinner-lg"/>
                     <span>Loading data...</span>
                 </div>
-            )}
+            ) }
 
-            {showResults && (
+            { showResults && (
                 <div className="import-page-loaded">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                          strokeLinecap="round" strokeLinejoin="round">
@@ -299,12 +299,12 @@ export function ImportPage() {
                     <span>Data is loaded.</span>
                     <button
                         className="btn btn-success btn-md import-page-goto-btn"
-                        onClick={() => navigate('data')}
+                        onClick={ () => navigate('data') }
                     >
                         Go to Data Overview
                     </button>
                 </div>
-            )}
+            ) }
         </div>
     );
 }

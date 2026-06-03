@@ -30,24 +30,24 @@ export function InfoTooltip({ text, width = '300px' }: InfoTooltipProps) {
     return (
         <div
             className="info-tooltip-container"
-            ref={containerRef}
-            onMouseEnter={() => setIsVisible(true)}
-            onMouseLeave={() => setIsVisible(false)}
-            onFocus={() => setIsVisible(true)}
-            onBlur={() => setIsVisible(false)}
-            tabIndex={0}
+            ref={ containerRef }
+            onMouseEnter={ () => setIsVisible(true) }
+            onMouseLeave={ () => setIsVisible(false) }
+            onFocus={ () => setIsVisible(true) }
+            onBlur={ () => setIsVisible(false) }
+            tabIndex={ 0 }
         >
             <span className="info-tooltip-icon" aria-label="Information">?</span>
-            {isVisible && (
+            { isVisible && (
                 <div
                     className="info-tooltip-popup"
-                    ref={tooltipRef}
-                    style={{ width }}
+                    ref={ tooltipRef }
+                    style={ { width } }
                     role="tooltip"
                 >
-                    {text}
+                    { text }
                 </div>
-            )}
+            ) }
         </div>
     );
 }

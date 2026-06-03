@@ -11,7 +11,7 @@ interface OpenAISession {
 }
 
 export async function fetchOpenAISession(): Promise<OpenAISession> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/openai/session`, {
+    const response = await fetch(`${ API_BASE_URL }/api/auth/openai/session`, {
         credentials: 'include',
     });
     if (!response.ok) return { isConfigured: false };
@@ -26,7 +26,7 @@ export async function saveOpenAIConfig(
     modelDetailed: string,
     modelSuggest: string,
 ): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/openai/config`, {
+    const response = await fetch(`${ API_BASE_URL }/api/auth/openai/config`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -46,7 +46,7 @@ export async function saveOpenAIConfig(
 }
 
 export async function logoutOpenAI(): Promise<void> {
-    await fetch(`${API_BASE_URL}/api/auth/openai/logout`, {
+    await fetch(`${ API_BASE_URL }/api/auth/openai/logout`, {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'include',

@@ -9,7 +9,7 @@ export function handleRegenerationError(
     type: 'error' | 'warning' = 'error'
 ): void {
     setStatus({
-        message: `Error regenerating: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Error regenerating: ${ error instanceof Error ? error.message : 'Unknown error' }`,
         type,
     });
 }

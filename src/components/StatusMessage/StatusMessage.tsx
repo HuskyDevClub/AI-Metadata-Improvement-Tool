@@ -35,15 +35,15 @@ export function StatusMessage({ status, isProcessing, onStop }: StatusMessagePro
     if (!status || hidden) return null;
 
     return (
-        <div className={`status-message status-message-${status.type}${fading ? ' status-message-fading' : ''}`}>
-            <span className="status-message-text">{status.message}</span>
-            {isProcessing && onStop && (
+        <div className={ `status-message status-message-${ status.type }${ fading ? ' status-message-fading' : '' }` }>
+            <span className="status-message-text">{ status.message }</span>
+            { isProcessing && onStop && (
                 <div className="status-message-actions">
-                    <button className="btn btn-danger btn-md" onClick={onStop}>
+                    <button className="btn btn-danger btn-md" onClick={ onStop }>
                         Stop
                     </button>
                 </div>
-            )}
+            ) }
         </div>
     );
 }

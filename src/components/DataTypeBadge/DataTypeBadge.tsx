@@ -29,30 +29,30 @@ export function DataTypeBadge({ type, originalType, baseType, size = 'small' }: 
     // categorical CSS rule doesn't paint a checkbox column purple.
     const sanitizedOriginal = originalType?.toLowerCase().replace(/[^a-z0-9]/g, '-');
     const showingOriginalLabel = !!originalType && !isLabeledCategorical;
-    const typeClass = showingOriginalLabel ? '' : ` data-type-badge-${type}`;
-    const originalClass = sanitizedOriginal ? ` data-type-badge-${sanitizedOriginal}` : '';
-    const badgeClass = `data-type-badge data-type-badge-${size}${typeClass}${originalClass}`;
+    const typeClass = showingOriginalLabel ? '' : ` data-type-badge-${ type }`;
+    const originalClass = sanitizedOriginal ? ` data-type-badge-${ sanitizedOriginal }` : '';
+    const badgeClass = `data-type-badge data-type-badge-${ size }${ typeClass }${ originalClass }`;
 
     if (originalType) {
         return (
             <a
-                href={`https://dev.socrata.com/docs/datatypes/${originalType.toLowerCase()}`}
+                href={ `https://dev.socrata.com/docs/datatypes/${ originalType.toLowerCase() }` }
                 target="_blank"
                 rel="noopener noreferrer"
-                className={badgeClass}
-                title={isLabeledCategorical
-                    ? `Originally Socrata "${originalType}" — view documentation`
-                    : 'View Socrata Datatype Documentation'}
-                style={{ textDecoration: 'none' }}
+                className={ badgeClass }
+                title={ isLabeledCategorical
+                    ? `Originally Socrata "${ originalType }" — view documentation`
+                    : 'View Socrata Datatype Documentation' }
+                style={ { textDecoration: 'none' } }
             >
-                {displayType}
+                { displayType }
             </a>
         );
     }
 
     return (
-        <span className={badgeClass}>
-            {displayType}
+        <span className={ badgeClass }>
+            { displayType }
         </span>
     );
 }

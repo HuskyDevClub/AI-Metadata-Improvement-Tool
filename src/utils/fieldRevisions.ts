@@ -17,11 +17,11 @@ export type DatasetFieldKey =
 export type ColumnFieldKind = 'description' | 'displayName' | 'fieldName';
 
 export function datasetKey(field: DatasetFieldKey): string {
-    return `dataset:${field}`;
+    return `dataset:${ field }`;
 }
 
 export function columnKey(columnName: string, kind: ColumnFieldKind): string {
-    return `column:${columnName}:${kind}`;
+    return `column:${ columnName }:${ kind }`;
 }
 
 export function valuesEqual(a: string | string[], b: string | string[]): boolean {
@@ -35,7 +35,7 @@ export function valuesEqual(a: string | string[], b: string | string[]): boolean
 }
 
 function makeId(): string {
-    return `rev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    return `rev-${ Date.now() }-${ Math.random().toString(36).slice(2, 8) }`;
 }
 
 function cloneValue(v: string | string[]): string | string[] {

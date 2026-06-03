@@ -40,7 +40,7 @@ export function SocrataApiConfig({
         <div className="config-section">
             <div className="section-header">
                 <div className="section-title">Socrata API Credentials</div>
-                {isConfigured && !dirty && (
+                { isConfigured && !dirty && (
                     <span className="config-status-badge">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -48,7 +48,7 @@ export function SocrataApiConfig({
                         </svg>
                         Configured
                     </span>
-                )}
+                ) }
             </div>
             <div className="config-grid">
                 <div className="config-input-group">
@@ -57,29 +57,30 @@ export function SocrataApiConfig({
                         id="socrataSettingsApiKeyId"
                         type="text"
                         placeholder="Your Socrata API Key ID"
-                        value={keyIdInput}
-                        onChange={(e) => setKeyIdInput(e.target.value)}
+                        value={ keyIdInput }
+                        onChange={ (e) => setKeyIdInput(e.target.value) }
                     />
                 </div>
                 <div className="config-input-group">
-                    <label htmlFor="socrataSettingsApiKeySecret">API Key Secret {isConfigured ? '(Saved)' : '*'}</label>
+                    <label htmlFor="socrataSettingsApiKeySecret">API Key
+                        Secret { isConfigured ? '(Saved)' : '*' }</label>
                     <div className="config-input-wrapper">
                         <input
                             id="socrataSettingsApiKeySecret"
-                            type={showSecret ? 'text' : 'password'}
-                            placeholder={isConfigured ? '••••••••••••••••' : 'Your Socrata API Key Secret'}
-                            value={keySecretInput}
-                            onChange={(e) => setKeySecretInput(e.target.value)}
+                            type={ showSecret ? 'text' : 'password' }
+                            placeholder={ isConfigured ? '••••••••••••••••' : 'Your Socrata API Key Secret' }
+                            value={ keySecretInput }
+                            onChange={ (e) => setKeySecretInput(e.target.value) }
                         />
                         <button
                             type="button"
                             className="config-reveal-btn"
-                            onClick={() => setShowSecret((v) => !v)}
-                            disabled={!keySecretInput}
-                            aria-label={showSecret ? 'Hide API key secret' : 'Show API key secret'}
-                            title={showSecret ? 'Hide API key secret' : 'Show API key secret'}
+                            onClick={ () => setShowSecret((v) => !v) }
+                            disabled={ !keySecretInput }
+                            aria-label={ showSecret ? 'Hide API key secret' : 'Show API key secret' }
+                            title={ showSecret ? 'Hide API key secret' : 'Show API key secret' }
                         >
-                            {showSecret ? (
+                            { showSecret ? (
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path
@@ -92,28 +93,28 @@ export function SocrataApiConfig({
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                     <circle cx="12" cy="12" r="3"/>
                                 </svg>
-                            )}
+                            ) }
                         </button>
                     </div>
                 </div>
             </div>
-            {(saveEnabled || isConfigured || dirty) && (
+            { (saveEnabled || isConfigured || dirty) && (
                 <div className="config-actions">
-                    {saveEnabled && (
+                    { saveEnabled && (
                         <button
                             type="button"
                             className="btn btn-primary btn-md"
-                            onClick={handleSave}
-                            disabled={!canSave}
+                            onClick={ handleSave }
+                            disabled={ !canSave }
                         >
-                            {isSaving ? 'Saving...' : isConfigured ? 'Update keys' : 'Save keys'}
+                            { isSaving ? 'Saving...' : isConfigured ? 'Update keys' : 'Save keys' }
                         </button>
-                    )}
-                    {(isConfigured || dirty) && (
+                    ) }
+                    { (isConfigured || dirty) && (
                         <button
                             type="button"
                             className="btn btn-secondary btn-md"
-                            onClick={() => {
+                            onClick={ () => {
                                 // Nothing saved server-side yet — just discard
                                 // the typed input without a server call/confirm.
                                 if (!isConfigured) {
@@ -126,20 +127,20 @@ export function SocrataApiConfig({
                                     setKeyIdInput('');
                                     setKeySecretInput('');
                                 }
-                            }}
+                            } }
                         >
                             Clear
                         </button>
-                    )}
-                    {saveEnabled && dirty && !isSaving && (
+                    ) }
+                    { saveEnabled && dirty && !isSaving && (
                         <span className="config-dirty-hint">Unsaved changes</span>
-                    )}
+                    ) }
                 </div>
-            )}
+            ) }
             <span className="config-help-text">
-                {socrataDomain && (
-                    <>Generate API keys from your {socrataDomain} profile &gt; Developer Settings.{' '}</>
-                )}
+                { socrataDomain && (
+                    <>Generate API keys from your { socrataDomain } profile &gt; Developer Settings.{ ' ' }</>
+                ) }
                 Keys are stored in an encrypted server-side session cookie.
             </span>
         </div>

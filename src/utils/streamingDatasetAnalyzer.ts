@@ -38,6 +38,10 @@ export class StreamingDatasetAnalyzer {
     private readonly sampleRows: CsvRow[] = [];
     private sketches: Map<string, ColumnSketch> | null = null;
 
+    get totalRows(): number {
+        return this.rowCount;
+    }
+
     addRow(row: CsvRow): void {
         this.rowCount++;
         // Column set is fixed from the header row (matches analyzeColumn, which
@@ -51,24 +55,6 @@ export class StreamingDatasetAnalyzer {
         } else {
             this.feedSketch(row);
         }
-    }
-
-    get totalRows(): number {
-        return this.rowCount;
-    }
-
-    private switchToSketch(): void {
-        this.mode = 'sketch';
-        this.sketches = new Map();
-        for (const col of this.columns ?? []) this.sketches.set(col, new ColumnSketch());
-        // Replay buffered rows through the sketches, then release the buffer.
-        for (const row of this.buffer) this.feedSketch(row);
-        this.buffer = [];
-    }
-
-    private feedSketch(row: CsvRow): void {
-        const sketches = this.sketches!;
-        for (const col of this.columns ?? []) sketches.get(col)!.add(row[col]);
     }
 
     finalize(): StreamingAnalysisResult {
@@ -88,5 +74,19 @@ export class StreamingDatasetAnalyzer {
             columnStats[col] = sketches.get(col)!.finalize(this.rowCount);
         }
         return { data: this.sampleRows, columnStats, rowCount: this.rowCount };
+    }
+
+    private switchToSketch(): void {
+        this.mode = 'sketch';
+        this.sketches = new Map();
+        for (const col of this.columns ?? []) this.sketches.set(col, new ColumnSketch());
+        // Replay buffered rows through the sketches, then release the buffer.
+        for (const row of this.buffer) this.feedSketch(row);
+        this.buffer = [];
+    }
+
+    private feedSketch(row: CsvRow): void {
+        const sketches = this.sketches!;
+        for (const col of this.columns ?? []) sketches.get(col)!.add(row[col]);
     }
 }

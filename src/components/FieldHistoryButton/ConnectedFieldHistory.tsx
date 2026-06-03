@@ -29,12 +29,12 @@ export function DatasetFieldHistory({
         : (generatedResults[field] as string);
     return (
         <FieldHistoryButton
-            revisions={revisions}
-            currentValue={currentValue}
-            onRevert={(revisionId) => handleRevertDatasetField(field, revisionId)}
-            title={title}
-            formatValue={formatValue}
-            disabled={disabled}
+            revisions={ revisions }
+            currentValue={ currentValue }
+            onRevert={ (revisionId) => handleRevertDatasetField(field, revisionId) }
+            title={ title }
+            formatValue={ formatValue }
+            disabled={ disabled }
         />
     );
 }
@@ -65,13 +65,13 @@ export function ColumnFieldHistory({
     const currentValue = generatedResults[mapKey][columnName] ?? '';
     return (
         <FieldHistoryButton
-            revisions={revisions}
-            currentValue={currentValue}
-            onRevert={(revisionId) => handleRevertColumnField(columnName, kind, revisionId)}
-            title={title}
-            formatValue={formatValue}
-            disabled={disabled}
-            alwaysShow={alwaysShow}
+            revisions={ revisions }
+            currentValue={ currentValue }
+            onRevert={ (revisionId) => handleRevertColumnField(columnName, kind, revisionId) }
+            title={ title }
+            formatValue={ formatValue }
+            disabled={ disabled }
+            alwaysShow={ alwaysShow }
         />
     );
 }

@@ -15,10 +15,10 @@ import {
 } from '@/utils/prompts';
 import '@/components/PromptEditor/PromptEditor.css';
 
-type PromptInfo = Record<string, {description: string; placeholders?: string}>;
+type PromptInfo = Record<string, { description: string; placeholders?: string }>;
 
 function buildPromptInfo(socrataDomain: string | null): PromptInfo {
-    const portalRef = socrataDomain ? ` on ${socrataDomain}` : '';
+    const portalRef = socrataDomain ? ` on ${ socrataDomain }` : '';
     return {
         systemPrompt: {
             description: 'Sets the AI\'s persona and rules for all generation tasks (tone, style, language guidelines). Applied as the system message in every request.',
@@ -44,7 +44,7 @@ function buildPromptInfo(socrataDomain: string | null): PromptInfo {
             placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}, {categoryList}',
         },
         tags: {
-            description: `Template for generating keyword tags. The AI receives a list of tags already in use${portalRef} (scoped to the chosen category when available) and is asked to prefer those, only inventing new tags when no listed tag fits.`,
+            description: `Template for generating keyword tags. The AI receives a list of tags already in use${ portalRef } (scoped to the chosen category when available) and is asked to prefer those, only inventing new tags when no listed tag fits.`,
             placeholders: '{fileName}, {rowCount}, {columnInfo}, {sampleRows}, {sampleCount}, {tagList}',
         },
         periodOfTime: {
@@ -75,7 +75,7 @@ const DEFAULTS: Record<keyof PromptTemplates, string> = {
     columnSuggestion: DEFAULT_COLUMN_SUGGESTION_PROMPT,
 };
 
-const PROMPT_FIELDS: {key: keyof PromptTemplates; label: string}[] = [
+const PROMPT_FIELDS: { key: keyof PromptTemplates; label: string }[] = [
     { key: 'systemPrompt', label: 'System Prompt' },
     { key: 'dataset', label: 'Dataset Description Prompt' },
     { key: 'column', label: 'Column Description Prompt' },
@@ -115,24 +115,24 @@ Do NOT rewrite the full prompt unless the user explicitly asks for a revised ver
 
 function buildImproveUserMessage(currentPrompt: string, instruction: string, placeholders?: string) {
     const placeholderLine = placeholders
-        ? `\nKnown placeholders that must be preserved verbatim: ${placeholders}\n`
+        ? `\nKnown placeholders that must be preserved verbatim: ${ placeholders }\n`
         : '';
     return `=== CURRENT PROMPT ===
-${currentPrompt}
+${ currentPrompt }
 
 === INSTRUCTION ===
-${instruction}
-${placeholderLine}
+${ instruction }
+${ placeholderLine }
 Return the revised prompt only.`;
 }
 
 function buildAskUserMessage(currentPrompt: string, question: string, placeholders?: string) {
-    const placeholderLine = placeholders ? `\nKnown placeholders: ${placeholders}\n` : '';
+    const placeholderLine = placeholders ? `\nKnown placeholders: ${ placeholders }\n` : '';
     return `=== CURRENT PROMPT ===
-${currentPrompt}
-${placeholderLine}
+${ currentPrompt }
+${ placeholderLine }
 === QUESTION ===
-${question}`;
+${ question }`;
 }
 
 function AutoResizeTextarea({ value, onChange }: {
@@ -150,31 +150,31 @@ function AutoResizeTextarea({ value, onChange }: {
 
     return (
         <textarea
-            ref={textAreaRef}
-            value={value}
-            onChange={onChange}
-            style={{ overflow: 'hidden' }}
+            ref={ textAreaRef }
+            value={ value }
+            onChange={ onChange }
+            style={ { overflow: 'hidden' } }
         />
     );
 }
 
-function InfoIcon({ description }: {description?: string}) {
+function InfoIcon({ description }: { description?: string }) {
     if (!description) return null;
     return (
-        <span className="prompt-info-icon" data-tooltip={description}>
+        <span className="prompt-info-icon" data-tooltip={ description }>
             i
         </span>
     );
 }
 
-function PlaceholderList({ placeholders }: {placeholders?: string}) {
+function PlaceholderList({ placeholders }: { placeholders?: string }) {
     if (!placeholders) return null;
     return (
         <div className="prompt-placeholders">
             <span className="prompt-placeholders-label">Available placeholders:</span>
-            {placeholders.split(', ').map(p => (
-                <code key={p} className="prompt-placeholder-chip">{p}</code>
-            ))}
+            { placeholders.split(', ').map(p => (
+                <code key={ p } className="prompt-placeholder-chip">{ p }</code>
+            )) }
         </div>
     );
 }
@@ -338,58 +338,59 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                 <div className="section-title">Customize AI Prompts (Optional)</div>
             </div>
             <div className="prompt-editor-content">
-                {PROMPT_FIELDS.map(({ key, label }) => {
+                { PROMPT_FIELDS.map(({ key, label }) => {
                     const isModified = templates[key] !== DEFAULTS[key];
                     const info = promptInfo[key];
                     return (
-                        <div className="prompt-editor-box" key={key}>
+                        <div className="prompt-editor-box" key={ key }>
                             <div className="prompt-editor-box-header">
-                                <h4>{label} <InfoIcon description={info?.description}/></h4>
+                                <h4>{ label } <InfoIcon description={ info?.description }/></h4>
                                 <div className="prompt-editor-box-actions">
                                     <button
                                         className="btn btn-secondary btn-md"
-                                        onClick={() => handleExport(key)}
+                                        onClick={ () => handleExport(key) }
                                         title="Export this prompt"
                                     >
                                         Export
                                     </button>
-                                    <label className="btn btn-secondary btn-md" style={{ cursor: 'pointer', margin: 0 }}
+                                    <label className="btn btn-secondary btn-md"
+                                           style={ { cursor: 'pointer', margin: 0 } }
                                            title="Import a prompt">
                                         Import
-                                        <input type="file" accept=".md" onChange={(e) => handleImport(key, e)}
-                                               style={{ display: 'none' }}/>
+                                        <input type="file" accept=".md" onChange={ (e) => handleImport(key, e) }
+                                               style={ { display: 'none' } }/>
                                     </label>
                                     <button
                                         className="btn btn-secondary btn-md"
-                                        onClick={() => openAi(key)}
+                                        onClick={ () => openAi(key) }
                                         title="Ask AI about this prompt or request an improved version"
                                     >
                                         Ask AI
                                     </button>
-                                    {isModified && (
+                                    { isModified && (
                                         <button
                                             className="btn btn-secondary btn-md"
-                                            onClick={() => setResetTarget(key)}
+                                            onClick={ () => setResetTarget(key) }
                                             title="Reset to default"
                                         >
                                             Reset
                                         </button>
-                                    )}
+                                    ) }
                                 </div>
                             </div>
                             <AutoResizeTextarea
-                                value={templates[key]}
-                                onChange={(e) => onChange({ ...templates, [key]: e.target.value })}
+                                value={ templates[key] }
+                                onChange={ (e) => onChange({ ...templates, [key]: e.target.value }) }
                             />
-                            <PlaceholderList placeholders={info?.placeholders}/>
+                            <PlaceholderList placeholders={ info?.placeholders }/>
                         </div>
                     );
-                })}
+                }) }
             </div>
-            {resetTarget && (
+            { resetTarget && (
                 <div
                     className="prompt-reset-modal-backdrop"
-                    onClick={cancelReset}
+                    onClick={ cancelReset }
                     role="presentation"
                 >
                     <div
@@ -397,27 +398,27 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="prompt-reset-modal-title"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={ (e) => e.stopPropagation() }
                     >
                         <h3 id="prompt-reset-modal-title" className="prompt-reset-modal-title">
                             Reset to default?
                         </h3>
                         <p className="prompt-reset-modal-body">
-                            Your changes to the <strong>{targetLabel}</strong> will be replaced with the default. This
+                            Your changes to the <strong>{ targetLabel }</strong> will be replaced with the default. This
                             cannot be undone.
                         </p>
                         <div className="prompt-reset-modal-actions">
                             <button
                                 type="button"
                                 className="btn btn-ghost btn-md"
-                                onClick={cancelReset}
+                                onClick={ cancelReset }
                             >
                                 Cancel
                             </button>
                             <button
                                 type="button"
                                 className="btn btn-danger btn-md"
-                                onClick={confirmReset}
+                                onClick={ confirmReset }
                                 autoFocus
                             >
                                 Reset
@@ -425,13 +426,13 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                         </div>
                     </div>
                 </div>
-            )}
-            {aiTarget && (
+            ) }
+            { aiTarget && (
                 <div
                     className="prompt-reset-modal-backdrop"
-                    onClick={() => {
+                    onClick={ () => {
                         if (!isGenerating) closeAi();
-                    }}
+                    } }
                     role="presentation"
                 >
                     <div
@@ -439,105 +440,105 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="prompt-improve-modal-title"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={ (e) => e.stopPropagation() }
                     >
                         <h3 id="prompt-improve-modal-title" className="prompt-reset-modal-title">
-                            AI assist for <span className="prompt-improve-modal-target">{aiLabel}</span>
+                            AI assist for <span className="prompt-improve-modal-target">{ aiLabel }</span>
                         </h3>
                         <div className="prompt-ai-mode-tabs" role="tablist">
                             <button
                                 type="button"
                                 role="tab"
-                                aria-selected={aiMode === 'ask'}
-                                className={`prompt-ai-mode-tab${aiMode === 'ask' ? ' is-active' : ''}`}
-                                onClick={() => switchMode('ask')}
-                                disabled={isGenerating}
+                                aria-selected={ aiMode === 'ask' }
+                                className={ `prompt-ai-mode-tab${ aiMode === 'ask' ? ' is-active' : '' }` }
+                                onClick={ () => switchMode('ask') }
+                                disabled={ isGenerating }
                             >
                                 Ask a question
                             </button>
                             <button
                                 type="button"
                                 role="tab"
-                                aria-selected={aiMode === 'improve'}
-                                className={`prompt-ai-mode-tab${aiMode === 'improve' ? ' is-active' : ''}`}
-                                onClick={() => switchMode('improve')}
-                                disabled={isGenerating}
+                                aria-selected={ aiMode === 'improve' }
+                                className={ `prompt-ai-mode-tab${ aiMode === 'improve' ? ' is-active' : '' }` }
+                                onClick={ () => switchMode('improve') }
+                                disabled={ isGenerating }
                             >
                                 Improve prompt
                             </button>
                         </div>
                         <p className="prompt-reset-modal-body">
-                            {aiMode === 'improve' ? (
+                            { aiMode === 'improve' ? (
                                 <>
                                     Describe what you want changed. The AI will rewrite the prompt and preserve
                                     placeholders like
-                                    <code className="prompt-improve-inline-code">{'{columnName}'}</code>.
+                                    <code className="prompt-improve-inline-code">{ '{columnName}' }</code>.
                                 </>
                             ) : (
                                 <>
                                     Ask anything about this prompt — what it does, how phrasing choices affect output,
                                     potential issues, ideas for improvement. The AI won&apos;t modify the prompt.
                                 </>
-                            )}
+                            ) }
                         </p>
                         <label className="prompt-improve-label">
-                            {aiMode === 'improve' ? 'Your instruction' : 'Your question'}
+                            { aiMode === 'improve' ? 'Your instruction' : 'Your question' }
                         </label>
                         <textarea
                             className="prompt-improve-instruction"
-                            placeholder={aiMode === 'improve'
+                            placeholder={ aiMode === 'improve'
                                 ? 'e.g. Make it more concise and emphasize neutral, factual tone.'
-                                : 'e.g. Why does this prompt ask for exactly two sentences? What would change if I removed that?'}
-                            value={aiInput}
-                            onChange={(e) => setAiInput(e.target.value)}
-                            onKeyDown={(e) => {
+                                : 'e.g. Why does this prompt ask for exactly two sentences? What would change if I removed that?' }
+                            value={ aiInput }
+                            onChange={ (e) => setAiInput(e.target.value) }
+                            onKeyDown={ (e) => {
                                 if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                                     e.preventDefault();
                                     runAi();
                                 }
-                            }}
-                            disabled={isGenerating}
+                            } }
+                            disabled={ isGenerating }
                             autoFocus
                         />
                         <div className="prompt-improve-proposal-header">
                             <label className="prompt-improve-label">
-                                {aiMode === 'improve' ? 'Proposed prompt' : 'Answer'}
+                                { aiMode === 'improve' ? 'Proposed prompt' : 'Answer' }
                             </label>
-                            {isGenerating && <span className="prompt-improve-streaming">generating…</span>}
+                            { isGenerating && <span className="prompt-improve-streaming">generating…</span> }
                         </div>
-                        {aiMode === 'improve' ? (
+                        { aiMode === 'improve' ? (
                             <textarea
                                 className="prompt-improve-proposal"
-                                value={aiOutput}
-                                onChange={(e) => setAiOutput(e.target.value)}
+                                value={ aiOutput }
+                                onChange={ (e) => setAiOutput(e.target.value) }
                                 placeholder="The revised prompt will appear here. You can edit it before applying."
                             />
                         ) : (
                             <div className="prompt-ai-answer">
-                                {aiOutput || (
+                                { aiOutput || (
                                     <span className="prompt-ai-answer-placeholder">
                                         The AI&apos;s answer will appear here.
                                     </span>
-                                )}
+                                ) }
                             </div>
-                        )}
-                        {aiError && (
-                            <div className="prompt-improve-error">{aiError}</div>
-                        )}
+                        ) }
+                        { aiError && (
+                            <div className="prompt-improve-error">{ aiError }</div>
+                        ) }
                         <div className="prompt-reset-modal-actions">
                             <button
                                 type="button"
                                 className="btn btn-ghost btn-md"
-                                onClick={closeAi}
-                                disabled={isGenerating}
+                                onClick={ closeAi }
+                                disabled={ isGenerating }
                             >
-                                {aiMode === 'ask' ? 'Close' : 'Cancel'}
+                                { aiMode === 'ask' ? 'Close' : 'Cancel' }
                             </button>
-                            {isGenerating ? (
+                            { isGenerating ? (
                                 <button
                                     type="button"
                                     className="btn btn-secondary btn-md"
-                                    onClick={stopAi}
+                                    onClick={ stopAi }
                                 >
                                     Stop
                                 </button>
@@ -545,28 +546,28 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                                 <button
                                     type="button"
                                     className="btn btn-primary btn-md"
-                                    onClick={runAi}
-                                    disabled={!aiInput.trim()}
+                                    onClick={ runAi }
+                                    disabled={ !aiInput.trim() }
                                 >
-                                    {aiOutput
+                                    { aiOutput
                                         ? (aiMode === 'improve' ? 'Regenerate' : 'Ask again')
-                                        : (aiMode === 'improve' ? 'Generate' : 'Ask')}
+                                        : (aiMode === 'improve' ? 'Generate' : 'Ask') }
                                 </button>
-                            )}
-                            {aiMode === 'improve' && (
+                            ) }
+                            { aiMode === 'improve' && (
                                 <button
                                     type="button"
                                     className="btn btn-success btn-md"
-                                    onClick={applyProposal}
-                                    disabled={!aiOutput.trim() || isGenerating}
+                                    onClick={ applyProposal }
+                                    disabled={ !aiOutput.trim() || isGenerating }
                                 >
                                     Apply
                                 </button>
-                            )}
+                            ) }
                         </div>
                     </div>
                 </div>
-            )}
+            ) }
         </div>
     );
 }

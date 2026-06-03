@@ -38,47 +38,47 @@ function SidePicker({ label, side, onChange, disabled, yearRange }: SidePickerPr
 
     return (
         <div className="period-picker-side">
-            <span className="period-picker-side-label">{label}</span>
+            <span className="period-picker-side-label">{ label }</span>
             <div className="period-picker-controls">
                 <select
                     className="period-picker-select period-picker-select-year"
-                    value={side.year}
-                    onChange={(e) => onChange({ ...side, year: e.target.value })}
-                    disabled={disabled}
-                    aria-label={`${label} year`}
+                    value={ side.year }
+                    onChange={ (e) => onChange({ ...side, year: e.target.value }) }
+                    disabled={ disabled }
+                    aria-label={ `${ label } year` }
                 >
                     <option value="">Year</option>
-                    {yearRange.map((y) => (
-                        <option key={y} value={String(y)}>{y}</option>
-                    ))}
+                    { yearRange.map((y) => (
+                        <option key={ y } value={ String(y) }>{ y }</option>
+                    )) }
                 </select>
                 <select
                     className="period-picker-select period-picker-select-month"
-                    value={side.month}
-                    onChange={(e) => onChange({
+                    value={ side.month }
+                    onChange={ (e) => onChange({
                         ...side,
                         month: e.target.value,
                         day: e.target.value ? side.day : '',
-                    })}
-                    disabled={disabled || !side.year}
-                    aria-label={`${label} month`}
+                    }) }
+                    disabled={ disabled || !side.year }
+                    aria-label={ `${ label } month` }
                 >
                     <option value="">Month (optional)</option>
-                    {PERIOD_MONTHS.map((name, i) => (
-                        <option key={name} value={String(i + 1)}>{name}</option>
-                    ))}
+                    { PERIOD_MONTHS.map((name, i) => (
+                        <option key={ name } value={ String(i + 1) }>{ name }</option>
+                    )) }
                 </select>
                 <select
                     className="period-picker-select period-picker-select-day"
-                    value={side.day && parseInt(side.day, 10) <= maxDay ? side.day : ''}
-                    onChange={(e) => onChange({ ...side, day: e.target.value })}
-                    disabled={disabled || !side.month}
-                    aria-label={`${label} day`}
+                    value={ side.day && parseInt(side.day, 10) <= maxDay ? side.day : '' }
+                    onChange={ (e) => onChange({ ...side, day: e.target.value }) }
+                    disabled={ disabled || !side.month }
+                    aria-label={ `${ label } day` }
                 >
                     <option value="">Day (optional)</option>
-                    {dayOptions.map((d) => (
-                        <option key={d} value={String(d)}>{d}</option>
-                    ))}
+                    { dayOptions.map((d) => (
+                        <option key={ d } value={ String(d) }>{ d }</option>
+                    )) }
                 </select>
             </div>
         </div>
@@ -140,52 +140,52 @@ export function PeriodPicker({
                 <button
                     type="button"
                     role="tab"
-                    aria-selected={mode === 'pickers'}
-                    className={`period-picker-mode-btn ${mode === 'pickers' ? 'is-active' : ''}`}
-                    onClick={() => switchMode('pickers')}
-                    disabled={disabled}
+                    aria-selected={ mode === 'pickers' }
+                    className={ `period-picker-mode-btn ${ mode === 'pickers' ? 'is-active' : '' }` }
+                    onClick={ () => switchMode('pickers') }
+                    disabled={ disabled }
                 >
                     Date pickers
                 </button>
                 <button
                     type="button"
                     role="tab"
-                    aria-selected={mode === 'custom'}
-                    className={`period-picker-mode-btn ${mode === 'custom' ? 'is-active' : ''}`}
-                    onClick={() => switchMode('custom')}
-                    disabled={disabled}
+                    aria-selected={ mode === 'custom' }
+                    className={ `period-picker-mode-btn ${ mode === 'custom' ? 'is-active' : '' }` }
+                    onClick={ () => switchMode('custom') }
+                    disabled={ disabled }
                 >
                     Custom text
                 </button>
             </div>
 
-            {mode === 'pickers' ? (
+            { mode === 'pickers' ? (
                 <div className="period-picker" role="group" aria-label="Period of time">
                     <SidePicker
                         label="From"
-                        side={state.start}
-                        onChange={(s) => commit({ ...state, start: s })}
-                        disabled={disabled}
-                        yearRange={yearRange}
+                        side={ state.start }
+                        onChange={ (s) => commit({ ...state, start: s }) }
+                        disabled={ disabled }
+                        yearRange={ yearRange }
                     />
                     <div className="period-picker-end">
                         <SidePicker
                             label="To"
-                            side={state.endIsPresent ? EMPTY_PERIOD_SIDE : state.end}
-                            onChange={(s) => commit({ ...state, end: s, endIsPresent: false })}
-                            disabled={disabled || state.endIsPresent}
-                            yearRange={yearRange}
+                            side={ state.endIsPresent ? EMPTY_PERIOD_SIDE : state.end }
+                            onChange={ (s) => commit({ ...state, end: s, endIsPresent: false }) }
+                            disabled={ disabled || state.endIsPresent }
+                            yearRange={ yearRange }
                         />
                         <label className="period-picker-present">
                             <input
                                 type="checkbox"
-                                checked={state.endIsPresent}
-                                onChange={(e) => commit({
+                                checked={ state.endIsPresent }
+                                onChange={ (e) => commit({
                                     ...state,
                                     endIsPresent: e.target.checked,
                                     end: e.target.checked ? EMPTY_PERIOD_SIDE : state.end,
-                                })}
-                                disabled={disabled}
+                                }) }
+                                disabled={ disabled }
                             />
                             to present
                         </label>
@@ -196,15 +196,15 @@ export function PeriodPicker({
                     type="text"
                     className="period-picker-custom-input"
                     placeholder="e.g. 2023 to 2025, 12/22/2024 - 9/11/2026, fiscal years 2018-2024"
-                    value={value}
-                    onChange={(e) => {
+                    value={ value }
+                    onChange={ (e) => {
                         const next = e.target.value;
                         lastEmittedRef.current = next;
                         onChange(next);
-                    }}
-                    disabled={disabled}
+                    } }
+                    disabled={ disabled }
                 />
-            )}
+            ) }
         </div>
     );
 }

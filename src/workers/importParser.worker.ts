@@ -11,9 +11,11 @@ import { StreamingDatasetAnalyzer } from '@/utils/streamingDatasetAnalyzer';
 // Minimal worker-scope typing. We avoid pulling in the "webworker" lib (which
 // clashes with the project's DOM lib) by casting `self` to just what we use.
 interface WorkerScope {
-    postMessage(message: unknown): void;
     onmessage: ((e: MessageEvent) => void) | null;
+
+    postMessage(message: unknown): void;
 }
+
 const ctx = self as unknown as WorkerScope;
 
 export type ImportWorkerRequest = { file: File };

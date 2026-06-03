@@ -229,7 +229,7 @@ export function DatasetDescription({
         setShowTagSuggestions(false);
     };
 
-    const tagsTooltipText = `Keywords someone would use to search for your data. Match existing ${socrataDomain || 'portal'} tags whenever possible. Don't list your agency, Washington, or years covered. Use one good tag (“licensing”), not a list of variants (e.g., license, licenses, licensing).`;
+    const tagsTooltipText = `Keywords someone would use to search for your data. Match existing ${ socrataDomain || 'portal' } tags whenever possible. Don't list your agency, Washington, or years covered. Use one good tag (“licensing”), not a list of variants (e.g., license, licenses, licensing).`;
 
     return (
         <div className="dataset-desc-section">
@@ -246,30 +246,30 @@ export function DatasetDescription({
                 </h3>
 
                 <EditableDescription
-                    description={description}
-                    onEdit={onEdit}
-                    onRegenerate={onRegenerate}
-                    onSuggestImprovement={onSuggestImprovement}
-                    onDismissSuggestions={onDismissSuggestions}
-                    suggestions={suggestions}
-                    isSuggesting={isSuggesting}
-                    isRegenerating={isRegenerating}
+                    description={ description }
+                    onEdit={ onEdit }
+                    onRegenerate={ onRegenerate }
+                    onSuggestImprovement={ onSuggestImprovement }
+                    onDismissSuggestions={ onDismissSuggestions }
+                    suggestions={ suggestions }
+                    isSuggesting={ isSuggesting }
+                    isRegenerating={ isRegenerating }
                     suggestLabel="Suggest Improvement"
                     suggestionsTitle="Improvement Suggestions"
-                    onToggleSuggestion={onToggleSuggestion}
-                    onEditSuggestion={onEditSuggestion}
-                    onAddSuggestion={onAddSuggestion}
-                    onDeleteSuggestion={onDeleteSuggestion}
-                    onApplySuggestions={onApplySuggestions}
-                    pendingDescription={pendingDescription}
-                    onAcceptPending={onAcceptPending}
-                    onDiscardPending={onDiscardPending}
-                    onReset={onResetField ? resetHandler('datasetDescription') : undefined}
-                    canReset={canReset('datasetDescription')}
+                    onToggleSuggestion={ onToggleSuggestion }
+                    onEditSuggestion={ onEditSuggestion }
+                    onAddSuggestion={ onAddSuggestion }
+                    onDeleteSuggestion={ onDeleteSuggestion }
+                    onApplySuggestions={ onApplySuggestions }
+                    pendingDescription={ pendingDescription }
+                    onAcceptPending={ onAcceptPending }
+                    onDiscardPending={ onDiscardPending }
+                    onReset={ onResetField ? resetHandler('datasetDescription') : undefined }
+                    canReset={ canReset('datasetDescription') }
                 />
 
 
-                {onEditCategory && (
+                { onEditCategory && (
                     <div className="dataset-category">
                         <span className="dataset-category-title">
                             Category
@@ -278,14 +278,14 @@ export function DatasetDescription({
                                 width="300px"/>
                             <DatasetFieldHistory field="category" title="Category"/>
                         </span>
-                        {pendingCategory !== null ? (
+                        { pendingCategory !== null ? (
                             <DiffView
-                                currentValue={category}
+                                currentValue={ category }
                                 newLabel="New"
-                                newValue={pendingCategory}
-                                isGenerating={isGeneratingCategory}
-                                onAccept={onAcceptPendingCategory!}
-                                onDiscard={onDiscardPendingCategory!}
+                                newValue={ pendingCategory }
+                                isGenerating={ isGeneratingCategory }
+                                onAccept={ onAcceptPendingCategory! }
+                                onDiscard={ onDiscardPendingCategory! }
                                 className="dataset-field-pending"
                                 acceptTooltip="Replace the current category with the new one"
                                 discardTooltip="Discard the new category and keep the current one"
@@ -295,57 +295,57 @@ export function DatasetDescription({
                                 <div className="dataset-category-display">
                                     <select
                                         className="dataset-category-select"
-                                        value={category}
-                                        onChange={(e) => onEditCategory(e.target.value)}
-                                        disabled={isGeneratingCategory || categoriesUnavailable}
+                                        value={ category }
+                                        onChange={ (e) => onEditCategory(e.target.value) }
+                                        disabled={ isGeneratingCategory || categoriesUnavailable }
                                     >
                                         <option value="">Not set</option>
-                                        {categoryOptions.map((option) => (
-                                            <option key={option} value={option}>
-                                                {option}
+                                        { categoryOptions.map((option) => (
+                                            <option key={ option } value={ option }>
+                                                { option }
                                             </option>
-                                        ))}
+                                        )) }
                                     </select>
-                                    {!categoriesUnavailable && category && !allowedCategories.includes(category) && (
+                                    { !categoriesUnavailable && category && !allowedCategories.includes(category) && (
                                         <span
                                             className="dataset-category-warning"
-                                            title={`This category is not in the portal's list${socrataDomain ? ` (${socrataDomain})` : ''}. Pick one from the dropdown to use a recognized value.`}
+                                            title={ `This category is not in the portal's list${ socrataDomain ? ` (${ socrataDomain })` : '' }. Pick one from the dropdown to use a recognized value.` }
                                         >
-                                            {socrataDomain ? `not in ${socrataDomain} list` : 'not in portal list'}
+                                            { socrataDomain ? `not in ${ socrataDomain } list` : 'not in portal list' }
                                         </span>
-                                    )}
+                                    ) }
                                     <button
                                         className="btn btn-primary btn-md"
-                                        onClick={onGenerateCategory}
-                                        disabled={isGeneratingCategory || categoriesUnavailable}
-                                        title={`Pick a category with AI (from the portal's list${socrataDomain ? ` on ${socrataDomain}` : ''} only)`}
+                                        onClick={ onGenerateCategory }
+                                        disabled={ isGeneratingCategory || categoriesUnavailable }
+                                        title={ `Pick a category with AI (from the portal's list${ socrataDomain ? ` on ${ socrataDomain }` : '' } only)` }
                                     >
-                                        {isGeneratingCategory ? 'Generating...' : 'Generate'}
+                                        { isGeneratingCategory ? 'Generating...' : 'Generate' }
                                     </button>
                                     <ResetFieldButton
-                                        show={canReset('category')}
-                                        onReset={resetHandler('category')}
-                                        disabled={isGeneratingCategory}
+                                        show={ canReset('category') }
+                                        onReset={ resetHandler('category') }
+                                        disabled={ isGeneratingCategory }
                                         title="Reset category to the value loaded from the dataset"
                                     />
                                 </div>
-                                {categoriesUnavailable && (
+                                { categoriesUnavailable && (
                                     <div className="dataset-category-unavailable">
                                         Categories unavailable — try again after connection is restored
                                     </div>
-                                )}
+                                ) }
                             </>
-                        )}
+                        ) }
                     </div>
-                )}
+                ) }
 
-                {onAddTag && onRemoveTag && isGeneratingTags && (
+                { onAddTag && onRemoveTag && isGeneratingTags && (
                     <div className="dataset-tags">
                         <div className="dataset-tags-header">
                             <span className="dataset-category-title">
                                 Tags and Keywords
                                 <InfoTooltip
-                                    text={tagsTooltipText}
+                                    text={ tagsTooltipText }
                                     width="400px"/>
                                 <DatasetFieldHistory field="tags" title="Tags"/>
                             </span>
@@ -355,14 +355,14 @@ export function DatasetDescription({
                                 <div className="diff-view-label">Current</div>
                                 <div className="diff-view-text">
                                     <div className="dataset-tags-chips dataset-tags-chips-pending">
-                                        {tags.length === 0 ? (
+                                        { tags.length === 0 ? (
                                             <em className="diff-view-empty">No tags</em>
                                         ) : (
                                             tags.map((tag) => (
-                                                <span key={tag}
-                                                      className="dataset-tag-chip dataset-tag-chip-static">{tag}</span>
+                                                <span key={ tag }
+                                                      className="dataset-tag-chip dataset-tag-chip-static">{ tag }</span>
                                             ))
-                                        )}
+                                        ) }
                                     </div>
                                 </div>
                             </div>
@@ -370,25 +370,25 @@ export function DatasetDescription({
                                 <div className="diff-view-label">New</div>
                                 <div className="diff-view-text">
                                     <div className="dataset-tags-chips dataset-tags-chips-pending">
-                                        {(pendingTags ?? []).map((tag) => (
-                                            <span key={tag}
-                                                  className="dataset-tag-chip dataset-tag-chip-static dataset-tag-chip-added">{tag}</span>
-                                        ))}
+                                        { (pendingTags ?? []).map((tag) => (
+                                            <span key={ tag }
+                                                  className="dataset-tag-chip dataset-tag-chip-static dataset-tag-chip-added">{ tag }</span>
+                                        )) }
                                         <span className="ed-cursor">|</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                )}
+                ) }
 
-                {onAddTag && onRemoveTag && !isGeneratingTags && tagsBaseline !== null && (
+                { onAddTag && onRemoveTag && !isGeneratingTags && tagsBaseline !== null && (
                     <div className="dataset-tags">
                         <div className="dataset-tags-header">
                             <span className="dataset-category-title">
                                 Tags and Keywords
                                 <InfoTooltip
-                                    text={tagsTooltipText}
+                                    text={ tagsTooltipText }
                                     width="400px"/>
                                 <DatasetFieldHistory field="tags" title="Tags"/>
                             </span>
@@ -398,14 +398,14 @@ export function DatasetDescription({
                                 <div className="diff-view-label">Current</div>
                                 <div className="diff-view-text">
                                     <div className="dataset-tags-chips dataset-tags-chips-pending">
-                                        {tagsBaseline.length === 0 ? (
+                                        { tagsBaseline.length === 0 ? (
                                             <em className="diff-view-empty">No tags</em>
                                         ) : (
                                             tagsBaseline.map((tag) => (
-                                                <span key={tag}
-                                                      className="dataset-tag-chip dataset-tag-chip-static">{tag}</span>
+                                                <span key={ tag }
+                                                      className="dataset-tag-chip dataset-tag-chip-static">{ tag }</span>
                                             ))
-                                        )}
+                                        ) }
                                     </div>
                                 </div>
                             </div>
@@ -413,56 +413,56 @@ export function DatasetDescription({
                                 <div className="diff-view-label">New — reject (×) or keep (↺) each change</div>
                                 <div className="diff-view-text">
                                     <div className="dataset-tags-chips dataset-tags-chips-pending">
-                                        {tags.length === 0 && removedTags.length === 0 && (
+                                        { tags.length === 0 && removedTags.length === 0 && (
                                             <em className="diff-view-empty">No tags</em>
-                                        )}
-                                        {tags.map((tag) => {
+                                        ) }
+                                        { tags.map((tag) => {
                                             const added = !tagsBaseline.some((b) => b.toLowerCase() === tag.toLowerCase());
                                             return (
-                                                <span key={tag}
-                                                      className={`dataset-tag-chip ${added ? 'dataset-tag-chip-added' : ''}`}>
-                                                    {tag}
+                                                <span key={ tag }
+                                                      className={ `dataset-tag-chip ${ added ? 'dataset-tag-chip-added' : '' }` }>
+                                                    { tag }
                                                     <button
                                                         type="button"
                                                         className="dataset-tag-chip-remove"
-                                                        onClick={() => onRemoveTag(tag)}
-                                                        aria-label={added ? `Reject added tag ${tag}` : `Remove tag ${tag}`}
-                                                        title={added ? 'Reject this AI-added tag' : 'Remove this tag'}
+                                                        onClick={ () => onRemoveTag(tag) }
+                                                        aria-label={ added ? `Reject added tag ${ tag }` : `Remove tag ${ tag }` }
+                                                        title={ added ? 'Reject this AI-added tag' : 'Remove this tag' }
                                                     >
                                                         &times;
                                                     </button>
                                                 </span>
                                             );
-                                        })}
-                                        {removedTags.map((tag) => (
-                                            <span key={tag} className="dataset-tag-chip dataset-tag-chip-removed">
-                                                {tag}
+                                        }) }
+                                        { removedTags.map((tag) => (
+                                            <span key={ tag } className="dataset-tag-chip dataset-tag-chip-removed">
+                                                { tag }
                                                 <button
                                                     type="button"
                                                     className="dataset-tag-chip-restore"
-                                                    onClick={() => onAddTag(tag)}
-                                                    aria-label={`Keep removed tag ${tag}`}
+                                                    onClick={ () => onAddTag(tag) }
+                                                    aria-label={ `Keep removed tag ${ tag }` }
                                                     title="Keep this tag (undo the AI removal)"
                                                 >
                                                     ↺
                                                 </button>
                                             </span>
-                                        ))}
+                                        )) }
                                     </div>
                                 </div>
                             </div>
                             <div className="diff-view-actions">
                                 <button
                                     className="btn btn-primary btn-md"
-                                    onClick={onFinishTagReview}
+                                    onClick={ onFinishTagReview }
                                     title="Finish reviewing — your per-tag changes are already applied"
                                 >
                                     Done
                                 </button>
                                 <button
                                     className="btn btn-secondary btn-md"
-                                    onClick={onRevertTagReview}
-                                    disabled={!hasTagChanges}
+                                    onClick={ onRevertTagReview }
+                                    disabled={ !hasTagChanges }
                                     title="Discard the AI changes and restore the original tags"
                                 >
                                     Discard AI changes
@@ -470,76 +470,76 @@ export function DatasetDescription({
                             </div>
                         </div>
                     </div>
-                )}
+                ) }
 
-                {onAddTag && onRemoveTag && !isGeneratingTags && tagsBaseline === null && (
+                { onAddTag && onRemoveTag && !isGeneratingTags && tagsBaseline === null && (
                     <div className="dataset-tags">
                         <div className="dataset-tags-header">
                             <span className="dataset-category-title">
                                 Tags and Keywords
                                 <InfoTooltip
-                                    text={tagsTooltipText}
+                                    text={ tagsTooltipText }
                                     width="400px"/>
                                 <DatasetFieldHistory field="tags" title="Tags"/>
                             </span>
                             <div className="dataset-tags-actions">
                                 <button
                                     className="btn btn-primary btn-md"
-                                    onClick={onGenerateTags}
-                                    disabled={isGeneratingTags}
+                                    onClick={ onGenerateTags }
+                                    disabled={ isGeneratingTags }
                                     title="Generate tags with AI"
                                 >
-                                    {isGeneratingTags ? 'Generating...' : 'Generate'}
+                                    { isGeneratingTags ? 'Generating...' : 'Generate' }
                                 </button>
                                 <ResetFieldButton
-                                    show={canReset('tags')}
-                                    onReset={resetHandler('tags')}
-                                    disabled={isGeneratingTags}
+                                    show={ canReset('tags') }
+                                    onReset={ resetHandler('tags') }
+                                    disabled={ isGeneratingTags }
                                     title="Reset tags to the values loaded from the dataset"
                                 />
                             </div>
                         </div>
                         <div className="dataset-tags-chips">
-                            {tags.length === 0 && !isGeneratingTags && (
+                            { tags.length === 0 && !isGeneratingTags && (
                                 <em className="dataset-row-label-empty">No tags yet</em>
-                            )}
-                            {tags.map((tag) => (
-                                <span key={tag} className="dataset-tag-chip">
-                                    {tag}
+                            ) }
+                            { tags.map((tag) => (
+                                <span key={ tag } className="dataset-tag-chip">
+                                    { tag }
                                     <button
                                         type="button"
                                         className="dataset-tag-chip-remove"
-                                        onClick={() => onRemoveTag(tag)}
-                                        aria-label={`Remove tag ${tag}`}
+                                        onClick={ () => onRemoveTag(tag) }
+                                        aria-label={ `Remove tag ${ tag }` }
                                     >
                                         &times;
                                     </button>
                                 </span>
-                            ))}
-                            {isGeneratingTags && tags.length === 0 && (
+                            )) }
+                            { isGeneratingTags && tags.length === 0 && (
                                 <span className="dataset-row-label-generating">
                                     Generating...
                                     <span className="ed-cursor">|</span>
                                 </span>
-                            )}
+                            ) }
                         </div>
                         <div className="dataset-tags-add">
-                            <div className="dataset-tags-input-wrap" ref={tagInputWrapperRef}>
+                            <div className="dataset-tags-input-wrap" ref={ tagInputWrapperRef }>
                                 <input
                                     type="text"
                                     className="dataset-row-label-input"
                                     placeholder="Add a tag and press Enter"
-                                    value={newTagInput}
-                                    onChange={(e) => {
+                                    value={ newTagInput }
+                                    onChange={ (e) => {
                                         setNewTagInput(e.target.value);
                                         setShowTagSuggestions(true);
                                         setActiveTagSuggestion(0);
-                                    }}
-                                    onFocus={() => {
+                                    } }
+                                    onFocus={ () => {
                                         setShowTagSuggestions(true);
                                         setActiveTagSuggestion(0);
-                                    }}
-                                    onKeyDown={(e) => {
+                                    } }
+                                    onKeyDown={ (e) => {
                                         if (e.key === 'ArrowDown') {
                                             if (filteredTagSuggestions.length > 0) {
                                                 e.preventDefault();
@@ -567,47 +567,47 @@ export function DatasetDescription({
                                                 commitNewTag();
                                             }
                                         }
-                                    }}
-                                    disabled={isGeneratingTags}
+                                    } }
+                                    disabled={ isGeneratingTags }
                                     autoComplete="off"
                                 />
-                                {showTagSuggestions && filteredTagSuggestions.length > 0 && (
+                                { showTagSuggestions && filteredTagSuggestions.length > 0 && (
                                     <ul className="dataset-tags-suggestions" role="listbox">
-                                        {filteredTagSuggestions.map((suggestion, idx) => (
+                                        { filteredTagSuggestions.map((suggestion, idx) => (
                                             <li
-                                                key={suggestion}
+                                                key={ suggestion }
                                                 role="option"
-                                                aria-selected={idx === activeTagSuggestion}
+                                                aria-selected={ idx === activeTagSuggestion }
                                                 className={
                                                     idx === activeTagSuggestion
                                                         ? 'dataset-tags-suggestion active'
                                                         : 'dataset-tags-suggestion'
                                                 }
-                                                onMouseDown={(e) => {
+                                                onMouseDown={ (e) => {
                                                     e.preventDefault();
                                                     commitNewTag(suggestion);
-                                                }}
-                                                onMouseEnter={() => setActiveTagSuggestion(idx)}
+                                                } }
+                                                onMouseEnter={ () => setActiveTagSuggestion(idx) }
                                             >
-                                                {suggestion}
+                                                { suggestion }
                                             </li>
-                                        ))}
+                                        )) }
                                     </ul>
-                                )}
+                                ) }
                             </div>
                             <button
                                 type="button"
                                 className="btn btn-primary btn-md"
-                                onClick={() => commitNewTag()}
-                                disabled={!newTagInput.trim() || isGeneratingTags}
+                                onClick={ () => commitNewTag() }
+                                disabled={ !newTagInput.trim() || isGeneratingTags }
                             >
                                 Add
                             </button>
                         </div>
                     </div>
-                )}
+                ) }
 
-                {onEditLicenseId && onEditAttribution && (
+                { onEditLicenseId && onEditAttribution && (
                     <div className="dataset-license">
                         <span className="dataset-category-title">Licensing and Attribution</span>
                         <div className="dataset-license-row">
@@ -617,28 +617,28 @@ export function DatasetDescription({
                             </label>
                             <select
                                 className="dataset-category-select"
-                                value={licenseId}
-                                onChange={(e) => onEditLicenseId(e.target.value)}
-                                disabled={licensesUnavailable}
+                                value={ licenseId }
+                                onChange={ (e) => onEditLicenseId(e.target.value) }
+                                disabled={ licensesUnavailable }
                             >
                                 <option value="">Not set</option>
-                                {licenseOptions.map((option) => (
-                                    <option key={option.id} value={option.id}>
-                                        {option.name}
+                                { licenseOptions.map((option) => (
+                                    <option key={ option.id } value={ option.id }>
+                                        { option.name }
                                     </option>
-                                ))}
+                                )) }
                             </select>
                             <ResetFieldButton
-                                show={canReset('licenseId')}
-                                onReset={resetHandler('licenseId')}
+                                show={ canReset('licenseId') }
+                                onReset={ resetHandler('licenseId') }
                                 title="Reset license to the value loaded from the dataset"
                             />
                         </div>
-                        {licensesUnavailable && (
+                        { licensesUnavailable && (
                             <div className="dataset-category-unavailable">
                                 Licenses unavailable — try again after connection is restored
                             </div>
-                        )}
+                        ) }
                         <div className="dataset-license-row">
                             <label className="dataset-license-label">
                                 Attribution
@@ -648,22 +648,22 @@ export function DatasetDescription({
                                 type="text"
                                 className="dataset-row-label-input dataset-license-input"
                                 placeholder="Issuing organization (e.g. Department of Licensing)"
-                                value={attribution}
-                                onChange={(e) => onEditAttribution(e.target.value)}
+                                value={ attribution }
+                                onChange={ (e) => onEditAttribution(e.target.value) }
                             />
                             <ResetFieldButton
-                                show={canReset('attribution')}
-                                onReset={resetHandler('attribution')}
+                                show={ canReset('attribution') }
+                                onReset={ resetHandler('attribution') }
                                 title="Reset attribution to the value loaded from the dataset"
                             />
                         </div>
                     </div>
-                )}
+                ) }
 
-                {(onEditPeriodOfTime || onEditPostingFrequency) && (
+                { (onEditPeriodOfTime || onEditPostingFrequency) && (
                     <div className="dataset-temporal">
                         <span className="dataset-category-title">Temporal</span>
-                        {onEditPeriodOfTime && pendingPeriodOfTime !== null && (
+                        { onEditPeriodOfTime && pendingPeriodOfTime !== null && (
                             <div className="dataset-temporal-pending-row">
                                 <label className="dataset-license-label">
                                     Period of Time
@@ -673,18 +673,18 @@ export function DatasetDescription({
                                     <DatasetFieldHistory field="periodOfTime" title="Period of Time"/>
                                 </label>
                                 <DiffView
-                                    currentValue={periodOfTime}
-                                    newValue={pendingPeriodOfTime}
-                                    isGenerating={isGeneratingPeriodOfTime}
-                                    onAccept={onAcceptPendingPeriodOfTime!}
-                                    onDiscard={onDiscardPendingPeriodOfTime!}
+                                    currentValue={ periodOfTime }
+                                    newValue={ pendingPeriodOfTime }
+                                    isGenerating={ isGeneratingPeriodOfTime }
+                                    onAccept={ onAcceptPendingPeriodOfTime! }
+                                    onDiscard={ onDiscardPendingPeriodOfTime! }
                                     className="dataset-field-pending dataset-temporal-pending"
                                     acceptTooltip="Replace the current Period of Time with the new one"
                                     discardTooltip="Discard the new Period of Time and keep the current one"
                                 />
                             </div>
-                        )}
-                        {onEditPeriodOfTime && pendingPeriodOfTime === null && (
+                        ) }
+                        { onEditPeriodOfTime && pendingPeriodOfTime === null && (
                             <div className="dataset-license-row dataset-period-row">
                                 <label className="dataset-license-label">
                                     Period of Time
@@ -694,34 +694,34 @@ export function DatasetDescription({
                                     <DatasetFieldHistory field="periodOfTime" title="Period of Time"/>
                                 </label>
                                 <PeriodPicker
-                                    value={periodOfTime}
-                                    onChange={onEditPeriodOfTime}
-                                    disabled={isGeneratingPeriodOfTime}
+                                    value={ periodOfTime }
+                                    onChange={ onEditPeriodOfTime }
+                                    disabled={ isGeneratingPeriodOfTime }
                                 />
-                                {onGeneratePeriodOfTime && (
+                                { onGeneratePeriodOfTime && (
                                     <button
                                         className="btn btn-primary btn-md"
-                                        onClick={onGeneratePeriodOfTime}
-                                        disabled={isGeneratingPeriodOfTime}
+                                        onClick={ onGeneratePeriodOfTime }
+                                        disabled={ isGeneratingPeriodOfTime }
                                         title="Generate Period of Time with AI"
                                     >
-                                        {isGeneratingPeriodOfTime ? 'Generating...' : 'Generate'}
+                                        { isGeneratingPeriodOfTime ? 'Generating...' : 'Generate' }
                                     </button>
-                                )}
+                                ) }
                                 <ResetFieldButton
-                                    show={canReset('periodOfTime')}
-                                    onReset={resetHandler('periodOfTime')}
-                                    disabled={isGeneratingPeriodOfTime}
+                                    show={ canReset('periodOfTime') }
+                                    onReset={ resetHandler('periodOfTime') }
+                                    disabled={ isGeneratingPeriodOfTime }
                                     title="Reset Period of Time to the value loaded from the dataset"
                                 />
                             </div>
-                        )}
-                        {onEditPeriodOfTime && periodOfTimeWarning && (
+                        ) }
+                        { onEditPeriodOfTime && periodOfTimeWarning && (
                             <div className="dataset-period-warning" role="status">
-                                <span aria-hidden="true">⚠ </span>{periodOfTimeWarning}
+                                <span aria-hidden="true">⚠ </span>{ periodOfTimeWarning }
                             </div>
-                        )}
-                        {onEditPostingFrequency && (
+                        ) }
+                        { onEditPostingFrequency && (
                             <>
                                 <div className="dataset-license-row">
                                     <label className="dataset-license-label">
@@ -733,8 +733,8 @@ export function DatasetDescription({
                                     </label>
                                     <select
                                         className="dataset-category-select"
-                                        value={postingFrequencyCustom ? POSTING_FREQUENCY_OTHER : postingFrequency}
-                                        onChange={(e) => {
+                                        value={ postingFrequencyCustom ? POSTING_FREQUENCY_OTHER : postingFrequency }
+                                        onChange={ (e) => {
                                             const v = e.target.value;
                                             if (v === POSTING_FREQUENCY_OTHER) {
                                                 setPostingFrequencyCustom(true);
@@ -743,41 +743,41 @@ export function DatasetDescription({
                                                 setPostingFrequencyCustom(false);
                                                 onEditPostingFrequency(v);
                                             }
-                                        }}
+                                        } }
                                     >
                                         <option value="">Not set</option>
-                                        {POSTING_FREQUENCY_OPTIONS.map((option) => (
-                                            <option key={option} value={option}>
-                                                {option}
+                                        { POSTING_FREQUENCY_OPTIONS.map((option) => (
+                                            <option key={ option } value={ option }>
+                                                { option }
                                             </option>
-                                        ))}
-                                        <option value={POSTING_FREQUENCY_OTHER}>Other...</option>
+                                        )) }
+                                        <option value={ POSTING_FREQUENCY_OTHER }>Other...</option>
                                     </select>
                                     <ResetFieldButton
-                                        show={canReset('postingFrequency')}
-                                        onReset={resetHandler('postingFrequency')}
+                                        show={ canReset('postingFrequency') }
+                                        onReset={ resetHandler('postingFrequency') }
                                         title="Reset posting frequency to the value loaded from the dataset"
                                     />
                                 </div>
-                                {postingFrequencyCustom && (
+                                { postingFrequencyCustom && (
                                     <div className="dataset-license-row">
                                         <label className="dataset-license-label"/>
                                         <input
                                             type="text"
                                             className="dataset-row-label-input dataset-license-input"
                                             placeholder="Describe the posting frequency"
-                                            value={postingFrequency}
-                                            onChange={(e) => onEditPostingFrequency(e.target.value)}
+                                            value={ postingFrequency }
+                                            onChange={ (e) => onEditPostingFrequency(e.target.value) }
                                             autoFocus
                                         />
                                     </div>
-                                )}
+                                ) }
                             </>
-                        )}
+                        ) }
                     </div>
-                )}
+                ) }
 
-                {onEditContactEmail && (
+                { onEditContactEmail && (
                     <div className="dataset-contact">
                         <span className="dataset-category-title">
                             Contact Email
@@ -788,17 +788,17 @@ export function DatasetDescription({
                                 type="email"
                                 className="dataset-row-label-input dataset-license-input"
                                 placeholder="e.g. opendata@example.wa.gov"
-                                value={contactEmail}
-                                onChange={(e) => onEditContactEmail(e.target.value)}
+                                value={ contactEmail }
+                                onChange={ (e) => onEditContactEmail(e.target.value) }
                             />
                             <ResetFieldButton
-                                show={canReset('contactEmail')}
-                                onReset={resetHandler('contactEmail')}
+                                show={ canReset('contactEmail') }
+                                onReset={ resetHandler('contactEmail') }
                                 title="Reset contact email to the value loaded from the dataset"
                             />
                         </div>
                     </div>
-                )}
+                ) }
 
                 <p className="dataset-desc-tip">Tip: Use &#9998; to edit or regenerate buttons to modify the
                     description</p>

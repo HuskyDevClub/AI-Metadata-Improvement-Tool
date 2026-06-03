@@ -79,7 +79,7 @@ export function metadataExportFileName(metadata: GeneratedResults, fileName: str
     const base = metadata.datasetTitle.trim()
         || fileName.replace(/\.[^.]+$/, '')
         || 'metadata';
-    return `${slugify(base)}.metadata.json`;
+    return `${ slugify(base) }.metadata.json`;
 }
 
 /** Build the export object, serialize it, and trigger a browser download. */
@@ -183,7 +183,7 @@ export function parseMetadataImport(text: string): ParsedMetadataImport {
 export interface MetadataApplyResult {
     next: GeneratedResults;
     // Field-history entries to record (key + new value); ordered dataset-first.
-    revisions: {key: string; value: string | string[]}[];
+    revisions: { key: string; value: string | string[] }[];
     // Column names present in the file but absent from the current dataset.
     skippedColumns: string[];
     // Column names from the file that matched and were applied.
@@ -204,7 +204,7 @@ export function applyMetadataImport(
     allowedColumns: Set<string>,
 ): MetadataApplyResult {
     const next: GeneratedResults = { ...prev };
-    const revisions: {key: string; value: string | string[]}[] = [];
+    const revisions: { key: string; value: string | string[] }[] = [];
 
     for (const f of SCALAR_FIELDS) {
         const val = incoming[f];

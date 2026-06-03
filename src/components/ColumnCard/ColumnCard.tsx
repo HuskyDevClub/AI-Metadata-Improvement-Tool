@@ -55,37 +55,37 @@ export function ColumnCard({
                            }: ColumnCardProps) {
 
     return (
-        <div className="column-card" id={`column-${sanitizeId(name)}`}>
+        <div className="column-card" id={ `column-${ sanitizeId(name) }` }>
             <h4>
                 Description
                 <InfoTooltip
                     text="What does the column name mean and what does this field include? Describe the range of possible values, their unit of measurement, and the way the data is collected (by humans? By sensors? Is the data standardized in any way?). Always explain what empty cells could mean."
                     width="400px"/>
-                <ColumnFieldHistory columnName={name} kind="description" title="Description"/>
+                <ColumnFieldHistory columnName={ name } kind="description" title="Description"/>
             </h4>
-            <div className="column-card-stats">{formatColumnStats(info)}</div>
+            <div className="column-card-stats">{ formatColumnStats(info) }</div>
 
             <EditableDescription
-                description={description}
-                onEdit={onEdit}
-                onRegenerate={onRegenerate}
-                onSuggestImprovement={onSuggestImprovement}
-                onDismissSuggestions={onDismissSuggestions}
-                suggestions={suggestions}
-                isSuggesting={isSuggesting}
-                isRegenerating={isRegenerating}
-                isStreaming={isGenerating}
+                description={ description }
+                onEdit={ onEdit }
+                onRegenerate={ onRegenerate }
+                onSuggestImprovement={ onSuggestImprovement }
+                onDismissSuggestions={ onDismissSuggestions }
+                suggestions={ suggestions }
+                isSuggesting={ isSuggesting }
+                isRegenerating={ isRegenerating }
+                isStreaming={ isGenerating }
                 compact
-                onToggleSuggestion={onToggleSuggestion}
-                onEditSuggestion={onEditSuggestion}
-                onAddSuggestion={onAddSuggestion}
-                onDeleteSuggestion={onDeleteSuggestion}
-                onApplySuggestions={onApplySuggestions}
-                pendingDescription={pendingDescription}
-                onAcceptPending={onAcceptPending}
-                onDiscardPending={onDiscardPending}
-                onReset={onReset}
-                canReset={canReset}
+                onToggleSuggestion={ onToggleSuggestion }
+                onEditSuggestion={ onEditSuggestion }
+                onAddSuggestion={ onAddSuggestion }
+                onDeleteSuggestion={ onDeleteSuggestion }
+                onApplySuggestions={ onApplySuggestions }
+                pendingDescription={ pendingDescription }
+                onAcceptPending={ onAcceptPending }
+                onDiscardPending={ onDiscardPending }
+                onReset={ onReset }
+                canReset={ canReset }
             />
         </div>
     );

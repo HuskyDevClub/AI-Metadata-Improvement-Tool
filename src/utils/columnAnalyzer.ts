@@ -99,14 +99,14 @@ const SELF_DESCRIBING_CATEGORICAL = new Set(['checkbox', 'flag']);
 // columns keep their original Socrata type (when present) or the detected type.
 // Accepts the loose shape shared by ColumnInfo and DataTypeBadge's props.
 export function getColumnTypeLabel(
-    info: {type: string; originalType?: string; baseType?: 'numeric' | 'text'}
+    info: { type: string; originalType?: string; baseType?: 'numeric' | 'text' }
 ): string {
     if (info.type === 'categorical') {
         if (info.originalType && SELF_DESCRIBING_CATEGORICAL.has(info.originalType.toLowerCase())) {
             return info.originalType;
         }
         const base = info.baseType === 'numeric' ? 'Number' : 'Text';
-        return `${base} (Categorical)`;
+        return `${ base } (Categorical)`;
     }
     return info.originalType || info.type;
 }
@@ -127,7 +127,7 @@ function formatTemporalForDisplay(value: string): string {
 export function formatColumnStats(info: ColumnInfo): string {
     if (info.type === 'numeric') {
         const stats = info.stats as NumericStats;
-        return `Min: ${stats.min.toFixed(2)} | Max: ${stats.max.toFixed(2)} | Avg: ${stats.mean.toFixed(2)} | Median: ${stats.median.toFixed(2)}`;
+        return `Min: ${ stats.min.toFixed(2) } | Max: ${ stats.max.toFixed(2) } | Avg: ${ stats.mean.toFixed(2) } | Median: ${ stats.median.toFixed(2) }`;
     } else if (info.type === 'categorical') {
         const stats = info.stats as CategoricalStats;
         const top = stats.values.slice(0, 5).map((v, i) => {
@@ -135,21 +135,21 @@ export function formatColumnStats(info: ColumnInfo): string {
             if (cnt === undefined || stats.count === 0) return v;
             const pct = (cnt / stats.count) * 100;
             const rounded = pct >= 10 ? pct.toFixed(0) : pct.toFixed(1);
-            return `${v} (${rounded}%)`;
+            return `${ v } (${ rounded }%)`;
         });
-        return `${stats.uniqueCount} unique values | Top: ${top.join(', ')}`;
+        return `${ stats.uniqueCount } unique values | Top: ${ top.join(', ') }`;
     } else if (info.type === 'text') {
         const stats = info.stats as TextStats;
-        return `${stats.uniqueCount} unique values | ${stats.count} non-empty entries`;
+        return `${ stats.uniqueCount } unique values | ${ stats.count } non-empty entries`;
     } else if (info.type === 'temporal') {
         const stats = info.stats as TemporalStats;
-        return `Range: ${formatTemporalForDisplay(stats.min)} – ${formatTemporalForDisplay(stats.max)} | ${stats.count} non-empty entries`;
+        return `Range: ${ formatTemporalForDisplay(stats.min) } – ${ formatTemporalForDisplay(stats.max) } | ${ stats.count } non-empty entries`;
     } else if (info.type === 'geospatial') {
         const stats = info.stats as GeospatialStats;
-        return `${stats.count} ${stats.geometryType} geometries`;
+        return `${ stats.count } ${ stats.geometryType } geometries`;
     } else if (info.type === 'opaque') {
         const stats = info.stats as OpaqueStats;
-        return `${stats.count} non-empty entries (binary/reference type — not sampled)`;
+        return `${ stats.count } non-empty entries (binary/reference type — not sampled)`;
     }
     return '';
 }
@@ -157,7 +157,7 @@ export function formatColumnStats(info: ColumnInfo): string {
 export function getColumnStatsText(info: ColumnInfo): string {
     if (info.type === 'numeric') {
         const stats = info.stats as NumericStats;
-        return `This is a numeric column with values ranging from ${stats.min.toFixed(2)} to ${stats.max.toFixed(2)}. Average: ${stats.mean.toFixed(2)}, Median: ${stats.median.toFixed(2)}, Q1: ${stats.q1.toFixed(2)}, Q3: ${stats.q3.toFixed(2)}.`;
+        return `This is a numeric column with values ranging from ${ stats.min.toFixed(2) } to ${ stats.max.toFixed(2) }. Average: ${ stats.mean.toFixed(2) }, Median: ${ stats.median.toFixed(2) }, Q1: ${ stats.q1.toFixed(2) }, Q3: ${ stats.q3.toFixed(2) }.`;
     } else if (info.type === 'categorical') {
         const stats = info.stats as CategoricalStats;
         const labeled = stats.values.map((v, i) => {
@@ -165,21 +165,21 @@ export function getColumnStatsText(info: ColumnInfo): string {
             if (cnt === undefined || stats.count === 0) return v;
             const pct = (cnt / stats.count) * 100;
             const rounded = pct >= 10 ? pct.toFixed(0) : pct.toFixed(1);
-            return `${v} (${rounded}%)`;
+            return `${ v } (${ rounded }%)`;
         });
-        return `This is a categorical column with ${stats.uniqueCount} unique values: ${labeled.join(', ')}${stats.hasMore ? ', and more' : ''}.`;
+        return `This is a categorical column with ${ stats.uniqueCount } unique values: ${ labeled.join(', ') }${ stats.hasMore ? ', and more' : '' }.`;
     } else if (info.type === 'text') {
         const stats = info.stats as TextStats;
-        return `This is a text column with ${stats.uniqueCount} unique values. Sample values: ${stats.samples.slice(0, 3).join(', ')}.`;
+        return `This is a text column with ${ stats.uniqueCount } unique values. Sample values: ${ stats.samples.slice(0, 3).join(', ') }.`;
     } else if (info.type === 'temporal') {
         const stats = info.stats as TemporalStats;
-        return `This is a date/time column with ${stats.count} non-empty values, ranging from ${stats.min} to ${stats.max}.`;
+        return `This is a date/time column with ${ stats.count } non-empty values, ranging from ${ stats.min } to ${ stats.max }.`;
     } else if (info.type === 'geospatial') {
         const stats = info.stats as GeospatialStats;
-        return `This is a geospatial column containing ${stats.count} non-empty ${stats.geometryType} geometries.`;
+        return `This is a geospatial column containing ${ stats.count } non-empty ${ stats.geometryType } geometries.`;
     } else if (info.type === 'opaque') {
         const stats = info.stats as OpaqueStats;
-        return `This column contains ${stats.count} non-empty entries. Values are binary references (document/photo/link) and are not sampled.`;
+        return `This column contains ${ stats.count } non-empty entries. Values are binary references (document/photo/link) and are not sampled.`;
     }
     return '';
 }
@@ -230,13 +230,13 @@ export function getSampleValues(info: ColumnInfo, values: (string | null | undef
         return stats.samples.slice(0, 5).join('; ');
     } else if (info.type === 'temporal') {
         const stats = info.stats as TemporalStats;
-        return `Earliest: ${stats.min}; Latest: ${stats.max}`;
+        return `Earliest: ${ stats.min }; Latest: ${ stats.max }`;
     } else if (info.type === 'geospatial') {
         const stats = info.stats as GeospatialStats;
-        return `(${stats.count} ${stats.geometryType} geometries — individual values not sampled)`;
+        return `(${ stats.count } ${ stats.geometryType } geometries — individual values not sampled)`;
     } else if (info.type === 'opaque') {
         const stats = info.stats as OpaqueStats;
-        return `(${stats.count} non-empty values — binary/reference type, not sampled)`;
+        return `(${ stats.count } non-empty values — binary/reference type, not sampled)`;
     }
     return '';
 }

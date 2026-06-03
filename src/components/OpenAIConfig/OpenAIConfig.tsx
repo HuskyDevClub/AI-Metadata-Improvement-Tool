@@ -75,7 +75,7 @@ export function OpenAIConfig({
         <div className="config-section">
             <div className="section-header">
                 <div className="section-title">Custom API Configuration</div>
-                {isConfigured && !dirty && (
+                { isConfigured && !dirty && (
                     <span className="config-status-badge">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -83,7 +83,7 @@ export function OpenAIConfig({
                         </svg>
                         Configured
                     </span>
-                )}
+                ) }
             </div>
             <div className="config-grid">
                 <div className="config-input-group">
@@ -92,30 +92,30 @@ export function OpenAIConfig({
                         id="openaiBaseURL"
                         type="text"
                         placeholder="https://api.openai.com/v1"
-                        value={baseURLInput}
-                        onChange={(e) => setBaseURLInput(e.target.value)}
+                        value={ baseURLInput }
+                        onChange={ (e) => setBaseURLInput(e.target.value) }
                     />
                     <span className="config-help-text">API base URL (use default for OpenAI, or custom for compatible APIs)</span>
                 </div>
                 <div className="config-input-group">
-                    <label htmlFor="openaiKey">API Key {isConfigured ? '(Saved)' : '*'}</label>
+                    <label htmlFor="openaiKey">API Key { isConfigured ? '(Saved)' : '*' }</label>
                     <div className="config-input-wrapper">
                         <input
                             id="openaiKey"
-                            type={showApiKey ? 'text' : 'password'}
-                            placeholder={isConfigured ? '••••••••••••••••' : 'Your API key'}
-                            value={apiKeyInput}
-                            onChange={(e) => setApiKeyInput(e.target.value)}
+                            type={ showApiKey ? 'text' : 'password' }
+                            placeholder={ isConfigured ? '••••••••••••••••' : 'Your API key' }
+                            value={ apiKeyInput }
+                            onChange={ (e) => setApiKeyInput(e.target.value) }
                         />
                         <button
                             type="button"
                             className="config-reveal-btn"
-                            onClick={() => setShowApiKey((v) => !v)}
-                            disabled={!apiKeyInput}
-                            aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
-                            title={showApiKey ? 'Hide API key' : 'Show API key'}
+                            onClick={ () => setShowApiKey((v) => !v) }
+                            disabled={ !apiKeyInput }
+                            aria-label={ showApiKey ? 'Hide API key' : 'Show API key' }
+                            title={ showApiKey ? 'Hide API key' : 'Show API key' }
                         >
-                            {showApiKey ? (
+                            { showApiKey ? (
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path
@@ -128,96 +128,96 @@ export function OpenAIConfig({
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                     <circle cx="12" cy="12" r="3"/>
                                 </svg>
-                            )}
+                            ) }
                         </button>
                     </div>
                     <span className="config-help-text">Your API key</span>
                 </div>
-                {showModel && (
+                { showModel && (
                     <div className="config-input-group">
                         <label htmlFor="openaiModel">Model *</label>
                         <input
                             id="openaiModel"
                             type="text"
                             placeholder="e.g., gpt-5, gpt-4o, gpt-4-turbo"
-                            value={modelInput}
-                            onChange={(e) => setModelInput(e.target.value)}
+                            value={ modelInput }
+                            onChange={ (e) => setModelInput(e.target.value) }
                         />
                         <span
                             className="config-help-text">Default model used for initial generation, titles, tags, etc.</span>
                     </div>
-                )}
-                {showModel && (
+                ) }
+                { showModel && (
                     <div className="config-input-group">
                         <label htmlFor="openaiModelConcise">Model — Concise regenerate</label>
                         <input
                             id="openaiModelConcise"
                             type="text"
-                            placeholder={modelInput || 'falls back to default model'}
-                            value={modelConciseInput}
-                            onChange={(e) => setModelConciseInput(e.target.value)}
+                            placeholder={ modelInput || 'falls back to default model' }
+                            value={ modelConciseInput }
+                            onChange={ (e) => setModelConciseInput(e.target.value) }
                         />
                         <span className="config-help-text">Optional override when regenerating with the "Concise" modifier.</span>
                     </div>
-                )}
-                {showModel && (
+                ) }
+                { showModel && (
                     <div className="config-input-group">
                         <label htmlFor="openaiModelDetailed">Model — Detailed regenerate</label>
                         <input
                             id="openaiModelDetailed"
                             type="text"
-                            placeholder={modelInput || 'falls back to default model'}
-                            value={modelDetailedInput}
-                            onChange={(e) => setModelDetailedInput(e.target.value)}
+                            placeholder={ modelInput || 'falls back to default model' }
+                            value={ modelDetailedInput }
+                            onChange={ (e) => setModelDetailedInput(e.target.value) }
                         />
                         <span className="config-help-text">Optional override when regenerating with the "Detailed" modifier.</span>
                     </div>
-                )}
-                {showModel && (
+                ) }
+                { showModel && (
                     <div className="config-input-group">
                         <label htmlFor="openaiModelSuggest">Model — Suggest improvements</label>
                         <input
                             id="openaiModelSuggest"
                             type="text"
-                            placeholder={modelInput || 'falls back to default model'}
-                            value={modelSuggestInput}
-                            onChange={(e) => setModelSuggestInput(e.target.value)}
+                            placeholder={ modelInput || 'falls back to default model' }
+                            value={ modelSuggestInput }
+                            onChange={ (e) => setModelSuggestInput(e.target.value) }
                         />
                         <span
                             className="config-help-text">Optional override for "Suggest Improvement" calls.</span>
                     </div>
-                )}
+                ) }
             </div>
-            {(saveEnabled || (onClear && isConfigured)) && (
+            { (saveEnabled || (onClear && isConfigured)) && (
                 <div className="config-actions">
-                    {saveEnabled && (
+                    { saveEnabled && (
                         <button
                             type="button"
                             className="btn btn-primary btn-md"
-                            onClick={handleSave}
-                            disabled={!canSave}
+                            onClick={ handleSave }
+                            disabled={ !canSave }
                         >
-                            {isSaving ? 'Saving...' : justSaved ? 'Saved' : 'Save configuration'}
+                            { isSaving ? 'Saving...' : justSaved ? 'Saved' : 'Save configuration' }
                         </button>
-                    )}
-                    {onClear && isConfigured && (
+                    ) }
+                    { onClear && isConfigured && (
                         <button
                             type="button"
                             className="btn btn-secondary btn-md"
-                            onClick={() => {
+                            onClick={ () => {
                                 if (window.confirm('Clear saved API configuration? This will remove the configuration from the server-side session.')) {
                                     onClear();
                                 }
-                            }}
+                            } }
                         >
                             Clear
                         </button>
-                    )}
-                    {saveEnabled && dirty && !justSaved && (
+                    ) }
+                    { saveEnabled && dirty && !justSaved && (
                         <span className="config-dirty-hint">Unsaved changes</span>
-                    )}
+                    ) }
                 </div>
-            )}
+            ) }
         </div>
     );
 }

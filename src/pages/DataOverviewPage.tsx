@@ -116,7 +116,7 @@ export function DataOverviewPage() {
         // AI returned an empty result that's now under review.
         if (pendingPeriodOfTime !== null && !pendingPeriodOfTime.trim()) {
             return temporalCoverage.hasSignal
-                ? `The AI returned no Period of Time, though date fields were detected (data spans ${temporalCoverage.dataMinYear}–${temporalCoverage.dataMaxYear}). Try regenerating, or set it manually.`
+                ? `The AI returned no Period of Time, though date fields were detected (data spans ${ temporalCoverage.dataMinYear }–${ temporalCoverage.dataMaxYear }). Try regenerating, or set it manually.`
                 : 'No date or year fields were detected in this data, so the AI could not determine a Period of Time. Set it manually if you know the coverage.';
         }
         const effective = pendingPeriodOfTime !== null ? pendingPeriodOfTime : (generatedResults.periodOfTime ?? '');
@@ -198,68 +198,68 @@ export function DataOverviewPage() {
 
     return (
         <div className="data-overview-page">
-            {csvData && (
+            { csvData && (
                 <DatasetDescription
-                    description={generatedResults.datasetDescription}
-                    onEdit={handleEditDatasetDescription}
-                    onRegenerate={handleRegenerateDataset}
-                    onSuggestImprovement={handleSuggestDatasetImprovement}
-                    onDismissSuggestions={handleDismissDatasetSuggestions}
-                    suggestions={datasetSuggestions}
-                    isSuggesting={suggestingDataset}
-                    isRegenerating={regeneratingDataset}
-                    onToggleSuggestion={handleToggleDatasetSuggestion}
-                    onEditSuggestion={handleEditDatasetSuggestion}
-                    onAddSuggestion={handleAddDatasetSuggestion}
-                    onDeleteSuggestion={handleDeleteDatasetSuggestion}
-                    onApplySuggestions={handleApplyDatasetSuggestions}
-                    pendingDescription={pendingDatasetDescription}
-                    onAcceptPending={handleAcceptPendingDataset}
-                    onDiscardPending={handleDiscardPendingDataset}
-                    category={generatedResults.category}
-                    allowedCategories={allowedCategories}
-                    onEditCategory={handleEditCategory}
-                    onGenerateCategory={handleGenerateCategory}
-                    isGeneratingCategory={generatingCategory}
-                    pendingCategory={pendingCategory}
-                    onAcceptPendingCategory={handleAcceptPendingCategory}
-                    onDiscardPendingCategory={handleDiscardPendingCategory}
-                    tags={generatedResults.tags}
-                    allowedTags={allowedTags}
-                    onAddTag={handleAddTag}
-                    onRemoveTag={handleRemoveTag}
-                    onGenerateTags={handleGenerateTags}
-                    isGeneratingTags={generatingTags}
-                    pendingTags={pendingTags}
-                    tagsBaseline={tagsBaseline}
-                    onAcceptPendingTags={handleAcceptPendingTags}
-                    onDiscardPendingTags={handleDiscardPendingTags}
-                    onFinishTagReview={handleFinishTagReview}
-                    onRevertTagReview={handleRevertTagReview}
-                    licenseId={generatedResults.licenseId}
-                    allowedLicenses={allowedLicenses}
-                    onEditLicenseId={handleEditLicenseId}
-                    attribution={generatedResults.attribution}
-                    onEditAttribution={handleEditAttribution}
-                    contactEmail={generatedResults.contactEmail}
-                    onEditContactEmail={handleEditContactEmail}
-                    periodOfTime={generatedResults.periodOfTime}
-                    onEditPeriodOfTime={handleEditPeriodOfTime}
-                    onGeneratePeriodOfTime={handleGeneratePeriodOfTime}
-                    isGeneratingPeriodOfTime={generatingPeriodOfTime}
-                    pendingPeriodOfTime={pendingPeriodOfTime}
-                    onAcceptPendingPeriodOfTime={handleAcceptPendingPeriodOfTime}
-                    onDiscardPendingPeriodOfTime={handleDiscardPendingPeriodOfTime}
-                    periodOfTimeWarning={periodOfTimeWarning}
-                    postingFrequency={generatedResults.postingFrequency}
-                    onEditPostingFrequency={handleEditPostingFrequency}
-                    onResetField={handleResetField}
-                    isFieldChanged={isDatasetFieldChanged}
-                    socrataDomain={socrataDomain}
+                    description={ generatedResults.datasetDescription }
+                    onEdit={ handleEditDatasetDescription }
+                    onRegenerate={ handleRegenerateDataset }
+                    onSuggestImprovement={ handleSuggestDatasetImprovement }
+                    onDismissSuggestions={ handleDismissDatasetSuggestions }
+                    suggestions={ datasetSuggestions }
+                    isSuggesting={ suggestingDataset }
+                    isRegenerating={ regeneratingDataset }
+                    onToggleSuggestion={ handleToggleDatasetSuggestion }
+                    onEditSuggestion={ handleEditDatasetSuggestion }
+                    onAddSuggestion={ handleAddDatasetSuggestion }
+                    onDeleteSuggestion={ handleDeleteDatasetSuggestion }
+                    onApplySuggestions={ handleApplyDatasetSuggestions }
+                    pendingDescription={ pendingDatasetDescription }
+                    onAcceptPending={ handleAcceptPendingDataset }
+                    onDiscardPending={ handleDiscardPendingDataset }
+                    category={ generatedResults.category }
+                    allowedCategories={ allowedCategories }
+                    onEditCategory={ handleEditCategory }
+                    onGenerateCategory={ handleGenerateCategory }
+                    isGeneratingCategory={ generatingCategory }
+                    pendingCategory={ pendingCategory }
+                    onAcceptPendingCategory={ handleAcceptPendingCategory }
+                    onDiscardPendingCategory={ handleDiscardPendingCategory }
+                    tags={ generatedResults.tags }
+                    allowedTags={ allowedTags }
+                    onAddTag={ handleAddTag }
+                    onRemoveTag={ handleRemoveTag }
+                    onGenerateTags={ handleGenerateTags }
+                    isGeneratingTags={ generatingTags }
+                    pendingTags={ pendingTags }
+                    tagsBaseline={ tagsBaseline }
+                    onAcceptPendingTags={ handleAcceptPendingTags }
+                    onDiscardPendingTags={ handleDiscardPendingTags }
+                    onFinishTagReview={ handleFinishTagReview }
+                    onRevertTagReview={ handleRevertTagReview }
+                    licenseId={ generatedResults.licenseId }
+                    allowedLicenses={ allowedLicenses }
+                    onEditLicenseId={ handleEditLicenseId }
+                    attribution={ generatedResults.attribution }
+                    onEditAttribution={ handleEditAttribution }
+                    contactEmail={ generatedResults.contactEmail }
+                    onEditContactEmail={ handleEditContactEmail }
+                    periodOfTime={ generatedResults.periodOfTime }
+                    onEditPeriodOfTime={ handleEditPeriodOfTime }
+                    onGeneratePeriodOfTime={ handleGeneratePeriodOfTime }
+                    isGeneratingPeriodOfTime={ generatingPeriodOfTime }
+                    pendingPeriodOfTime={ pendingPeriodOfTime }
+                    onAcceptPendingPeriodOfTime={ handleAcceptPendingPeriodOfTime }
+                    onDiscardPendingPeriodOfTime={ handleDiscardPendingPeriodOfTime }
+                    periodOfTimeWarning={ periodOfTimeWarning }
+                    postingFrequency={ generatedResults.postingFrequency }
+                    onEditPostingFrequency={ handleEditPostingFrequency }
+                    onResetField={ handleResetField }
+                    isFieldChanged={ isDatasetFieldChanged }
+                    socrataDomain={ socrataDomain }
                 />
-            )}
+            ) }
 
-            {csvData && (
+            { csvData && (
                 <div className="section">
                     <div className="section-header">
                         <div className="section-title">What's in this Dataset</div>
@@ -267,25 +267,25 @@ export function DataOverviewPage() {
                     <div className="dataset-stats">
                         <div className="stat-item">
                             <span className="stat-label">Rows</span>
-                            <div style={{ display: 'flex', alignItems: 'center', minHeight: '32px' }}>
+                            <div style={ { display: 'flex', alignItems: 'center', minHeight: '32px' } }>
                                 <span
                                     className="stat-value"
-                                    title={(importedRowCount > 0 ? importedRowCount : csvData.length).toLocaleString()}
+                                    title={ (importedRowCount > 0 ? importedRowCount : csvData.length).toLocaleString() }
                                 >
-                                    {new Intl.NumberFormat('en-US', {
+                                    { new Intl.NumberFormat('en-US', {
                                         notation: 'compact',
                                         maximumFractionDigits: 1,
-                                    }).format(importedRowCount > 0 ? importedRowCount : csvData.length)}
+                                    }).format(importedRowCount > 0 ? importedRowCount : csvData.length) }
                                 </span>
                             </div>
                         </div>
                         <div className="stat-item">
                             <span className="stat-label">Columns</span>
-                            <div style={{ display: 'flex', alignItems: 'center', minHeight: '32px' }}>
-                                <span className="stat-value">{columnNames.length}</span>
+                            <div style={ { display: 'flex', alignItems: 'center', minHeight: '32px' } }>
+                                <span className="stat-value">{ columnNames.length }</span>
                             </div>
                         </div>
-                        <div className="stat-item" style={{ flex: 1 }}>
+                        <div className="stat-item" style={ { flex: 1 } }>
                             <span className="stat-label">
                                 Row Label
                                 <InfoTooltip
@@ -293,128 +293,128 @@ export function DataOverviewPage() {
                                     width="350px"/>
                                 <DatasetFieldHistory field="rowLabel" title="Row Label"/>
                             </span>
-                            <div style={{ display: 'flex', alignItems: 'center', minHeight: '32px', width: '100%' }}>
-                                {pendingRowLabel !== null ? (
-                                    <div style={{ width: '100%' }}>
+                            <div style={ { display: 'flex', alignItems: 'center', minHeight: '32px', width: '100%' } }>
+                                { pendingRowLabel !== null ? (
+                                    <div style={ { width: '100%' } }>
                                         <DiffView
-                                            currentValue={generatedResults.rowLabel}
-                                            newValue={pendingRowLabel}
-                                            isGenerating={generatingRowLabel}
-                                            onAccept={handleAcceptPendingRowLabel}
-                                            onDiscard={handleDiscardPendingRowLabel}
+                                            currentValue={ generatedResults.rowLabel }
+                                            newValue={ pendingRowLabel }
+                                            isGenerating={ generatingRowLabel }
+                                            onAccept={ handleAcceptPendingRowLabel }
+                                            onDiscard={ handleDiscardPendingRowLabel }
                                             className="dataset-field-pending"
                                             acceptTooltip="Replace the current row label with the new one"
                                             discardTooltip="Discard the new row label and keep the current one"
                                         />
                                     </div>
                                 ) : isEditingRowLabel ? (
-                                    <div className="dataset-row-label-edit" style={{ width: '100%' }}>
+                                    <div className="dataset-row-label-edit" style={ { width: '100%' } }>
                                         <input
                                             type="text"
-                                            value={rowLabelEditValue}
-                                            onChange={(e) => setRowLabelEditValue(e.target.value)}
+                                            value={ rowLabelEditValue }
+                                            onChange={ (e) => setRowLabelEditValue(e.target.value) }
                                             className="dataset-row-label-input"
                                             placeholder="e.g. license record, traffic incident..."
                                             autoFocus
-                                            onKeyDown={(e) => {
+                                            onKeyDown={ (e) => {
                                                 if (e.key === 'Enter') handleRowLabelSave();
                                                 if (e.key === 'Escape') handleRowLabelCancel();
-                                            }}
-                                            style={{ width: '100%', maxWidth: '600px' }}
+                                            } }
+                                            style={ { width: '100%', maxWidth: '600px' } }
                                         />
                                         <button className="btn btn-primary btn-md"
-                                                onClick={handleRowLabelSave}>Save
+                                                onClick={ handleRowLabelSave }>Save
                                         </button>
                                         <button className="btn btn-ghost btn-md"
-                                                onClick={handleRowLabelCancel}>Cancel
+                                                onClick={ handleRowLabelCancel }>Cancel
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="dataset-row-label-display" style={{ minHeight: 'unset' }}>
+                                    <div className="dataset-row-label-display" style={ { minHeight: 'unset' } }>
                                         <span className="stat-value">
-                                            {generatingRowLabel ? (
+                                            { generatingRowLabel ? (
                                                 <span className="dataset-row-label-generating">
-                                                    {generatedResults.rowLabel || 'Generating...'}
+                                                    { generatedResults.rowLabel || 'Generating...' }
                                                     <span className="ed-cursor">|</span>
                                                 </span>
                                             ) : (
-                                                generatedResults.rowLabel || <span style={{
+                                                generatedResults.rowLabel || <span style={ {
                                                     color: 'var(--text-tertiary)',
                                                     fontWeight: 'normal'
-                                                }}>—</span>
-                                            )}
+                                                } }>—</span>
+                                            ) }
                                         </span>
-                                        {!generatingRowLabel && (
+                                        { !generatingRowLabel && (
                                             <span className="dataset-row-label-actions">
                                                 <button
                                                     className="btn btn-ghost btn-md"
-                                                    onClick={() => {
+                                                    onClick={ () => {
                                                         setRowLabelEditValue(generatedResults.rowLabel);
                                                         setIsEditingRowLabel(true);
-                                                    }}
+                                                    } }
                                                     title="Edit row label"
                                                 >
                                                     &#9998;
                                                 </button>
                                                 <button
                                                     className="btn btn-primary btn-md"
-                                                    onClick={handleGenerateRowLabel}
+                                                    onClick={ handleGenerateRowLabel }
                                                     title="Generate row label with AI"
                                                 >
                                                     Generate
                                                 </button>
                                                 <ResetFieldButton
-                                                    show={isDatasetFieldChanged('rowLabel')}
-                                                    onReset={() => handleResetField('rowLabel')}
+                                                    show={ isDatasetFieldChanged('rowLabel') }
+                                                    onReset={ () => handleResetField('rowLabel') }
                                                     title="Reset row label to the value loaded from the dataset"
                                                 />
                                             </span>
-                                        )}
+                                        ) }
                                     </div>
-                                )}
+                                ) }
                             </div>
                         </div>
                     </div>
                 </div>
-            )}
+            ) }
 
             <div className="section">
                 <div className="section-header">
                     <div className="section-title">
-                        Fields ({columnNames.length}
-                        {searchQuery.trim() && ` · ${filteredColumnNames.length} shown`})
+                        Fields ({ columnNames.length }
+                        { searchQuery.trim() && ` · ${ filteredColumnNames.length } shown` })
                     </div>
                 </div>
 
                 <div className="field-table-controls">
                     <div className="field-table-select-group">
                         <span className="field-table-select-label">Select:</span>
-                        <button className="btn btn-secondary btn-md" onClick={selectAll}>All</button>
-                        <button className="btn btn-secondary btn-md" onClick={selectNone}>None</button>
-                        <button className="btn btn-secondary btn-md" onClick={selectEmpty}>
-                            Empty ({emptyColumns.length})
+                        <button className="btn btn-secondary btn-md" onClick={ selectAll }>All</button>
+                        <button className="btn btn-secondary btn-md" onClick={ selectNone }>None</button>
+                        <button className="btn btn-secondary btn-md" onClick={ selectEmpty }>
+                            Empty ({ emptyColumns.length })
                         </button>
-                        <button className="btn btn-secondary btn-md" onClick={selectNonEmpty}>
-                            Non-empty ({nonEmptyColumns.length})
+                        <button className="btn btn-secondary btn-md" onClick={ selectNonEmpty }>
+                            Non-empty ({ nonEmptyColumns.length })
                         </button>
-                        {selectedColumns.size > 0 && (
+                        { selectedColumns.size > 0 && (
                             <button
                                 className="btn btn-primary btn-md"
-                                onClick={handleGenerateSelected}
-                                disabled={isGeneratingEmpty || isProcessing}
+                                onClick={ handleGenerateSelected }
+                                disabled={ isGeneratingEmpty || isProcessing }
                             >
-                                {isGeneratingEmpty
+                                { isGeneratingEmpty
                                     ? 'Generating...'
-                                    : `Generate for ${selectedColumns.size} selected`}
+                                    : `Generate for ${ selectedColumns.size } selected` }
                             </button>
-                        )}
+                        ) }
                     </div>
                     <input
                         type="search"
                         className="field-table-search"
                         placeholder="Search fields by name, title, or description..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        value={ searchQuery }
+                        onChange={ (e) => setSearchQuery(e.target.value) }
                     />
                 </div>
 
@@ -429,7 +429,7 @@ export function DataOverviewPage() {
                                         filteredColumnNames.length > 0 &&
                                         filteredColumnNames.every(n => selectedColumns.has(n))
                                     }
-                                    onChange={(e) => e.target.checked ? selectAll() : selectNone()}
+                                    onChange={ (e) => e.target.checked ? selectAll() : selectNone() }
                                 />
                             </th>
                             <th>Column Name</th>
@@ -441,10 +441,10 @@ export function DataOverviewPage() {
                         </tr>
                         </thead>
                         <tbody>
-                        {filteredColumnNames.length === 0 ? (
+                        { filteredColumnNames.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="field-table-empty">
-                                    No fields match "{searchQuery}".
+                                <td colSpan={ 7 } className="field-table-empty">
+                                    No fields match "{ searchQuery }".
                                 </td>
                             </tr>
                         ) : filteredColumnNames.map(name => {
@@ -457,83 +457,83 @@ export function DataOverviewPage() {
                             const titleDiffers = title.trim().length > 0 && title !== machineName;
 
                             return (
-                                <tr key={name} className={selectedColumns.has(name) ? 'field-row-selected' : ''}>
+                                <tr key={ name } className={ selectedColumns.has(name) ? 'field-row-selected' : '' }>
                                     <td className="field-table-td-check">
                                         <input
                                             type="checkbox"
-                                            checked={selectedColumns.has(name)}
-                                            onChange={() => toggleColumn(name)}
+                                            checked={ selectedColumns.has(name) }
+                                            onChange={ () => toggleColumn(name) }
                                         />
                                     </td>
                                     <td className="field-title-cell">
-                                        {titleDiffers ? (
+                                        { titleDiffers ? (
                                             <button
                                                 className="field-name-link"
-                                                onClick={() => navigate('field', name)}
+                                                onClick={ () => navigate('field', name) }
                                             >
-                                                {title}
+                                                { title }
                                             </button>
                                         ) : title ? (
                                             <button
                                                 className="field-name-link field-title-same"
-                                                onClick={() => navigate('field', name)}
+                                                onClick={ () => navigate('field', name) }
                                                 title="Same as API field name — AI has not customized this"
                                             >
-                                                {title}
+                                                { title }
                                             </button>
                                         ) : (
                                             <span className="field-no-desc">—</span>
-                                        )}
+                                        ) }
                                     </td>
                                     <td className="field-desc-cell">
-                                        {isGenerating ? (
+                                        { isGenerating ? (
                                             <span className="field-generating">
-                                                    {desc ? truncate(desc, 100) : 'Generating...'}
+                                                    { desc ? truncate(desc, 100) : 'Generating...' }
                                                 <span className="field-cursor">|</span>
                                                 </span>
                                         ) : (
                                             desc ? truncate(desc, 120) :
                                                 <span className="field-no-desc">No description</span>
-                                        )}
+                                        ) }
                                     </td>
                                     <td className="field-source-cell">
-                                        {hasDesc ? (
+                                        { hasDesc ? (
                                             <ColumnFieldHistory
-                                                columnName={name}
+                                                columnName={ name }
                                                 kind="description"
                                                 title="Description"
                                                 alwaysShow
                                             />
                                         ) : (
                                             <span className="field-no-desc">—</span>
-                                        )}
+                                        ) }
                                     </td>
                                     <td>
-                                        <span className="field-name-mono">{machineName}</span>
+                                        <span className="field-name-mono">{ machineName }</span>
                                     </td>
                                     <td>
-                                        <DataTypeBadge type={info.type} originalType={info.originalType}
-                                                       baseType={info.baseType}/>
+                                        <DataTypeBadge type={ info.type } originalType={ info.originalType }
+                                                       baseType={ info.baseType }/>
                                     </td>
                                     <td>
-                                        {isGenerating ? (
+                                        { isGenerating ? (
                                             <span
                                                 className="field-status-badge field-status-generating">Generating</span>
                                         ) : hasDesc ? (
                                             <span className="field-status-badge field-status-done">Done</span>
                                         ) : (
                                             <span className="field-status-badge field-status-empty">Empty</span>
-                                        )}
+                                        ) }
                                     </td>
                                 </tr>
                             );
-                        })}
+                        }) }
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {renderTokenUsage()}
+            { renderTokenUsage() }
         </div>
     );
 }

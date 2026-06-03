@@ -135,7 +135,7 @@ export interface PushSocrataMetadataOptions {
 export async function pushSocrataMetadata(
     options: PushSocrataMetadataOptions,
 ): Promise<SocrataExportResult> {
-    const response = await fetch(`${API_BASE_URL}/api/socrata/export`, {
+    const response = await fetch(`${ API_BASE_URL }/api/socrata/export`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ export async function pushSocrataMetadata(
 
 export async function fetchSocrataImport(
     datasetId: string,
-    inlineKey?: {apiKeyId: string; apiKeySecret: string},
+    inlineKey?: { apiKeyId: string; apiKeySecret: string },
     domain?: string,
 ): Promise<SocrataImportResult> {
     // `domain` is a per-request portal override from a pasted URL — read from
@@ -163,7 +163,7 @@ export async function fetchSocrataImport(
         body.apiKeySecret = inlineKey.apiKeySecret;
     }
     if (domain) body.domain = domain;
-    const response = await fetch(`${API_BASE_URL}/api/socrata/import`, {
+    const response = await fetch(`${ API_BASE_URL }/api/socrata/import`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ export async function fetchSocrataImport(
 export async function fetchSocrataRights(datasetId: string): Promise<boolean> {
     try {
         const response = await fetch(
-            `${API_BASE_URL}/api/socrata/rights/${encodeURIComponent(datasetId)}`,
+            `${ API_BASE_URL }/api/socrata/rights/${ encodeURIComponent(datasetId) }`,
             { credentials: 'include' },
         );
         if (!response.ok) return false;
@@ -243,7 +243,7 @@ function parseSocrataConfig(result: unknown): SocrataConfig {
 }
 
 export async function fetchSocrataConfig(): Promise<SocrataConfig> {
-    const response = await fetch(`${API_BASE_URL}/api/socrata/config`);
+    const response = await fetch(`${ API_BASE_URL }/api/socrata/config`);
     await assertResponseOk(response, 'Failed to load Socrata config');
     return parseSocrataConfig(await response.json());
 }
@@ -254,7 +254,7 @@ export async function fetchSocrataConfig(): Promise<SocrataConfig> {
  * effective config.
  */
 export async function saveSocrataDomain(domain: string): Promise<SocrataConfig> {
-    const response = await fetch(`${API_BASE_URL}/api/socrata/config`, {
+    const response = await fetch(`${ API_BASE_URL }/api/socrata/config`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -268,29 +268,29 @@ export async function saveSocrataDomain(domain: string): Promise<SocrataConfig> 
 }
 
 export async function fetchSocrataCategories(): Promise<string[]> {
-    const response = await fetch(`${API_BASE_URL}/api/socrata/categories`);
+    const response = await fetch(`${ API_BASE_URL }/api/socrata/categories`);
     await assertResponseOk(response, 'Failed to load categories');
     const result = await response.json();
     return Array.isArray(result.categories) ? result.categories : [];
 }
 
 export async function fetchSocrataTags(category?: string): Promise<string[]> {
-    const qs = category ? `?category=${encodeURIComponent(category)}` : '';
-    const response = await fetch(`${API_BASE_URL}/api/socrata/tags${qs}`);
+    const qs = category ? `?category=${ encodeURIComponent(category) }` : '';
+    const response = await fetch(`${ API_BASE_URL }/api/socrata/tags${ qs }`);
     await assertResponseOk(response, 'Failed to load tags');
     const result = await response.json();
     return Array.isArray(result.tags) ? result.tags : [];
 }
 
 export async function fetchSocrataLicenses(): Promise<SocrataLicense[]> {
-    const response = await fetch(`${API_BASE_URL}/api/socrata/licenses`);
+    const response = await fetch(`${ API_BASE_URL }/api/socrata/licenses`);
     await assertResponseOk(response, 'Failed to load licenses');
     const result = await response.json();
     return Array.isArray(result.licenses) ? result.licenses : [];
 }
 
 export async function fetchSocrataOAuthLoginUrl(): Promise<string> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/socrata/login`);
+    const response = await fetch(`${ API_BASE_URL }/api/auth/socrata/login`);
     await assertResponseOk(response, 'Failed to get OAuth URL');
     const result = await response.json();
     return result.authUrl;
@@ -302,13 +302,13 @@ export async function fetchSocrataOAuthLoginUrl(): Promise<string> {
  */
 export interface SocrataSession {
     /** OAuth identity, or null when not signed in. */
-    oauthUser: {id: string; displayName: string; email?: string} | null;
+    oauthUser: { id: string; displayName: string; email?: string } | null;
     /** Saved API key id (never the secret); '' when no key is saved. */
     apiKeyId: string;
 }
 
 export async function fetchSocrataSession(): Promise<SocrataSession> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/socrata/session`, {
+    const response = await fetch(`${ API_BASE_URL }/api/auth/socrata/session`, {
         credentials: 'include',
     });
     if (!response.ok) return { oauthUser: null, apiKeyId: '' };
@@ -320,7 +320,7 @@ export async function fetchSocrataSession(): Promise<SocrataSession> {
 }
 
 export async function saveSocrataApiKey(apiKeyId: string, apiKeySecret: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/socrata/api-key`, {
+    const response = await fetch(`${ API_BASE_URL }/api/auth/socrata/api-key`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -334,7 +334,7 @@ export async function saveSocrataApiKey(apiKeyId: string, apiKeySecret: string):
 
 /** Sign out of the OAuth session. Leaves any saved API key intact. */
 export async function logoutSocrata(): Promise<void> {
-    await fetch(`${API_BASE_URL}/api/auth/socrata/logout`, {
+    await fetch(`${ API_BASE_URL }/api/auth/socrata/logout`, {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'include',
@@ -343,7 +343,7 @@ export async function logoutSocrata(): Promise<void> {
 
 /** Remove the saved API key. Leaves any OAuth session intact. */
 export async function clearSocrataApiKey(): Promise<void> {
-    await fetch(`${API_BASE_URL}/api/auth/socrata/api-key`, {
+    await fetch(`${ API_BASE_URL }/api/auth/socrata/api-key`, {
         method: 'DELETE',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'include',
@@ -387,5 +387,5 @@ export function describeSocrataType(dataTypeName: string | undefined | null): st
     if (!dataTypeName) return 'unknown';
     const key = dataTypeName.toLowerCase();
     const label = SOCRATA_TYPE_LABELS[key];
-    return label ? `${label} (${key})` : key;
+    return label ? `${ label } (${ key })` : key;
 }

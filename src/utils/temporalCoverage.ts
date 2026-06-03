@@ -99,8 +99,8 @@ function dateKey(p: ParsedDate): number {
 function labelOf(p: ParsedDate): string {
     const mm = p.m ? String(p.m).padStart(2, '0') : null;
     const dd = p.d ? String(p.d).padStart(2, '0') : null;
-    if (mm && dd) return `${p.y}-${mm}-${dd}`;
-    if (mm) return `${p.y}-${mm}`;
+    if (mm && dd) return `${ p.y }-${ mm }-${ dd }`;
+    if (mm) return `${ p.y }-${ mm }`;
     return String(p.y);
 }
 
@@ -147,7 +147,7 @@ function detectDateColumn(values: string[]): DateScan | null {
     return { min, max, precision };
 }
 
-function detectYearColumn(name: string, values: string[]): {minYear: number; maxYear: number} | null {
+function detectYearColumn(name: string, values: string[]): { minYear: number; maxYear: number } | null {
     if (!YEAR_NAME_RE.test(name)) return null;
     let parsed = 0;
     let total = 0;
@@ -277,14 +277,14 @@ export function analyzeTemporalCoverage(
 // rows. Used both to fill the {temporalSummary} placeholder and as an appended
 // fallback for older saved templates that predate the placeholder.
 export function buildTemporalSummary(coverage: TemporalCoverage, now: Date = new Date()): string {
-    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const heading = `Date and year fields detected in the data (TRUSTED — computed by the application from the dataset's actual values, not inferred by you). Today's date is ${todayIso}:`;
+    const todayIso = `${ now.getFullYear() }-${ String(now.getMonth() + 1).padStart(2, '0') }-${ String(now.getDate()).padStart(2, '0') }`;
+    const heading = `Date and year fields detected in the data (TRUSTED — computed by the application from the dataset's actual values, not inferred by you). Today's date is ${ todayIso }:`;
     const body = coverage.hasSignal
         ? coverage.columns.map((c) => {
             const kind = c.kind === 'year'
                 ? 'year field'
-                : `date field, ${c.precision}-level precision`;
-            return `- "${sanitizeInline(c.name)}" (${kind}): full range ${c.minLabel} to ${c.maxLabel}`;
+                : `date field, ${ c.precision }-level precision`;
+            return `- "${ sanitizeInline(c.name) }" (${ kind }): full range ${ c.minLabel } to ${ c.maxLabel }`;
         }).join('\n')
         : '- (none found)';
 
@@ -292,7 +292,7 @@ export function buildTemporalSummary(coverage: TemporalCoverage, now: Date = new
         ? 'For each date or year field, use its full range (earliest to latest) shown above as the time span — do NOT read the span off the example values in the sample rows, which show only a handful of records. Choose the field(s) that represent when the data\'s events or observations occurred, and ignore unrelated dates (for example a row\'s last-updated timestamp or a person\'s birth year). Never report a start earlier, or a concrete end later, than these ranges support. If the latest date above falls within about the last year of today\'s date, the data is being kept current — set "end" to "present" instead of that trailing date.'
         : 'No date or year fields could be detected in this dataset. There is no reliable basis for a time span — return {"start": "", "end": ""} rather than guessing one from the sample rows.';
 
-    return `${heading}\n${body}\n\n${guidance}`;
+    return `${ heading }\n${ body }\n\n${ guidance }`;
 }
 
 // Surface, after the fact, when a Period of Time value isn't actually supported
@@ -314,12 +314,12 @@ export function getPeriodOfTimeWarning(coverage: TemporalCoverage, periodValue: 
     const endYear = state.endIsPresent ? NaN : parseInt(state.end.year || '', 10);
     const issues: string[] = [];
     if (!Number.isNaN(startYear) && coverage.dataMinYear !== undefined && startYear < coverage.dataMinYear) {
-        issues.push(`starts in ${startYear}, before the earliest date found in the data (${coverage.dataMinYear})`);
+        issues.push(`starts in ${ startYear }, before the earliest date found in the data (${ coverage.dataMinYear })`);
     }
     if (!Number.isNaN(endYear) && coverage.dataMaxYear !== undefined && endYear > coverage.dataMaxYear) {
-        issues.push(`ends in ${endYear}, after the latest date found in the data (${coverage.dataMaxYear})`);
+        issues.push(`ends in ${ endYear }, after the latest date found in the data (${ coverage.dataMaxYear })`);
     }
     if (issues.length === 0) return null;
 
-    return `This Period of Time ${issues.join(', and ')}. Double-check it against the source — dates in this data span ${coverage.dataMinYear}–${coverage.dataMaxYear}.`;
+    return `This Period of Time ${ issues.join(', and ') }. Double-check it against the source — dates in this data span ${ coverage.dataMinYear }–${ coverage.dataMaxYear }.`;
 }

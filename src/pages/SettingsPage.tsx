@@ -6,7 +6,7 @@ import { SocrataDomainConfig } from '@/components/SocrataDomainConfig/SocrataDom
 import { useAppContext } from '@/contexts/AppContext';
 import '@/pages/SettingsPage.css';
 
-export function SettingsPage({ onClose }: {onClose: () => void}) {
+export function SettingsPage({ onClose }: { onClose: () => void }) {
     const {
         openaiConfig,
         isOpenAIConfigured,
@@ -36,20 +36,20 @@ export function SettingsPage({ onClose }: {onClose: () => void}) {
     }, [onClose]);
 
     return (
-        <div className="settings-modal-backdrop" onClick={onClose}>
+        <div className="settings-modal-backdrop" onClick={ onClose }>
             <div
                 className="settings-modal"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="settings-modal-title"
-                onClick={(e) => e.stopPropagation()}
+                onClick={ (e) => e.stopPropagation() }
             >
                 <header className="settings-modal-header">
                     <h2 id="settings-modal-title" className="settings-modal-title">Settings</h2>
                     <button
                         type="button"
                         className="settings-modal-close"
-                        onClick={onClose}
+                        onClick={ onClose }
                         aria-label="Close settings"
                         title="Close"
                     >
@@ -63,35 +63,35 @@ export function SettingsPage({ onClose }: {onClose: () => void}) {
 
                 <div className="settings-modal-body">
                     <SocrataDomainConfig
-                        key={socrataDomain || 'none'}
-                        domain={socrataDomain}
-                        defaultDomain={socrataDefaultDomain}
-                        onSave={handleSocrataDomainSave}
+                        key={ socrataDomain || 'none' }
+                        domain={ socrataDomain }
+                        defaultDomain={ socrataDefaultDomain }
+                        onSave={ handleSocrataDomainSave }
                     />
 
                     <SocrataApiConfig
-                        key={socrataApiKeyId || 'none'}
-                        keyId={socrataApiKeyId}
-                        onSave={handleSocrataApiKeySave}
-                        onClear={handleSocrataApiKeyClear}
-                        socrataDomain={socrataDomain}
-                        saveEnabled={enableConfigSave}
+                        key={ socrataApiKeyId || 'none' }
+                        keyId={ socrataApiKeyId }
+                        onSave={ handleSocrataApiKeySave }
+                        onClear={ handleSocrataApiKeyClear }
+                        socrataDomain={ socrataDomain }
+                        saveEnabled={ enableConfigSave }
                     />
 
                     <OpenAIConfig
-                        key={`${openaiConfig.baseURL}-${isOpenAIConfigured}-${openaiConfig.model}-${openaiConfig.modelConcise ?? ''}-${openaiConfig.modelDetailed ?? ''}-${openaiConfig.modelSuggest ?? ''}`}
-                        config={openaiConfig}
-                        isConfigured={isOpenAIConfigured}
-                        onSave={handleOpenAIConfigSave}
-                        onClear={handleOpenAIConfigClear}
-                        saveEnabled={enableConfigSave}
+                        key={ `${ openaiConfig.baseURL }-${ isOpenAIConfigured }-${ openaiConfig.model }-${ openaiConfig.modelConcise ?? '' }-${ openaiConfig.modelDetailed ?? '' }-${ openaiConfig.modelSuggest ?? '' }` }
+                        config={ openaiConfig }
+                        isConfigured={ isOpenAIConfigured }
+                        onSave={ handleOpenAIConfigSave }
+                        onClear={ handleOpenAIConfigClear }
+                        saveEnabled={ enableConfigSave }
                     />
 
                     <PromptEditor
-                        templates={promptTemplates}
-                        onChange={setPromptTemplates}
-                        openaiConfig={openaiConfig}
-                        socrataDomain={socrataDomain}
+                        templates={ promptTemplates }
+                        onChange={ setPromptTemplates }
+                        openaiConfig={ openaiConfig }
+                        socrataDomain={ socrataDomain }
                     />
 
                     <footer className="settings-page-footer">
@@ -104,10 +104,10 @@ export function SettingsPage({ onClose }: {onClose: () => void}) {
                             >
                                 AI Metadata Improvement Tool
                             </a>
-                            {' by Wynter Lin, Danny Yue, Felix Zhao, and Julia Zhu'}
+                            { ' by Wynter Lin, Danny Yue, Felix Zhao, and Julia Zhu' }
                         </span>
                         <span className="settings-page-footer-version">
-                            Build {__BUILD_DATE__} · commit {__BUILD_COMMIT__}
+                            Build { __BUILD_DATE__ } · commit { __BUILD_COMMIT__ }
                         </span>
                     </footer>
                 </div>

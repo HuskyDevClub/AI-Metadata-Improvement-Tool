@@ -42,18 +42,18 @@ function formatSide(side: PeriodSide): string {
     if (!monthName) return side.year;
     const dayNum = parseInt(side.day, 10);
     if (!dayNum || dayNum < 1 || dayNum > periodDaysInMonth(side.year, side.month)) {
-        return `${monthName} ${side.year}`;
+        return `${ monthName } ${ side.year }`;
     }
-    return `${monthName} ${dayNum}, ${side.year}`;
+    return `${ monthName } ${ dayNum }, ${ side.year }`;
 }
 
 export function periodStateToString(state: PeriodState): string {
     const startStr = formatSide(state.start);
     const endStr = state.endIsPresent ? 'present' : formatSide(state.end);
     if (!startStr && !endStr) return '';
-    if (!startStr) return `to ${endStr}`;
+    if (!startStr) return `to ${ endStr }`;
     if (!endStr) return startStr;
-    return `${startStr} to ${endStr}`;
+    return `${ startStr } to ${ endStr }`;
 }
 
 function clampDay(year: string, month: string, day: string): string {
@@ -283,7 +283,7 @@ export function parsePeriodOfTimeResponse(raw: string): string {
     }
 
     if (!parsed || typeof parsed !== 'object') return '';
-    const obj = parsed as {start?: unknown; end?: unknown};
+    const obj = parsed as { start?: unknown; end?: unknown };
     const startRaw = typeof obj.start === 'string' ? obj.start : '';
     const endRaw = typeof obj.end === 'string' ? obj.end : '';
 

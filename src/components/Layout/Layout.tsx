@@ -13,19 +13,19 @@ import { SettingsPage } from '@/pages/SettingsPage';
 import { DatasetFieldHistory } from '@/components/FieldHistoryButton/ConnectedFieldHistory';
 import '@/components/Layout/Layout.css';
 
-function NavTab({ page, label, disabled }: {page: PageId; label: string; disabled?: boolean}) {
+function NavTab({ page, label, disabled }: { page: PageId; label: string; disabled?: boolean }) {
     const { currentPage, navigate } = useAppContext();
     const isActive = currentPage === page;
     const isImport = page === 'import';
 
     return (
         <button
-            className={`layout-nav-link ${isImport ? 'layout-import-tab' : ''} ${isActive ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
-            onClick={() => {
+            className={ `layout-nav-link ${ isImport ? 'layout-import-tab' : '' } ${ isActive ? 'active' : '' } ${ disabled ? 'disabled' : '' }` }
+            onClick={ () => {
                 if (!disabled) navigate(page);
-            }}
+            } }
         >
-            {isImport && (
+            { isImport && (
                 <span className="layout-import-tab-icon">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                          stroke="currentColor" strokeWidth="2" strokeLinecap="round"
@@ -35,14 +35,14 @@ function NavTab({ page, label, disabled }: {page: PageId; label: string; disable
                         <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
                 </span>
-            )}
-            {label}
+            ) }
+            { label }
         </button>
     );
 }
 
 type DropSide = 'before' | 'after';
-type DragOverState = {id: string; side: DropSide} | null;
+type DragOverState = { id: string; side: DropSide } | null;
 
 interface DatasetTabProps {
     id: string;
@@ -78,34 +78,34 @@ function DatasetTab({
 
     return (
         <button
-            className={classes}
+            className={ classes }
             draggable
-            onDragStart={(e) => {
+            onDragStart={ (e) => {
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', id);
                 onDragStartTab(id);
-            }}
-            onDragOver={(e) => {
+            } }
+            onDragOver={ (e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
                 onDragOverTab(id, computeSide(e));
-            }}
-            onDrop={(e) => {
+            } }
+            onDrop={ (e) => {
                 e.preventDefault();
                 onDropTab(id, computeSide(e));
-            }}
-            onDragEnd={onDragEndTab}
-            onClick={() => switchToDataset(id)}
-            onAuxClick={(e) => {
+            } }
+            onDragEnd={ onDragEndTab }
+            onClick={ () => switchToDataset(id) }
+            onAuxClick={ (e) => {
                 if (e.button === 1) {
                     e.preventDefault();
                     closeTab(id);
                 }
-            }}
-            onMouseDown={(e) => {
+            } }
+            onMouseDown={ (e) => {
                 if (e.button === 1) e.preventDefault();
-            }}
-            title={label}
+            } }
+            title={ label }
         >
             <span className="layout-dataset-tab-icon">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -117,15 +117,15 @@ function DatasetTab({
                     <rect x="14" y="14" width="7" height="7"/>
                 </svg>
             </span>
-            <span className="layout-dataset-tab-name">{label}</span>
+            <span className="layout-dataset-tab-name">{ label }</span>
             <span
                 className="layout-dataset-tab-close"
-                onClick={(e) => {
+                onClick={ (e) => {
                     e.stopPropagation();
-                    if (window.confirm(`Close dataset "${label}"?`)) {
+                    if (window.confirm(`Close dataset "${ label }"?`)) {
                         closeTab(id);
                     }
-                }}
+                } }
                 title="Close dataset"
             >
                 &times;
@@ -185,13 +185,13 @@ function DatasetTitleBar() {
             <div className="layout-dataset-title-group">
                 <DiffView
                     currentLabel="Current title"
-                    currentValue={title}
-                    currentEmptyState={<em className="diff-view-empty">No title</em>}
+                    currentValue={ title }
+                    currentEmptyState={ <em className="diff-view-empty">No title</em> }
                     newLabel="New title"
-                    newValue={pendingDatasetTitle}
-                    isGenerating={generatingDatasetTitle}
-                    onAccept={handleAcceptPendingDatasetTitle}
-                    onDiscard={handleDiscardPendingDatasetTitle}
+                    newValue={ pendingDatasetTitle }
+                    isGenerating={ generatingDatasetTitle }
+                    onAccept={ handleAcceptPendingDatasetTitle }
+                    onDiscard={ handleDiscardPendingDatasetTitle }
                     className="layout-dataset-title-pending"
                     acceptTooltip="Replace the current title with the new one"
                     discardTooltip="Discard the new title and keep the current one"
@@ -203,47 +203,47 @@ function DatasetTitleBar() {
     return (
         <div className="layout-dataset-title-group">
             <div className="layout-dataset-title-row">
-                {isEditing ? (
+                { isEditing ? (
                     <div className="layout-dataset-title-edit">
                         <input
                             type="text"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
+                            value={ editValue }
+                            onChange={ (e) => setEditValue(e.target.value) }
                             className="layout-dataset-title-input"
                             placeholder="e.g. Washington State Vehicle Registrations"
                             autoFocus
-                            onKeyDown={(e) => {
+                            onKeyDown={ (e) => {
                                 if (e.key === 'Enter') save();
                                 if (e.key === 'Escape') cancel();
-                            }}
+                            } }
                         />
-                        <button className="btn btn-primary btn-md" onClick={save}>Save</button>
-                        <button className="btn btn-ghost btn-md" onClick={cancel}>Cancel</button>
+                        <button className="btn btn-primary btn-md" onClick={ save }>Save</button>
+                        <button className="btn btn-ghost btn-md" onClick={ cancel }>Cancel</button>
                     </div>
                 ) : (
                     <>
                         <h2 className="layout-dataset-title">
-                            {generatingDatasetTitle ? (
+                            { generatingDatasetTitle ? (
                                 <span className="layout-dataset-title-generating">
-                                    {title || 'Generating title...'}
+                                    { title || 'Generating title...' }
                                     <span className="ed-cursor">|</span>
                                 </span>
                             ) : (
-                                title || <span className="layout-dataset-title-fallback">{fileName}</span>
-                            )}
+                                title || <span className="layout-dataset-title-fallback">{ fileName }</span>
+                            ) }
                         </h2>
                         <InfoTooltip
                             text="If someone sees just this title in search results, will they understand what the data includes? Don't use the word data, your agency name or years covered. Put location at the end in parentheses, (e.g., Library Branch Locations (Washington State))."
                             width="400px"/>
                         <DatasetFieldHistory field="datasetTitle" title="Title"/>
-                        {!generatingDatasetTitle && (
+                        { !generatingDatasetTitle && (
                             <span className="layout-dataset-title-actions">
                                 <button
                                     className="btn btn-ghost btn-md"
-                                    onClick={() => {
+                                    onClick={ () => {
                                         setEditValue(title);
                                         setIsEditing(true);
-                                    }}
+                                    } }
                                     title="Edit title"
                                     aria-label="Edit title"
                                 >
@@ -256,7 +256,7 @@ function DatasetTitleBar() {
                                 </button>
                                 <button
                                     className="btn btn-primary btn-md"
-                                    onClick={handleGenerateDatasetTitle}
+                                    onClick={ handleGenerateDatasetTitle }
                                     title="Generate title with AI"
                                 >
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -264,32 +264,32 @@ function DatasetTitleBar() {
                                          strokeLinejoin="round">
                                         <path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3z"/>
                                     </svg>
-                                    {title ? 'Regenerate' : 'Generate'}
+                                    { title ? 'Regenerate' : 'Generate' }
                                 </button>
                                 <ResetFieldButton
-                                    show={titleChanged}
-                                    onReset={() => handleResetField('datasetTitle')}
+                                    show={ titleChanged }
+                                    onReset={ () => handleResetField('datasetTitle') }
                                     title="Reset title to the value loaded from the dataset"
                                 />
                             </span>
-                        )}
+                        ) }
                     </>
-                )}
+                ) }
             </div>
-            {showSubtitle && (
-                <div className="layout-dataset-subtitle" title={subtitleText}>
-                    {isSocrataImport && (
+            { showSubtitle && (
+                <div className="layout-dataset-subtitle" title={ subtitleText }>
+                    { isSocrataImport && (
                         <span className="layout-dataset-subtitle-label">Dataset ID</span>
-                    )}
-                    {isSocrataImport && aboutDomain ? (
+                    ) }
+                    { isSocrataImport && aboutDomain ? (
                         <a
                             className="layout-dataset-subtitle-value"
-                            href={`https://${aboutDomain}/d/${socrataDatasetId}/about_data`}
+                            href={ `https://${ aboutDomain }/d/${ socrataDatasetId }/about_data` }
                             target="_blank"
                             rel="noopener noreferrer"
-                            title={`Open About page on ${aboutDomain}`}
+                            title={ `Open About page on ${ aboutDomain }` }
                         >
-                            {subtitleText}
+                            { subtitleText }
                             <svg
                                 className="layout-dataset-subtitle-external"
                                 width="11"
@@ -308,10 +308,10 @@ function DatasetTitleBar() {
                             </svg>
                         </a>
                     ) : (
-                        <span className="layout-dataset-subtitle-value">{subtitleText}</span>
-                    )}
+                        <span className="layout-dataset-subtitle-value">{ subtitleText }</span>
+                    ) }
                 </div>
-            )}
+            ) }
         </div>
     );
 }
@@ -439,15 +439,15 @@ export function Layout() {
     // disabled with an explanation when the push cannot succeed: no
     // credentials at all, or credentials that lack write access here.
     const credentialsHint = enableSocrataOAuth
-        ? `Sign in${socrataDomain ? ` to ${socrataDomain}` : ''} or add API credentials in Settings`
+        ? `Sign in${ socrataDomain ? ` to ${ socrataDomain }` : '' } or add API credentials in Settings`
         : 'Add API credentials in Settings';
     const noWriteAccessHint = enableSocrataOAuth
         ? `Your Socrata sign-in and API credentials don't have write access`
         : `Your API credentials don't have write access`;
     const pushDisabledReason = !hasSocrataAuth
-        ? `${credentialsHint} to push metadata`
+        ? `${ credentialsHint } to push metadata`
         : !socrataCanEdit
-            ? `${noWriteAccessHint} to this dataset${socrataDomain ? ` on ${socrataDomain}` : ''}`
+            ? `${ noWriteAccessHint } to this dataset${ socrataDomain ? ` on ${ socrataDomain }` : '' }`
             : null;
 
     return (
@@ -458,12 +458,12 @@ export function Layout() {
                     <span className="layout-header-subtitle">Generate & improve dataset metadata with AI</span>
                 </div>
                 <div className="layout-header-actions">
-                    {enableSocrataOAuth && (
+                    { enableSocrataOAuth && (
                         socrataOAuthUser ? (
                             <span className="layout-oauth-status">
-                                Signed in as <strong>{socrataOAuthUser.displayName}</strong>
+                                Signed in as <strong>{ socrataOAuthUser.displayName }</strong>
                                 <button type="button" className="btn btn-secondary btn-md"
-                                        onClick={handleSocrataOAuthLogout}>
+                                        onClick={ handleSocrataOAuthLogout }>
                                     Sign out
                                 </button>
                             </span>
@@ -471,18 +471,18 @@ export function Layout() {
                             <button
                                 type="button"
                                 className="btn btn-primary btn-md"
-                                onClick={handleSocrataOAuthLogin}
-                                disabled={isSocrataOAuthAuthenticating}
+                                onClick={ handleSocrataOAuthLogin }
+                                disabled={ isSocrataOAuthAuthenticating }
                             >
-                                {isSocrataOAuthAuthenticating
+                                { isSocrataOAuthAuthenticating
                                     ? 'Signing in...'
-                                    : socrataDomain ? `Sign in with ${socrataDomain}` : 'Sign in'}
+                                    : socrataDomain ? `Sign in with ${ socrataDomain }` : 'Sign in' }
                             </button>
                         )
-                    )}
+                    ) }
                     <button
-                        className={`layout-settings-btn ${settingsOpen ? 'active' : ''}`}
-                        onClick={() => setSettingsOpen(true)}
+                        className={ `layout-settings-btn ${ settingsOpen ? 'active' : '' }` }
+                        onClick={ () => setSettingsOpen(true) }
                         title="Settings"
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -494,28 +494,28 @@ export function Layout() {
                     </button>
                 </div>
                 <div className="layout-nav-container">
-                    <nav className="layout-nav" ref={navRef}>
+                    <nav className="layout-nav" ref={ navRef }>
                         <NavTab page="import" label="Import"/>
-                        {datasetTabs.length > 0 && <span className="layout-nav-divider"/>}
-                        {datasetTabs.map(tab => (
+                        { datasetTabs.length > 0 && <span className="layout-nav-divider"/> }
+                        { datasetTabs.map(tab => (
                             <DatasetTab
-                                key={tab.id}
-                                id={tab.id}
-                                label={tab.label}
-                                isDragging={draggingTabId === tab.id}
-                                dropSide={dragOver?.id === tab.id ? dragOver.side : null}
-                                onDragStartTab={handleDragStartTab}
-                                onDragOverTab={handleDragOverTab}
-                                onDropTab={handleDropTab}
-                                onDragEndTab={handleDragEndTab}
+                                key={ tab.id }
+                                id={ tab.id }
+                                label={ tab.label }
+                                isDragging={ draggingTabId === tab.id }
+                                dropSide={ dragOver?.id === tab.id ? dragOver.side : null }
+                                onDragStartTab={ handleDragStartTab }
+                                onDragOverTab={ handleDragOverTab }
+                                onDropTab={ handleDropTab }
+                                onDragEndTab={ handleDragEndTab }
                             />
-                        ))}
+                        )) }
                     </nav>
-                    {canScrollLeft && (
+                    { canScrollLeft && (
                         <button
                             type="button"
                             className="layout-nav-scroll layout-nav-scroll-left"
-                            onClick={() => scrollTabs('left')}
+                            onClick={ () => scrollTabs('left') }
                             aria-label="Scroll tabs left"
                             title="Scroll tabs left"
                         >
@@ -525,12 +525,12 @@ export function Layout() {
                                 <polyline points="15 18 9 12 15 6"/>
                             </svg>
                         </button>
-                    )}
-                    {canScrollRight && (
+                    ) }
+                    { canScrollRight && (
                         <button
                             type="button"
                             className="layout-nav-scroll layout-nav-scroll-right"
-                            onClick={() => scrollTabs('right')}
+                            onClick={ () => scrollTabs('right') }
                             aria-label="Scroll tabs right"
                             title="Scroll tabs right"
                         >
@@ -540,27 +540,27 @@ export function Layout() {
                                 <polyline points="9 18 15 12 9 6"/>
                             </svg>
                         </button>
-                    )}
+                    ) }
                 </div>
             </div>
-            {showResults && fileName && (currentPage === 'data' || currentPage === 'field') && (
+            { showResults && fileName && (currentPage === 'data' || currentPage === 'field') && (
                 <div className="layout-dataset-bar">
                     <DatasetTitleBar/>
                     <div className="layout-dataset-bar-actions">
                         <input
-                            ref={importMetadataRef}
+                            ref={ importMetadataRef }
                             type="file"
                             accept="application/json,.json"
-                            style={{ display: 'none' }}
-                            onChange={(e) => {
+                            style={ { display: 'none' } }
+                            onChange={ (e) => {
                                 const file = e.target.files?.[0];
                                 if (file) void handleImportMetadata(file);
                                 e.target.value = '';
-                            }}
+                            } }
                         />
                         <button
                             className="btn btn-secondary btn-md layout-dataset-push-btn"
-                            onClick={() => importMetadataRef.current?.click()}
+                            onClick={ () => importMetadataRef.current?.click() }
                             title="Import metadata from a previously exported JSON file and apply it to this dataset"
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -573,7 +573,7 @@ export function Layout() {
                         </button>
                         <button
                             className="btn btn-secondary btn-md layout-dataset-push-btn"
-                            onClick={handleExportMetadata}
+                            onClick={ handleExportMetadata }
                             title="Export this dataset's metadata as a JSON file"
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -584,12 +584,12 @@ export function Layout() {
                             </svg>
                             Export
                         </button>
-                        {socrataDatasetId && (
+                        { socrataDatasetId && (
                             <button
                                 className="btn btn-primary btn-md layout-dataset-push-btn"
-                                onClick={handlePushToSocrata}
-                                disabled={isPushingSocrata || !!pushDisabledReason}
-                                title={pushDisabledReason ?? undefined}
+                                onClick={ handlePushToSocrata }
+                                disabled={ isPushingSocrata || !!pushDisabledReason }
+                                title={ pushDisabledReason ?? undefined }
                             >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -597,21 +597,21 @@ export function Layout() {
                                     <polyline points="17 8 12 3 7 8"/>
                                     <line x1="12" y1="3" x2="12" y2="15"/>
                                 </svg>
-                                {isPushingSocrata
+                                { isPushingSocrata
                                     ? 'Pushing...'
-                                    : socrataDomain ? `Push to ${socrataDomain}` : 'Push'}
+                                    : socrataDomain ? `Push to ${ socrataDomain }` : 'Push' }
                             </button>
-                        )}
+                        ) }
                     </div>
                 </div>
-            )}
+            ) }
             <div className="content">
-                <StatusMessage key={status ? `${status.type}-${status.message}` : 'none'} status={status}
-                               isProcessing={isProcessing} onStop={handleStop}/>
+                <StatusMessage key={ status ? `${ status.type }-${ status.message }` : 'none' } status={ status }
+                               isProcessing={ isProcessing } onStop={ handleStop }/>
                 <CurrentPage/>
             </div>
             <FloatingActions/>
-            {settingsOpen && <SettingsPage onClose={() => setSettingsOpen(false)}/>}
+            { settingsOpen && <SettingsPage onClose={ () => setSettingsOpen(false) }/> }
         </div>
     );
 }

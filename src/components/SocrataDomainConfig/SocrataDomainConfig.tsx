@@ -59,55 +59,55 @@ export function SocrataDomainConfig({
         <div className="config-section">
             <div className="section-header">
                 <div className="section-title">Socrata Portal</div>
-                {isOverridden && (
+                { isOverridden && (
                     <span className="config-status-badge config-status-badge--accent">Custom</span>
-                )}
+                ) }
             </div>
             <div className="config-row">
                 <input
                     type="text"
-                    placeholder={defaultDomain ?? 'Enter a Socrata domain'}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
+                    placeholder={ defaultDomain ?? 'Enter a Socrata domain' }
+                    value={ input }
+                    onChange={ (e) => setInput(e.target.value) }
+                    onKeyDown={ (e) => {
                         if (e.key === 'Enter') handleSave().then();
-                    }}
-                    spellCheck={false}
+                    } }
+                    spellCheck={ false }
                     autoCapitalize="off"
                     autoCorrect="off"
                 />
                 <button
                     type="button"
                     className="btn btn-primary btn-md"
-                    onClick={handleSave}
-                    disabled={!canSave}
+                    onClick={ handleSave }
+                    disabled={ !canSave }
                 >
-                    {isSaving ? 'Saving...' : 'Save'}
+                    { isSaving ? 'Saving...' : 'Save' }
                 </button>
-                {isOverridden && (
+                { isOverridden && (
                     <button
                         type="button"
                         className="btn btn-secondary btn-md"
-                        onClick={handleReset}
-                        disabled={isSaving}
+                        onClick={ handleReset }
+                        disabled={ isSaving }
                     >
                         Reset to default
                     </button>
-                )}
+                ) }
             </div>
-            {dirty && !isSaving && (
+            { dirty && !isSaving && (
                 <span className="config-dirty-hint config-dirty-hint--block">
                     Unsaved changes
                 </span>
-            )}
+            ) }
             <span className="config-help-text config-help-text--block">
                 The open data portal this tool reads from and writes to. Any
                 Socrata-platform domain works (e.g. data.wa.gov).
-                {defaultDomain && (
+                { defaultDomain && (
                     <>
-                        {' '}Server default: <code>{defaultDomain}</code>.
+                        { ' ' }Server default: <code>{ defaultDomain }</code>.
                     </>
-                )}{' '}
+                ) }{ ' ' }
                 Switching portals may require new API credentials or a fresh
                 sign-in.
             </span>

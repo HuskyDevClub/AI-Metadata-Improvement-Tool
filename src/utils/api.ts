@@ -4,6 +4,6 @@
 export async function assertResponseOk(response: Response, fallbackMessage: string): Promise<void> {
     if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
-        throw new Error(errorBody?.detail || `${fallbackMessage} (${response.status})`);
+        throw new Error(errorBody?.detail || `${ fallbackMessage } (${ response.status })`);
     }
 }
