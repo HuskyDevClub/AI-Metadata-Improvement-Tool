@@ -4,7 +4,7 @@ import { DataTypeBadge } from '@/components/DataTypeBadge/DataTypeBadge';
 import { ResetFieldButton } from '@/components/ResetFieldButton/ResetFieldButton';
 import { ColumnFieldHistory } from '@/components/FieldHistoryButton/ConnectedFieldHistory';
 import { useAppContext } from '@/contexts/AppContext';
-import { formatColumnStats, getColumnTypeLabel } from '@/utils/columnAnalyzer';
+import { formatColumnStats, formatNumericCategoricalSummary, getColumnTypeLabel } from '@/utils/columnAnalyzer';
 import type { CategoricalStats, TextStats } from '@/types';
 import '@/pages/FieldOverviewPage.css';
 
@@ -71,10 +71,17 @@ export function FieldOverviewPage() {
     const prevField = currentIndex > 0 ? columnNames[currentIndex - 1] : null;
     const nextField = currentIndex < columnNames.length - 1 ? columnNames[currentIndex + 1] : null;
     // FieldOverview shows distinct values as percentage-tagged pills below,
-    // so suppress the redundant `Top: ...` portion that ColumnCard relies on.
-    const statsText = info.type === 'categorical'
-        ? `${ (info.stats as CategoricalStats).uniqueCount } unique values | ${ (info.stats as CategoricalStats).count } non-empty entries`
-        : formatColumnStats(info);
+    // so suppress the redundant `Top: ...` portion that ColumnCard relies on —
+    // but keep the numeric summary for number-backed categoricals.
+    let statsText: string;
+    if (info.type === 'categorical') {
+        const cstats = info.stats as CategoricalStats;
+        const summary = formatNumericCategoricalSummary(cstats);
+        statsText = `${ cstats.uniqueCount } unique values | ${ cstats.count } non-empty entries`
+            + (summary ? ` | ${ summary }` : '');
+    } else {
+        statsText = formatColumnStats(info);
+    }
     const nullPercent = info.totalCount > 0
         ? ((info.nullCount / info.totalCount) * 100).toFixed(1)
         : '0.0';

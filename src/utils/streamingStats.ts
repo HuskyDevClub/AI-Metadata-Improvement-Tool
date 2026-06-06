@@ -1,4 +1,5 @@
 import type { CategoricalStats, ColumnInfo, NumericStats, TextStats, } from '@/types';
+import { numericCategoricalSummary } from '@/utils/columnAnalyzer';
 
 // These mirror the thresholds in `analyzeColumn` (src/utils/columnAnalyzer.ts)
 // exactly, so a streamed column produces the same ColumnInfo shape/branching as
@@ -213,6 +214,13 @@ export class ColumnSketch {
                 valueCounts: top.map((t) => t.count),
                 hasMore: distinct > TOP_VALUES,
             };
+            // Number-backed categoricals keep a min/max/median/mode summary. The
+            // frequency map is exact for these low-cardinality columns (well
+            // under FREQUENCY_MAP_CAPACITY), so the summary is exact too.
+            if (isNumericBase) {
+                const summary = numericCategoricalSummary(this.counts);
+                if (summary) stats.numericSummary = summary;
+            }
             return {
                 type: 'categorical',
                 baseType: isNumericBase ? 'numeric' : 'text',
@@ -225,6 +233,17 @@ export class ColumnSketch {
         if (isNumericBase) {
             const sorted = this.reservoir.sorted();
             const n = sorted.length;
+            // Mode from the frequency map (exact up to FREQUENCY_MAP_CAPACITY,
+            // approximate after — best available with bounded memory).
+            let modeValue = this.numMin;
+            let modeFreq = -1;
+            for (const [raw, freq] of this.counts) {
+                const num = parseFloat(raw);
+                if (!Number.isNaN(num) && freq > modeFreq) {
+                    modeFreq = freq;
+                    modeValue = num;
+                }
+            }
             const stats: NumericStats = {
                 count: this.numericCount,
                 min: this.numMin,
@@ -233,6 +252,7 @@ export class ColumnSketch {
                 q1: sorted[Math.floor(n * 0.25)],
                 median: sorted[Math.floor(n * 0.5)],
                 q3: sorted[Math.floor(n * 0.75)],
+                mode: modeValue,
             };
             return { type: 'numeric', stats, nullCount, totalCount };
         }

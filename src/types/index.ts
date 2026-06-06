@@ -20,6 +20,19 @@ export interface NumericStats {
     q1: number;
     median: number;
     q3: number;
+    mode: number;
+}
+
+// For number-backed categorical columns (baseType === 'numeric'): a summary of
+// the values read as numbers. Lets the UI still surface min/max/median/mode for
+// low-cardinality number columns (ratings, codes, years) that are classified as
+// categorical rather than continuous-numeric.
+export interface NumericCategoricalSummary {
+    min: number;
+    avg: number;
+    max: number;
+    median: number;
+    mode: number;
 }
 
 export interface CategoricalStats {
@@ -30,6 +43,9 @@ export interface CategoricalStats {
     // because older payloads / paths may not populate it.
     valueCounts?: number[];
     hasMore: boolean;
+    // Present only for number-backed categoricals (baseType === 'numeric').
+    // Absent for text-backed categoricals and pre-existing payloads.
+    numericSummary?: NumericCategoricalSummary;
 }
 
 export interface TextStats {
