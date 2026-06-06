@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import time
 from typing import Any
@@ -133,6 +134,48 @@ def _compute_can_edit(metadata: Any) -> bool:
     return isinstance(raw_rights, list) and any(
         r in ("write", "update_view") for r in raw_rights
     )
+
+
+def _format_geojson_geometry(value: dict[str, Any]) -> str | None:
+    """Render a GeoJSON geometry (point/line/polygon/…) as a compact string.
+
+    Returns None when the dict isn't a geometry. A Point becomes "POINT (lng
+    lat)"; multi-vertex geometries would spell out into dozens of coordinates
+    per cell, so we collapse those to the bare type name (e.g. "POLYGON").
+    """
+    geom_type = value.get("type")
+    coordinates = value.get("coordinates")
+    if not isinstance(geom_type, str) or coordinates is None:
+        return None
+    if geom_type == "Point" and isinstance(coordinates, list):
+        return f"{geom_type.upper()} ({' '.join(str(c) for c in coordinates)})"
+    return geom_type.upper()
+
+
+def _flatten_sample_value(value: Any) -> Any:
+    """Flatten a raw SODA cell so it survives as a display string.
+
+    Most SODA values arrive as strings, but structured types (point/line/polygon
+    geometries, url, location) come through as nested objects. The frontend types
+    sample rows as Record<string, string> and renders them directly, so a raw
+    object crashes React ("Objects are not valid as a React child") and bloats the
+    LLM prompt with JSON noise. Geometries become WKT-ish text; other objects fall
+    back to their most meaningful subfield, then JSON. Scalars pass through.
+    """
+    if isinstance(value, dict):
+        geom = _format_geojson_geometry(value)
+        if geom is not None:
+            return geom
+        # url -> {"url", "description"}; location -> {"human_address", …};
+        # legacy phone -> {"phone_number", "phone_type"}.
+        for key in ("url", "human_address", "phone_number"):
+            sub = value.get(key)
+            if isinstance(sub, str) and sub:
+                return sub
+        return json.dumps(value, separators=(",", ":"))
+    if isinstance(value, list):
+        return json.dumps(value, separators=(",", ":"))
+    return value
 
 
 @router.post(
@@ -327,7 +370,7 @@ async def socrata_import(
                 remapped: dict[str, Any] = {}
                 for key, value in row.items():
                     display = field_to_display.get(key, key)
-                    remapped[display] = value
+                    remapped[display] = _flatten_sample_value(value)
                 remapped_samples.append(remapped)
 
             return SocrataImportResponse(

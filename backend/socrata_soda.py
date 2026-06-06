@@ -213,18 +213,18 @@ async def _compute_numeric_stats(
             type="empty", stats={}, nullCount=total_rows, totalCount=total_rows
         )
 
-    distinct = _coerce_unique_count(row.get("ucnt"), cnt, field)
-    unique_ratio = distinct / cnt
-    if unique_ratio < 0.5 or distinct < TEXT_GROUPBY_LIMIT:
-        return await _compute_numeric_categorical_stats(
-            client, soda_base, field, total_rows, cnt, distinct, headers
-        )
-
     mn = float(row.get("mn") or 0)
     mx = float(row.get("mx") or 0)
     av = float(row.get("av") or 0)
 
-    # Quartile lookups (q1, median, q3) via $order + $offset
+    distinct = _coerce_unique_count(row.get("ucnt"), cnt, field)
+    unique_ratio = distinct / cnt
+    if unique_ratio < 0.5 or distinct < TEXT_GROUPBY_LIMIT:
+        return await _compute_numeric_categorical_stats(
+            client, soda_base, field, total_rows, cnt, distinct, mn, mx, av, headers
+        )
+
+    # Quartile lookups (q1, median, q3) and mode, all in parallel.
     offsets = {
         "q1": max(0, int(cnt * 0.25) - 1),
         "median": max(0, int(cnt * 0.5) - 1),
@@ -248,10 +248,31 @@ async def _compute_numeric_stats(
             return float(rows[0][field])
         return av  # fallback to mean
 
-    q1, median, q3 = await asyncio.gather(
+    async def _get_mode() -> float:
+        rows = await soda_get(
+            client,
+            soda_base,
+            {
+                "$select": f"{esc}, count(*) as cnt",
+                "$group": esc,
+                "$where": f"{esc} IS NOT NULL",
+                "$order": "cnt DESC",
+                "$limit": "1",
+            },
+            headers,
+        )
+        if rows and field in rows[0]:
+            try:
+                return float(rows[0][field])
+            except (TypeError, ValueError):
+                pass
+        return av  # fallback to mean
+
+    q1, median, q3, mode = await asyncio.gather(
         _get_percentile(offsets["q1"]),
         _get_percentile(offsets["median"]),
         _get_percentile(offsets["q3"]),
+        _get_mode(),
     )
 
     return ColumnStats(
@@ -264,6 +285,7 @@ async def _compute_numeric_stats(
             "q1": q1,
             "median": median,
             "q3": q3,
+            "mode": mode,
         },
         nullCount=total_rows - cnt,
         totalCount=total_rows,
@@ -277,31 +299,95 @@ async def _compute_numeric_categorical_stats(
     total_rows: int,
     non_null: int,
     distinct: int,
+    mn: float,
+    mx: float,
+    av: float,
     headers: dict[str, str],
 ) -> ColumnStats:
     """Build categorical stats for a low-cardinality numeric column.
 
-    `non_null` and `distinct` are exact aggregates already computed by the
-    caller; the group-by only supplies the top values by frequency for display.
+    `non_null`, `distinct`, `mn`, `mx`, and `av` are exact aggregates already
+    computed by the caller; the group-by supplies the top values by frequency for
+    display (its most frequent group is also the mode). A number-backed categorical
+    still carries a numeric summary so the UI can show min/avg/max/median/mode
+    alongside the distinct-value breakdown.
     """
     groups = await _compute_groupby(client, soda_base, field, headers, limit=20)
     values = [
         _truncate_sample(str(g.get(field))) for g in groups if g.get(field) is not None
     ]
     value_counts = [int(g.get("cnt") or 0) for g in groups if g.get(field) is not None]
+
+    stats: dict[str, Any] = {
+        "count": non_null,
+        "uniqueCount": distinct,
+        "values": values,
+        "valueCounts": value_counts,
+        "hasMore": distinct > 20,
+    }
+    summary = await _numeric_categorical_summary(
+        client, soda_base, field, non_null, mn, mx, av, groups, headers
+    )
+    if summary is not None:
+        stats["numericSummary"] = summary
+
     return ColumnStats(
         type="categorical",
         baseType="numeric",
-        stats={
-            "count": non_null,
-            "uniqueCount": distinct,
-            "values": values,
-            "valueCounts": value_counts,
-            "hasMore": distinct > 20,
-        },
+        stats=stats,
         nullCount=total_rows - non_null,
         totalCount=total_rows,
     )
+
+
+async def _numeric_categorical_summary(
+    client: httpx.AsyncClient,
+    soda_base: str,
+    field: str,
+    non_null: int,
+    mn: float,
+    mx: float,
+    av: float,
+    groups: list[dict[str, Any]],
+    headers: dict[str, str],
+) -> dict[str, float] | None:
+    """min/avg/max/median/mode for a number-backed categorical column.
+
+    min/max/avg come from the caller's aggregate; the mode is the most frequent
+    group (already sorted by count desc); the median is one ordered lookup at
+    the middle offset — mirrors the numeric path's percentile fetch.
+    """
+    esc = soda_escape(field)
+    median_offset = max(0, int(non_null * 0.5) - 1)
+    rows = await soda_get(
+        client,
+        soda_base,
+        {
+            "$select": esc,
+            "$where": f"{esc} IS NOT NULL",
+            "$order": f"{esc} ASC",
+            "$limit": "1",
+            "$offset": str(median_offset),
+        },
+        headers,
+    )
+    try:
+        median = float(rows[0][field]) if rows and field in rows[0] else mx
+    except (TypeError, ValueError):
+        median = mx
+
+    mode = mn
+    for g in groups:
+        raw = g.get(field)
+        if raw is None:
+            continue
+        try:
+            mode = float(raw)
+            break
+        except (TypeError, ValueError):
+            continue
+
+    return {"min": mn, "avg": av, "max": mx, "median": median, "mode": mode}
 
 
 async def _compute_temporal_stats(
