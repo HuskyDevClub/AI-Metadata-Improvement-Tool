@@ -49,10 +49,6 @@
 }
 
 .prompt-reset-modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
     width: min(420px, calc(100% - 32px));
     padding: 20px 22px 18px;
     animation: prompt-reset-pop 0.15s ease-out;
@@ -86,10 +82,6 @@
 
 
 .prompt-improve-modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
     width: min(640px, calc(100% - 32px));
     max-height: calc(100vh - 48px);
     overflow-y: auto;

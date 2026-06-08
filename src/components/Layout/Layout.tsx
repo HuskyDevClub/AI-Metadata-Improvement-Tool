@@ -481,7 +481,7 @@ export function Layout() {
                         )
                     ) }
                     <button
-                        className={ `layout-settings-btn ${ settingsOpen ? 'active' : '' }` }
+                        className={ `btn-square layout-settings-btn ${ settingsOpen ? 'active' : '' }` }
                         onClick={ () => setSettingsOpen(true) }
                         title="Settings"
                     >
@@ -514,7 +514,7 @@ export function Layout() {
                     { canScrollLeft && (
                         <button
                             type="button"
-                            className="layout-nav-scroll layout-nav-scroll-left"
+                            className="btn-square layout-nav-scroll layout-nav-scroll-left"
                             onClick={ () => scrollTabs('left') }
                             aria-label="Scroll tabs left"
                             title="Scroll tabs left"
@@ -529,7 +529,7 @@ export function Layout() {
                     { canScrollRight && (
                         <button
                             type="button"
-                            className="layout-nav-scroll layout-nav-scroll-right"
+                            className="btn-square layout-nav-scroll layout-nav-scroll-right"
                             onClick={ () => scrollTabs('right') }
                             aria-label="Scroll tabs right"
                             title="Scroll tabs right"

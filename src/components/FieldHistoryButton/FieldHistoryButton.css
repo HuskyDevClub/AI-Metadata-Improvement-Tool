@@ -70,10 +70,6 @@
     z-index: 50;
     min-width: 320px;
     max-width: 420px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
     overflow: hidden;
 }
 

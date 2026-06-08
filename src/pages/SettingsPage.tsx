@@ -38,7 +38,7 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
     return (
         <div className="settings-modal-backdrop" onClick={ onClose }>
             <div
-                className="settings-modal"
+                className="modal-panel settings-modal"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="settings-modal-title"
@@ -48,7 +48,7 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                     <h2 id="settings-modal-title" className="settings-modal-title">Settings</h2>
                     <button
                         type="button"
-                        className="settings-modal-close"
+                        className="btn-square settings-modal-close"
                         onClick={ onClose }
                         aria-label="Close settings"
                         title="Close"

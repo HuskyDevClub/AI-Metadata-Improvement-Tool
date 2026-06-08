@@ -395,7 +395,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                     role="presentation"
                 >
                     <div
-                        className="prompt-reset-modal"
+                        className="modal-panel prompt-reset-modal"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="prompt-reset-modal-title"
@@ -437,7 +437,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                     role="presentation"
                 >
                     <div
-                        className="prompt-improve-modal"
+                        className="modal-panel prompt-improve-modal"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="prompt-improve-modal-title"

@@ -125,7 +125,7 @@ export function FieldHistoryButton({
                 { SOURCE_LABEL[currentSource] }
             </button>
             { open && (
-                <div className="fh-popover" role="dialog">
+                <div className="modal-panel fh-popover" role="dialog">
                     <div className="fh-popover-header">
                         <span className="fh-popover-title">{ title ? `${ title } history` : 'Revision history' }</span>
                         <button

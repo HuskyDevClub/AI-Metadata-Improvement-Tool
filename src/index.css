@@ -224,3 +224,36 @@ button:disabled {
     border-color: var(--accent);
     box-shadow: var(--focus-ring);
 }
+
+/* ── Surfaces ──────────────────────────────────────────────── */
+/* Floating modal/popover surface — a raised panel above the page. Call sites
+   add width, padding, animation, positioning, etc. */
+.modal-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Square icon button (settings cog, nav scroll, modal close). Defaults to a
+   transparent border + secondary text; override border-color/color/size/bg
+   with the doubled-class form (`.btn-square.x`). */
+.btn-square {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.btn-square:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}

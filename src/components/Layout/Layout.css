@@ -43,23 +43,8 @@
 }
 
 
-.layout-settings-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.layout-settings-btn:hover {
-    background: var(--surface-hover);
-    color: var(--text);
+.btn-square.layout-settings-btn {
+    border-color: var(--border);
 }
 
 .layout-settings-btn.active {
@@ -87,27 +72,18 @@
 }
 
 /* ─── Scroll affordance buttons (shown only when nav overflows) ─── */
-.layout-nav-scroll {
+.btn-square.layout-nav-scroll {
     position: absolute;
     bottom: 4px;
     z-index: 2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 26px;
     height: 28px;
-    padding: 0;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    border-color: var(--border);
 }
 
-.layout-nav-scroll:hover {
+.btn-square.layout-nav-scroll:hover {
     background: var(--surface-hover);
-    color: var(--text);
     border-color: var(--text-tertiary);
 }
 
