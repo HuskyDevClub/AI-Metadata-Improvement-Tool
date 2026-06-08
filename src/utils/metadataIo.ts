@@ -1,4 +1,5 @@
 import type { GeneratedResults } from '@/types';
+import { ENABLE_API_FIELD_NAME_EDIT } from '@/utils/config';
 import {
     type ColumnFieldKind,
     columnKey,
@@ -39,7 +40,10 @@ export interface MetadataExport {
     fileName: string;
     socrataDatasetId?: string;
     socrataDomain?: string;
-    metadata: GeneratedResults;
+    // `columnFieldNames` is omitted when field-name editing is disabled.
+    metadata: Omit<GeneratedResults, 'columnFieldNames'> & {
+        columnFieldNames?: Record<string, string>;
+    };
 }
 
 interface BuildExportOptions {
@@ -55,13 +59,23 @@ export function buildMetadataExport({
                                         socrataDatasetId,
                                         socrataDomain,
                                     }: BuildExportOptions): MetadataExport {
+    // When field-name editing is disabled, the field names are not user-owned,
+    // so drop them from the export rather than round-tripping a value the user
+    // can't see or change.
+    let exportedMetadata: MetadataExport['metadata'] = metadata;
+    if (!ENABLE_API_FIELD_NAME_EDIT) {
+        const copy = { ...metadata };
+        delete (copy as { columnFieldNames?: unknown }).columnFieldNames;
+        exportedMetadata = copy;
+    }
+
     return {
         formatVersion: METADATA_EXPORT_VERSION,
         exportedAt: new Date().toISOString(),
         fileName,
         ...(socrataDatasetId ? { socrataDatasetId } : {}),
         ...(socrataDomain ? { socrataDomain } : {}),
-        metadata,
+        metadata: exportedMetadata,
     };
 }
 
