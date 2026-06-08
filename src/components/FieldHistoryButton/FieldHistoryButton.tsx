@@ -130,7 +130,7 @@ export function FieldHistoryButton({
                         <span className="fh-popover-title">{ title ? `${ title } history` : 'Revision history' }</span>
                         <button
                             type="button"
-                            className="fh-popover-close"
+                            className="btn-icon fh-popover-close"
                             onClick={ () => setOpen(false) }
                             aria-label="Close history"
                         >

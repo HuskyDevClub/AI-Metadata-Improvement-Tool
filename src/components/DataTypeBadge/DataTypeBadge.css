@@ -22,8 +22,8 @@
 }
 
 .data-type-badge-numeric {
-    background: #eff6ff;
-    color: #2563eb;
+    background: var(--accent-light);
+    color: var(--accent);
 }
 
 /* Doubled selector raises specificity so this wins over any originalType
@@ -35,8 +35,8 @@
 }
 
 .data-type-badge-text {
-    background: #ecfdf5;
-    color: #059669;
+    background: var(--success-bg);
+    color: var(--success);
 }
 
 .data-type-badge-empty {

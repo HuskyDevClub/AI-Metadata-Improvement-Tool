@@ -44,22 +44,12 @@
     margin-bottom: 10px;
 }
 
-.ed-edit-textarea {
-    width: 100%;
+.textarea.ed-edit-textarea {
     min-height: 100px;
     padding: 12px;
-    border: 1px solid var(--accent);
-    border-radius: var(--radius-sm);
     font-size: 14px;
-    font-family: inherit;
-    color: var(--text);
-    resize: vertical;
+    border-color: var(--accent);
     margin-bottom: 10px;
-}
-
-.ed-edit-textarea:focus {
-    outline: none;
-    box-shadow: var(--focus-ring);
 }
 
 .ed-edit-actions {
@@ -129,12 +119,7 @@
 }
 
 .ed-suggestion-edit-btn {
-    background: none;
-    border: none;
-    color: var(--text-tertiary);
-    cursor: pointer;
     font-size: 13px;
-    padding: 2px 4px;
     flex-shrink: 0;
     opacity: 0;
     transition: opacity 0.15s;
@@ -149,12 +134,7 @@
 }
 
 .ed-suggestion-delete-btn {
-    background: none;
-    border: none;
-    color: var(--text-tertiary);
-    cursor: pointer;
     font-size: 13px;
-    padding: 2px 4px;
     flex-shrink: 0;
     opacity: 0;
     transition: opacity 0.15s, color 0.15s;
@@ -175,29 +155,16 @@
     flex: 1;
 }
 
-.ed-suggestion-text-input {
+.input.ed-suggestion-text-input {
     flex: 1;
-    padding: 4px 8px;
-    border: 1px solid var(--accent);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    color: var(--text);
-    background: var(--surface);
     min-width: 0;
+    padding: 4px 8px;
+    border-color: var(--accent);
 }
 
-.ed-suggestion-text-input:focus {
-    outline: none;
-    box-shadow: var(--focus-ring);
-}
-
-.ed-suggestion-edit-save {
-    background: none;
-    border: none;
+.btn-icon.ed-suggestion-edit-save {
     color: var(--success);
-    cursor: pointer;
     font-size: 14px;
-    padding: 2px 4px;
     flex-shrink: 0;
 }
 
@@ -205,13 +172,9 @@
     color: #047857;
 }
 
-.ed-suggestion-edit-cancel {
-    background: none;
-    border: none;
+.btn-icon.ed-suggestion-edit-cancel {
     color: var(--error);
-    cursor: pointer;
     font-size: 14px;
-    padding: 2px 4px;
     flex-shrink: 0;
 }
 
@@ -230,18 +193,6 @@
 
 .ed-suggestion-add-input {
     flex: 1;
-    padding: 6px 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    color: var(--text);
-    background: var(--surface);
-}
-
-.ed-suggestion-add-input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: var(--focus-ring);
 }
 
 .ed-apply-suggestions-row {
@@ -288,12 +239,9 @@
     color: var(--warning);
 }
 
-.ed-suggestions-dismiss {
-    background: none;
-    border: none;
+.btn-icon.ed-suggestions-dismiss {
     color: var(--warning);
     font-size: 16px;
-    cursor: pointer;
     padding: 0 4px;
     line-height: 1;
 }
@@ -338,23 +286,23 @@
 }
 
 .btn.ed-btn-detailed {
-    color: #059669;
-    border-color: #a7f3d0;
+    color: var(--success);
+    border-color: var(--success-border);
 }
 
 .btn.ed-btn-detailed:hover {
-    background: #ecfdf5;
-    border-color: #059669;
+    background: var(--success-bg);
+    border-color: var(--success);
 }
 
 .btn.ed-btn-suggest {
-    color: #d97706;
-    border-color: #fde68a;
+    color: var(--warning);
+    border-color: var(--warning-border);
 }
 
 .btn.ed-btn-suggest:hover {
-    background: #fffbeb;
-    border-color: #d97706;
+    background: var(--warning-bg);
+    border-color: var(--warning);
 }
 
 .ed-custom-instruction-wrapper {
@@ -365,19 +313,9 @@
     min-width: 200px;
 }
 
-.ed-custom-instruction-input {
+.input.ed-custom-instruction-input {
     flex: 1;
-    padding: 6px 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
     font-size: 12px;
-    color: var(--text);
-}
-
-.ed-custom-instruction-input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: var(--focus-ring);
 }
 
 .ed-regenerating {

@@ -133,7 +133,7 @@ export function EditableDescription({
                 <span className="ed-suggestions-title">{ suggestionsTitle }</span>
                 { !isSuggesting && (
                     <button
-                        className="ed-suggestions-dismiss"
+                        className="btn-icon ed-suggestions-dismiss"
                         onClick={ onDismissSuggestions }
                         title="Dismiss suggestions"
                     >
@@ -160,7 +160,7 @@ export function EditableDescription({
                                     type="text"
                                     value={ editingSuggestionText }
                                     onChange={ (e) => setEditingSuggestionText(e.target.value) }
-                                    className="ed-suggestion-text-input"
+                                    className="input ed-suggestion-text-input"
                                     autoFocus
                                     onKeyDown={ (e) => {
                                         if (e.key === 'Enter') handleSaveEdit(suggestion.id);
@@ -168,14 +168,14 @@ export function EditableDescription({
                                     } }
                                 />
                                 <button
-                                    className="ed-suggestion-edit-save"
+                                    className="btn-icon ed-suggestion-edit-save"
                                     onClick={ () => handleSaveEdit(suggestion.id) }
                                     title="Save"
                                 >
                                     &#10003;
                                 </button>
                                 <button
-                                    className="ed-suggestion-edit-cancel"
+                                    className="btn-icon ed-suggestion-edit-cancel"
                                     onClick={ handleCancelEdit }
                                     title="Cancel"
                                 >
@@ -191,7 +191,7 @@ export function EditableDescription({
                                     { renderInlineMarkdown(suggestion.text) }
                                 </span>
                                 <button
-                                    className="ed-suggestion-edit-btn"
+                                    className="btn-icon ed-suggestion-edit-btn"
                                     onClick={ () => handleStartEdit(suggestion) }
                                     title="Edit suggestion"
                                 >
@@ -199,7 +199,7 @@ export function EditableDescription({
                                 </button>
                                 { onDeleteSuggestion && (
                                     <button
-                                        className="ed-suggestion-delete-btn"
+                                        className="btn-icon ed-suggestion-delete-btn"
                                         onClick={ () => onDeleteSuggestion(suggestion.id) }
                                         title="Delete suggestion"
                                         aria-label="Delete suggestion"
@@ -218,7 +218,7 @@ export function EditableDescription({
                             type="text"
                             value={ newSuggestionText }
                             onChange={ (e) => setNewSuggestionText(e.target.value) }
-                            className="ed-suggestion-add-input"
+                            className="input ed-suggestion-add-input"
                             placeholder="Add a custom suggestion..."
                             onKeyDown={ (e) => {
                                 if (e.key === 'Enter') handleAddSuggestion();
@@ -300,7 +300,7 @@ export function EditableDescription({
                                     type="text"
                                     value={ customInstruction }
                                     onChange={ (e) => setCustomInstruction(e.target.value) }
-                                    className="ed-custom-instruction-input"
+                                    className="input ed-custom-instruction-input"
                                     placeholder="Custom..."
                                 />
                                 <button className="btn btn-secondary btn-md" onClick={ handleCustomApply }
@@ -331,7 +331,7 @@ export function EditableDescription({
                     <textarea
                         value={ editValue }
                         onChange={ (e) => setEditValue(e.target.value) }
-                        className="ed-edit-textarea"
+                        className="textarea ed-edit-textarea"
                     />
                     <div className="ed-edit-actions">
                         <button className="btn btn-primary btn-md" onClick={ handleSave }>

@@ -150,6 +150,7 @@ function AutoResizeTextarea({ value, onChange }: {
 
     return (
         <textarea
+            className="textarea prompt-editor-textarea"
             ref={ textAreaRef }
             value={ value }
             onChange={ onChange }
@@ -485,7 +486,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                             { aiMode === 'improve' ? 'Your instruction' : 'Your question' }
                         </label>
                         <textarea
-                            className="prompt-improve-instruction"
+                            className="textarea prompt-improve-instruction"
                             placeholder={ aiMode === 'improve'
                                 ? 'e.g. Make it more concise and emphasize neutral, factual tone.'
                                 : 'e.g. Why does this prompt ask for exactly two sentences? What would change if I removed that?' }
@@ -508,7 +509,7 @@ export function PromptEditor({ templates, onChange, openaiConfig, socrataDomain 
                         </div>
                         { aiMode === 'improve' ? (
                             <textarea
-                                className="prompt-improve-proposal"
+                                className="textarea prompt-improve-proposal"
                                 value={ aiOutput }
                                 onChange={ (e) => setAiOutput(e.target.value) }
                                 placeholder="The revised prompt will appear here. You can edit it before applying."

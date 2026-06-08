@@ -323,7 +323,7 @@
 }
 
 .dataset-tag-chip-removed {
-    border-color: #dc2626;
+    border-color: var(--error);
     background: rgba(220, 38, 38, 0.08);
     color: #b91c1c;
     text-decoration: line-through;

@@ -181,3 +181,46 @@ button:disabled {
     background: #b91c1c;
     border-color: #b91c1c;
 }
+
+/* Chrome-less icon/glyph button. Defaults to the tertiary color and a tight
+   padding; call sites add font-size, color, etc. Pair as `.btn-icon .x` and
+   override conflicting props with the doubled-class form (`.btn-icon.x`). */
+.btn-icon {
+    padding: 2px 4px;
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+}
+
+/* ── Form fields ───────────────────────────────────────────── */
+/* Shared single-line input + multiline textarea. Call sites add padding,
+   font-size, flex, etc.; use the doubled-class form to override a property
+   the base sets (e.g. `.input.x { border-color: … }`). */
+.input {
+    padding: 6px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    resize: vertical;
+}
+
+.input:focus,
+.textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+}

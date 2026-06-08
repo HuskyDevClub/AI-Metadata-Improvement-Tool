@@ -175,7 +175,7 @@ export function ImportPage() {
                 <input
                     id="socrataDatasetId"
                     type="text"
-                    className="import-form-input"
+                    className="input import-form-input"
                     placeholder="e.g. 6fex-3r7d"
                     value={ datasetId }
                     onChange={ (e) => setDatasetId(e.target.value) }
@@ -219,6 +219,7 @@ export function ImportPage() {
                         <input
                             id="socrataApiKeyId"
                             type="text"
+                            className="input"
                             placeholder="Your Socrata API Key ID"
                             value={ apiKeyIdInput }
                             onChange={ (e) => setApiKeyIdInput(e.target.value) }
@@ -229,6 +230,7 @@ export function ImportPage() {
                         <input
                             id="socrataApiKeySecret"
                             type="password"
+                            className="input"
                             placeholder="Your Socrata API Key Secret"
                             value={ apiKeySecretInput }
                             onChange={ (e) => setApiKeySecretInput(e.target.value) }

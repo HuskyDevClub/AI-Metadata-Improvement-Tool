@@ -176,17 +176,9 @@
     margin: 12px 0 6px;
 }
 
-.prompt-improve-instruction,
-.prompt-improve-proposal {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+.textarea.prompt-improve-instruction,
+.textarea.prompt-improve-proposal {
     font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--text);
-    resize: vertical;
-    box-sizing: border-box;
 }
 
 .prompt-improve-instruction {
@@ -195,13 +187,6 @@
 
 .prompt-improve-proposal {
     min-height: 220px;
-}
-
-.prompt-improve-instruction:focus,
-.prompt-improve-proposal:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: var(--focus-ring);
 }
 
 .prompt-improve-instruction:disabled {
@@ -256,22 +241,10 @@
     }
 }
 
-.prompt-editor-box textarea {
-    width: 100%;
+.textarea.prompt-editor-textarea {
     min-height: 120px;
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
     font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--text);
     resize: none;
-}
-
-.prompt-editor-box textarea:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: var(--focus-ring);
 }
 
 .prompt-placeholders {
