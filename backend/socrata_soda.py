@@ -71,6 +71,18 @@ def _truncate_sample(value: str, max_len: int = TEXT_SAMPLE_MAX_LEN) -> str:
     return value if len(value) <= max_len else value[: max_len - 3] + "..."
 
 
+def _groupby_value_str(value: Any) -> str:
+    """Render a group-by key as a display string, preserving falsy non-null values.
+
+    ``str(value or "")`` looks equivalent but silently maps a checkbox/flag
+    column's legitimate ``False`` (and a numeric ``0``) to an empty string,
+    because both are falsy — so a boolean column's distinct values come back as
+    ["", "True"] instead of ["False", "True"]. Group-by queries already filter
+    NULLs at the SoQL level, so only a genuine None should collapse to "".
+    """
+    return "" if value is None else str(value)
+
+
 def socrata_credentials(session: dict[str, Any]) -> list[dict[str, Any]]:
     """Usable Socrata credentials in the session, OAuth first then API key.
 
@@ -779,7 +791,7 @@ def _classify_from_groupby(
     if not is_categorical:
         # Text column — use values from group-by (guaranteed non-null).
         samples = [
-            _truncate_sample(str(g.get(field) or ""))
+            _truncate_sample(_groupby_value_str(g.get(field)))
             for g in groups[:5]
             if g.get(field) is not None
         ]
@@ -795,7 +807,7 @@ def _classify_from_groupby(
         )
 
     top = groups[:20]
-    values = [_truncate_sample(str(g.get(field) or "")) for g in top]
+    values = [_truncate_sample(_groupby_value_str(g.get(field))) for g in top]
     value_counts = [int(g.get("cnt") or 0) for g in top]
     return ColumnStats(
         type="categorical",
@@ -878,7 +890,7 @@ async def compute_column_stats(
         )
         has_more = len(groups) > CATEGORICAL_BOUNDED_LIMIT
         groups = groups[:CATEGORICAL_BOUNDED_LIMIT]
-        values = [_truncate_sample(str(g.get(field) or "")) for g in groups]
+        values = [_truncate_sample(_groupby_value_str(g.get(field))) for g in groups]
         value_counts = [int(g.get("cnt") or 0) for g in groups]
         unique_count = len(groups)
         return display_name, ColumnStats(

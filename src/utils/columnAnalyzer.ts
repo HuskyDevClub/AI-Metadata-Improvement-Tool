@@ -327,6 +327,8 @@ export function getSampleValues(info: ColumnInfo, values: (string | null | undef
     } else if (info.type === 'opaque') {
         const stats = info.stats as OpaqueStats;
         return `(${ stats.count } non-empty values — binary/reference type, not sampled)`;
+    } else if (info.type === 'empty') {
+        return '(no values — this column is empty in every row)';
     }
     return '';
 }

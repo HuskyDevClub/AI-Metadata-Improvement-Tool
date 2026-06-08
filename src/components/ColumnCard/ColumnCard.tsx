@@ -1,6 +1,5 @@
 import type { SuggestionItem } from '@/utils/prompts';
-import type { ColumnInfo } from '@/types';
-import { formatColumnStats, sanitizeId } from '@/utils/columnAnalyzer';
+import { sanitizeId } from '@/utils/columnAnalyzer';
 import { EditableDescription } from '@/components/EditableDescription/EditableDescription';
 import { InfoTooltip } from '@/components/InfoTooltip/InfoTooltip';
 import { ColumnFieldHistory } from '@/components/FieldHistoryButton/ConnectedFieldHistory';
@@ -8,7 +7,6 @@ import '@/components/ColumnCard/ColumnCard.css';
 
 interface ColumnCardProps {
     name: string;
-    info: ColumnInfo;
     description: string;
     onEdit: (newDescription: string) => void;
     onRegenerate: (modifier: '' | 'concise' | 'detailed', customInstruction?: string, sourceText?: string) => void;
@@ -32,7 +30,6 @@ interface ColumnCardProps {
 
 export function ColumnCard({
                                name,
-                               info,
                                description,
                                onEdit,
                                onRegenerate,
@@ -63,7 +60,6 @@ export function ColumnCard({
                     width="400px"/>
                 <ColumnFieldHistory columnName={ name } kind="description" title="Description"/>
             </h4>
-            <div className="column-card-stats">{ formatColumnStats(info) }</div>
 
             <EditableDescription
                 description={ description }

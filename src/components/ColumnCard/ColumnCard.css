@@ -19,11 +19,3 @@
     gap: 8px;
 }
 
-.column-card-stats {
-    font-size: 12px;
-    color: var(--text-tertiary);
-    margin-bottom: 12px;
-    padding: 8px 12px;
-    background: var(--surface-secondary);
-    border-radius: var(--radius-sm);
-}

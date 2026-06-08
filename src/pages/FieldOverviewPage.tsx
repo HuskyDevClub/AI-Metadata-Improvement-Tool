@@ -159,6 +159,21 @@ export function FieldOverviewPage() {
             </div>
 
             { (() => {
+                // An all-empty column has no values to sample; the csvData
+                // fallback below would otherwise render a row of identical
+                // "null" chips. Say so once, plainly, instead.
+                if (info.type === 'empty') {
+                    return (
+                        <div className="field-overview-samples">
+                            <div className="field-overview-samples-title">Sample Values</div>
+                            <p className="field-overview-samples-empty">
+                                This column is empty — none of the { info.totalCount.toLocaleString() } rows
+                                contain a value.
+                            </p>
+                        </div>
+                    );
+                }
+
                 // Prefer the backend's de-duplicated top values for categorical/text
                 // columns — raw csvData rows are sequential, so a categorical
                 // column would otherwise repeat the same 1–3 values.
@@ -283,7 +298,6 @@ export function FieldOverviewPage() {
             <div className="field-overview-description">
                 <ColumnCard
                     name={ fieldName }
-                    info={ info }
                     description={ description }
                     onEdit={ (newDesc) => handleEditColumnDescription(fieldName, newDesc) }
                     onRegenerate={ (modifier, customInstruction, sourceText) =>

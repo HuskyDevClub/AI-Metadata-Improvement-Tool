@@ -94,6 +94,7 @@
     border: none;
     padding: 0;
     font: inherit;
+    text-align: left;
     color: var(--accent);
     text-decoration: none;
     font-weight: 500;
