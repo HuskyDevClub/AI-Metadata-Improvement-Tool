@@ -418,6 +418,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [socrataDefaultDomain, setSocrataDefaultDomain] = useState<string | null>(null);
     const [enableSocrataOAuth, setEnableSocrataOAuth] = useState<boolean>(false);
     const [enableConfigSave, setEnableConfigSave] = useState<boolean>(false);
+    const [promptTagCap, setPromptTagCap] = useState<number>(100);
     const [allowedCategories, setAllowedCategories] = useState<string[]>([]);
     const [allowedTags, setAllowedTags] = useState<string[]>([]);
     const [allowedLicenses, setAllowedLicenses] = useState<SocrataLicense[]>([]);
@@ -452,6 +453,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 if (config.defaultDomain) setSocrataDefaultDomain(config.defaultDomain);
                 setEnableSocrataOAuth(config.enableOAuth);
                 setEnableConfigSave(config.enableConfigSave);
+                setPromptTagCap(config.promptTagCap);
             })
             .catch((err) => {
                 console.warn('Failed to load Socrata config:', err);
@@ -1220,13 +1222,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // tags), so it needs enough of the list to reach less-popular-but-accurate
         // matches — not just the top handful. Caller pre-ranks tagList so
         // category-scoped entries come first, then global tags, each by usage.
-        const PROMPT_TAG_CAP = 100;
-        const promptTags = tagList.slice(0, PROMPT_TAG_CAP);
+        const promptTags = tagList.slice(0, promptTagCap);
         const rendered = promptTags.length > 0
             ? promptTags.join(', ')
             : '(The portal tag list could not be loaded. As a fallback only, you may propose tags derived from the dataset itself — the publisher will review them.)';
         return base.replace('{tagList}', rendered);
-    }, [promptTemplates.tags, buildDatasetPromptFromTemplate]);
+    }, [promptTemplates.tags, buildDatasetPromptFromTemplate, promptTagCap]);
 
     const generateCategory = useCallback(
         async (

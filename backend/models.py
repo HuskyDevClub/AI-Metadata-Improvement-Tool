@@ -178,6 +178,7 @@ class SocrataConfigResponse(BaseModel):
     defaultDomain: str
     enableOAuth: bool
     enableConfigSave: bool
+    promptTagCap: int
 
 
 class SocrataDomainRequest(BaseModel):

@@ -22,6 +22,7 @@ from .config import (
     normalize_socrata_domain,
     resolve_socrata_domain,
     socrata_base_url,
+    PROMPT_TAG_CAP,
 )
 from .models import (
     ColumnStats,
@@ -71,6 +72,7 @@ async def socrata_config(request: Request) -> SocrataConfigResponse:
         defaultDomain=SOCRATA_DOMAIN,
         enableOAuth=ENABLE_SOCRATA_OAUTH,
         enableConfigSave=ENABLE_CONFIG_SAVE,
+        promptTagCap=PROMPT_TAG_CAP,
     )
 
 
@@ -96,6 +98,7 @@ async def set_socrata_config(
             defaultDomain=SOCRATA_DOMAIN,
             enableOAuth=ENABLE_SOCRATA_OAUTH,
             enableConfigSave=ENABLE_CONFIG_SAVE,
+            promptTagCap=PROMPT_TAG_CAP,
         )
 
     domain = normalize_socrata_domain(raw)
@@ -118,6 +121,7 @@ async def set_socrata_config(
         defaultDomain=SOCRATA_DOMAIN,
         enableOAuth=ENABLE_SOCRATA_OAUTH,
         enableConfigSave=ENABLE_CONFIG_SAVE,
+        promptTagCap=PROMPT_TAG_CAP,
     )
 
 

@@ -229,6 +229,8 @@ export interface SocrataConfig {
      * buttons are exposed (gated by ENABLE_CONFIG_SAVE). Defaults to false.
      */
     enableConfigSave: boolean;
+    /** How many portal tags to fetch for AI context */
+    promptTagCap: number;
 }
 
 function parseSocrataConfig(result: unknown): SocrataConfig {
@@ -239,6 +241,7 @@ function parseSocrataConfig(result: unknown): SocrataConfig {
         defaultDomain: String(data.defaultDomain || domain || ''),
         enableOAuth: data.enableOAuth === true,
         enableConfigSave: data.enableConfigSave === true,
+        promptTagCap: Number(data.promptTagCap) || 100,
     };
 }
 
