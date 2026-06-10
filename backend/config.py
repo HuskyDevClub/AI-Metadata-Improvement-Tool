@@ -130,6 +130,19 @@ ENABLE_SOCRATA_OAUTH = _env_bool("ENABLE_SOCRATA_OAUTH", False)
 # rebuild (the frontend reads it from /api/socrata/config).
 ENABLE_CONFIG_SAVE = os.getenv("ENABLE_CONFIG_SAVE", "false").lower() == "true"
 
+# How many existing portal tags the frontend offers the LLM in the Tags
+# generation prompt (most popular first). Higher values let the model reach
+# less-common tags at the cost of a larger prompt. The frontend reads it from
+# /api/socrata/config, so changing it needs a restart but no frontend rebuild.
+try:
+    PROMPT_TAG_CAP = int(os.getenv("PROMPT_TAG_CAP", "100"))
+except ValueError as exc:
+    raise RuntimeError("PROMPT_TAG_CAP must be a positive integer") from exc
+if PROMPT_TAG_CAP <= 0:
+    raise RuntimeError("PROMPT_TAG_CAP must be a positive integer")
+# The tags endpoint never serves more than 2,000 tags, so higher caps are moot.
+PROMPT_TAG_CAP = min(PROMPT_TAG_CAP, 2000)
+
 # --- LLM -------------------------------------------------------------------
 LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
