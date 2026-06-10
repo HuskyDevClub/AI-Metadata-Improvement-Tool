@@ -1016,14 +1016,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const sampleRows = buildSampleRows(data);
         const sampleCount = String(getSampleCount(data));
         const effectiveRowCount = rowCountOverride ?? data.length;
+        // The original imported description (if any) is fed back as REFERENCE
+        // context so generation can reuse human domain knowledge — acronym
+        // meanings, methodology — that isn't inferable from the data. We use the
+        // import baseline (initialResults), never the live value, so an AI draft
+        // can't loop back in as its own "human reference". Templates without the
+        // {existingDescription} token (row label, title, category) ignore it.
+        const existingDescription = initialResults?.datasetDescription ?? '';
         const prompt = template
             .replace('{fileName}', sanitizeInline(name))
             .replace('{rowCount}', String(effectiveRowCount))
             .replace('{columnInfo}', sanitizeUntrusted(columnInfo))
             .replace('{sampleRows}', sanitizeUntrusted(sampleRows))
+            .replace('{existingDescription}', () => sanitizeUntrusted(existingDescription) || '(no existing description provided)')
             .replace('{sampleCount}', sampleCount);
         return appendPromptModifiers(prompt, modifier, customInstruction);
-    }, [buildColumnInfo]);
+    }, [buildColumnInfo, initialResults]);
 
     const buildDatasetPrompt = useCallback((
             data: CsvRow[],
@@ -1069,6 +1077,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const completenessPercent = info.totalCount > 0
             ? ((nonNullCount / info.totalCount) * 100).toFixed(1)
             : '0.0';
+        // This column's original imported description, fed back as REFERENCE
+        // context (acronym/code meanings, units, methodology). Sourced from the
+        // import baseline so a generated draft never re-enters as its own
+        // "human reference". Most columns have none — hence the placeholder.
+        const existingDescription = initialResults?.columnDescriptions[columnName] ?? '';
         const prompt = template
             .replace(/\{columnName}/g, sanitizeInline(columnName))
             .replace('{datasetDescription}', sanitizeUntrusted(datasetDesc))
@@ -1078,9 +1091,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             .replace('{rowCount}', String(info.totalCount))
             .replace('{completenessPercent}', completenessPercent)
             .replace('{sampleValues}', sanitizeUntrusted(sampleValues))
+            .replace('{existingDescription}', () => sanitizeUntrusted(existingDescription) || '(no existing description provided)')
             .replace('{nullCount}', String(info.nullCount));
         return appendPromptModifiers(prompt, modifier, customInstruction);
-    }, []);
+    }, [initialResults]);
 
     const buildColumnPrompt = useCallback((
             columnName: string,

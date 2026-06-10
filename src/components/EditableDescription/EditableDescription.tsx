@@ -80,7 +80,7 @@ export function EditableDescription({
 
     const handleCustomApply = () => {
         if (customInstruction.trim()) {
-            onRegenerate('', customInstruction, refineSource);
+            onRegenerate('', customInstruction, transformSource);
             setCustomInstruction('');
         }
     };
@@ -114,18 +114,23 @@ export function EditableDescription({
     const cls = compact ? 'ed ed-compact' : 'ed';
 
     const hasPending = pendingDescription !== null;
-    // When the user iterates from the compare view, refine the candidate they're
-    // reviewing instead of the saved description (or a fresh generation).
-    const refineSource = hasPending && pendingDescription ? pendingDescription : undefined;
+    // Primary button source: when reviewing a compare-view candidate, refine that
+    // draft; otherwise leave undefined so the primary button generates fresh from
+    // the dataset (Generate when pristine, Regenerate once it has diverged).
+    const draftSource = hasPending && pendingDescription ? pendingDescription : undefined;
+    // Transform controls (Concise / Detailed / Custom / Suggest) act on existing
+    // text, never a from-scratch regeneration: the draft if one is under review,
+    // otherwise the current saved/human description. This lets a publisher tighten
+    // or expand the metadata they already have, not just AI-generated drafts.
+    const transformSource = draftSource ?? (description.trim() ? description : undefined);
     // On a fresh import the description still matches the value loaded from the
     // dataset (canReset only flips once it diverges), so nothing has been
     // AI-generated yet. Label the controls "Generate" rather than the confusing
     // "Regenerate / Again", matching the sibling category/tags/period controls.
     const isPristine = !hasPending && !canReset;
     // With no text to work from, the modifier/suggest/custom controls have
-    // nothing to act on — show only the Generate button. (When reviewing a
-    // pending draft the buttons target that draft, so check it instead.)
-    const isEmpty = ((refineSource ?? description) || '').trim() === '';
+    // nothing to act on — show only the Generate button.
+    const isEmpty = !transformSource;
 
     const suggestionsPanel = (suggestions.length > 0 || isSuggesting) && (
         <div className="ed-suggestions">
@@ -239,11 +244,11 @@ export function EditableDescription({
                     <div className="ed-apply-suggestions-row">
                         <button
                             className="btn btn-primary btn-md ed-btn-apply"
-                            onClick={ () => onApplySuggestions?.(refineSource) }
+                            onClick={ () => onApplySuggestions?.(transformSource) }
                             disabled={ isBusy || suggestions.filter(s => s.selected).length === 0 }
-                            title={ refineSource
+                            title={ draftSource
                                 ? 'Refine the new draft using selected suggestions'
-                                : 'Regenerate description using selected suggestions' }
+                                : 'Improve the description using selected suggestions' }
                         >
                             Apply Suggestions
                         </button>
@@ -262,31 +267,31 @@ export function EditableDescription({
             ) : (
                 <>
                     <button className="btn btn-secondary btn-md"
-                            onClick={ () => onRegenerate('', undefined, refineSource) }
+                            onClick={ () => onRegenerate('', undefined, draftSource) }
                             disabled={ isBusy }
-                            title={ refineSource ? 'Rephrase the new draft' : isPristine ? 'Generate a description' : 'Regenerate from scratch' }>{ refineSource ? 'Refine' : isPristine ? 'Generate' : 'Regenerate' }
+                            title={ draftSource ? 'Rephrase the new draft' : isPristine ? 'Generate a description' : 'Regenerate from scratch' }>{ draftSource ? 'Refine' : isPristine ? 'Generate' : 'Regenerate' }
                     </button>
                     { !isEmpty && (
                         <>
                             <button
                                 className="btn btn-secondary btn-md ed-btn-concise"
-                                onClick={ () => onRegenerate('concise', undefined, refineSource) }
+                                onClick={ () => onRegenerate('concise', undefined, transformSource) }
                                 disabled={ isBusy }
-                                title={ refineSource ? 'Make the new draft more concise' : 'Make more concise' }
+                                title={ draftSource ? 'Make the new draft more concise' : 'Make more concise' }
                             >Concise
                             </button>
                             <button
                                 className="btn btn-secondary btn-md ed-btn-detailed"
-                                onClick={ () => onRegenerate('detailed', undefined, refineSource) }
+                                onClick={ () => onRegenerate('detailed', undefined, transformSource) }
                                 disabled={ isBusy }
-                                title={ refineSource ? 'Make the new draft more detailed' : 'Make more detailed' }
+                                title={ draftSource ? 'Make the new draft more detailed' : 'Make more detailed' }
                             >Detailed
                             </button>
                             <button
                                 className="btn btn-secondary btn-md ed-btn-suggest"
-                                onClick={ () => onSuggestImprovement(refineSource) }
+                                onClick={ () => onSuggestImprovement(transformSource) }
                                 disabled={ isBusy }
-                                title={ refineSource
+                                title={ draftSource
                                     ? 'Get AI suggestions to improve the new draft'
                                     : 'Get AI suggestions to improve the current description' }
                             >{ isSuggesting ? (
