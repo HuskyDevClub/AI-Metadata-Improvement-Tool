@@ -151,18 +151,6 @@ export function parseTagsFromResponse(text: string): string[] {
     return tags;
 }
 
-// Enforce that generated tags come ONLY from the portal's existing vocabulary.
-// The tags' prompt instructs the model to pick from the supplied list, but this is
-// the hard guarantee: any tag the model invented or reworded is dropped. Matching
-// is case-insensitive; order from the model (its consolidated ranking) is kept.
-// When `allowed` is empty (e.g., the portal tag list failed to load), we cannot
-// enforce membership, so the tags pass through unfiltered as a graceful fallback.
-export function filterToAllowedTags(tags: string[], allowed: string[]): string[] {
-    if (allowed.length === 0) return tags;
-    const allowedSet = new Set(allowed.map((t) => t.toLowerCase()));
-    return tags.filter((t) => allowedSet.has(t.toLowerCase()));
-}
-
 export function buildNumberedCategoryList(categories: string[]): string {
     return categories.map((c, i) => `${ i + 1 }. ${ c }`).join('\n');
 }

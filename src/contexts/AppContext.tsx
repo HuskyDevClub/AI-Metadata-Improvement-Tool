@@ -57,13 +57,13 @@ import {
     DEFAULT_ROW_LABEL_PROMPT,
     DEFAULT_SYSTEM_PROMPT,
     DEFAULT_TAGS_PROMPT,
-    filterToAllowedTags,
     parseCategoryIndex,
     parseTagsFromResponse,
     sanitizeInline,
     sanitizeUntrusted,
     type SuggestionItem,
 } from '@/utils/prompts';
+import { resolveTagsAgainstVocabulary } from '@/utils/tagOverlap';
 import type {
     APIConfig,
     ColumnInfo,
@@ -1291,12 +1291,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             let fullContent = '';
             const result = await callOpenAIStream(prompt, openaiConfig, promptTemplates.systemPrompt, (chunk) => {
                 fullContent += chunk;
-                // Keep only existing-vocabulary tags as they stream in, so the UI
-                // never flashes an invented tag the final result will drop.
-                onPartial(filterToAllowedTags(parseTagsFromResponse(fullContent), tagList));
+                // Resolve to existing-vocabulary tags as they stream in, so the UI
+                // never flashes an invented or overlapping tag the final result will drop.
+                onPartial(resolveTagsAgainstVocabulary(parseTagsFromResponse(fullContent), tagList));
             }, (abortControllerRef.current = new AbortController()).signal);
             addTokenUsage(result.usage);
-            const finalTags = filterToAllowedTags(parseTagsFromResponse(fullContent), tagList);
+            const finalTags = resolveTagsAgainstVocabulary(parseTagsFromResponse(fullContent), tagList);
             onPartial(finalTags);
             return { tags: finalTags };
         },

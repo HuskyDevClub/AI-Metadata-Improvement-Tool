@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import re
 import time
 from typing import Any
 
@@ -697,7 +698,12 @@ async def socrata_export(
 
 
 async def _fetch_socrata_categories(domain: str) -> list[str]:
-    """Fetch the live domain category list from Socrata's public catalog API."""
+    """Fetch the live domain category list from Socrata's public catalog API.
+
+    The catalog reports every spelling currently stamped on assets, so a
+    renamed/recased category shows up twice ("Health" and "health"). Collapses
+    case variants to the most-used spelling, then returns the list alphabetically.
+    """
     url = f"https://{SOCRATA_CATALOG_DOMAIN}/api/catalog/v1/domain_categories"
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.get(url, params={"domains": domain})
@@ -705,16 +711,29 @@ async def _fetch_socrata_categories(domain: str) -> list[str]:
         data = resp.json()
 
     results = data.get("results") or []
-    seen: set[str] = set()
-    categories: list[str] = []
+    pairs: list[tuple[str, int]] = []
     for entry in results:
         raw = entry.get("domain_category") or entry.get("category")
         if not raw:
             continue
         name = str(raw).strip()
-        if not name or name in seen:
+        if not name:
             continue
-        seen.add(name)
+        try:
+            count = int(entry.get("count") or 0)
+        except (TypeError, ValueError):
+            count = 0
+        pairs.append((name, count))
+    # Sort by usage first so the winner of each case-duplicate family is the
+    # most-used spelling (ties break deterministically, uppercase first).
+    pairs.sort(key=lambda p: (-p[1], p[0]))
+    seen: set[str] = set()
+    categories: list[str] = []
+    for name, _ in pairs:
+        key = name.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
         categories.append(name)
     categories.sort(key=str.casefold)
     return categories
@@ -800,10 +819,67 @@ async def socrata_categories(request: Request) -> SocrataCategoriesResponse:
     return SocrataCategoriesResponse(categories=categories)
 
 
+# The portal tag vocabulary is a folksonomy, so it accumulates morphological
+# variants of the same concept ("school"/"schools", "license"/"licensing"). The
+# catalog search engine already stems queries, so variants add no search value —
+# they only fragment tag-based grouping and tempt the LLM into returning
+# overlapping tags. We therefore collapse each variant family to its most-used
+# member before anyone (LLM prompt or autocomplete) sees the list.
+#
+# _stem_tag_token is a deliberately naive suffix stripper tuned for tag
+# vocabularies: a missed merge is harmless (same as today), while a false merge
+# would hide a real tag, so every rule is guarded to stay conservative.
+# MUST stay in sync with stemTagToken in src/utils/tagOverlap.ts, which applies
+# the same collapsing to the LLM's output.
+def _stem_tag_token(token: str) -> str:
+    if token.endswith("ies") and len(token) - 3 >= 3:
+        return token[:-3] + "y"
+    # Plural family first ("crossings" -> "crossing"), then -ing/-ed on the
+    # result ("crossing" -> "cross"), so stemming a plural matches stemming
+    # its singular.
+    if token.endswith("sses"):
+        token = token[:-2]
+    elif token.endswith("ss"):
+        pass  # "class", "business" — final s is not a plural marker
+    elif (
+        token.endswith("es")
+        and len(token) - 2 >= 3
+        and token[:-2].endswith(("s", "x", "z", "sh", "ch"))
+    ):
+        # Epenthetic -es after a sibilant: "buses" -> "bus", "taxes" -> "tax".
+        # Elsewhere the e belongs to the stem ("wages" -> "wage", not "wag").
+        token = token[:-2]
+    elif token.endswith("s") and len(token) - 1 >= 3:
+        token = token[:-1]
+    for suffix, min_stem in (("ing", 3), ("ed", 4)):
+        if token.endswith(suffix) and len(token) - len(suffix) >= min_stem:
+            token = token[: -len(suffix)]
+            # Undouble "planning" -> "plann" -> "plan", but keep l/s/z doubles
+            # ("pass", "fall") whose final letter is part of the stem.
+            if (
+                len(token) >= 3
+                and token[-1] == token[-2]
+                and token[-1] not in "aeiouslz"
+            ):
+                token = token[:-1]
+            break
+    # Fold silent-e stems together ("license"/"licensing" -> "licens"), but only
+    # on longer words — at 4 letters this caused real collisions ("care" -> "car").
+    if len(token) >= 5 and token.endswith("e"):
+        token = token[:-1]
+    return token
+
+
+def _tag_stem_key(tag: str) -> str:
+    tokens = re.split(r"[^a-z0-9]+", tag.lower())
+    return " ".join(_stem_tag_token(t) for t in tokens if t)
+
+
 async def _fetch_socrata_tags(domain: str, category: str = "") -> list[str]:
     """Fetch the live tag list from Socrata's catalog, optionally scoped to a category.
 
-    Returns tags sorted by descending usage count, capped at _TAGS_MAX_RETURN.
+    Collapses morphological variants of the same tag to the most-used spelling,
+    then returns tags sorted by descending usage count, capped at _TAGS_MAX_RETURN.
     """
     url = f"https://{SOCRATA_CATALOG_DOMAIN}/api/catalog/v1/domain_tags"
     # Socrata's catalog API defaults to a 100-row page; request the full set so the
@@ -833,7 +909,17 @@ async def _fetch_socrata_tags(domain: str, category: str = "") -> list[str]:
             count = 0
         pairs.append((name, count))
     pairs.sort(key=lambda p: (-p[1], p[0]))
-    return [name for name, _ in pairs[:_TAGS_MAX_RETURN]]
+    # Keep only the most-used spelling of each variant family ("school" wins
+    # over "schools"). Sorting first makes the winner deterministic.
+    deduped: list[str] = []
+    seen_stems: set[str] = set()
+    for name, _ in pairs:
+        stem_key = _tag_stem_key(name) or name
+        if stem_key in seen_stems:
+            continue
+        seen_stems.add(stem_key)
+        deduped.append(name)
+    return deduped[:_TAGS_MAX_RETURN]
 
 
 @router.get("/tags", response_model=SocrataTagsResponse)
